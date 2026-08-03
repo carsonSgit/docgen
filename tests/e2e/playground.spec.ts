@@ -21,6 +21,13 @@ test("edits a title and completes a mocked export", async ({ page }) => {
   ).toHaveAttribute("href", "https://docs.google.com/document/d/e2e-doc/edit");
 });
 
+test("shows the image upload control in the toolbar", async ({ page }) => {
+  await page.goto("/");
+  await expect(
+    page.getByRole("button", { name: "Insert image" }),
+  ).toBeVisible();
+});
+
 test("requires confirmation before reset", async ({ page }) => {
   await page.goto("/");
   await page.getByLabel("Document title").fill("Keep this title");
