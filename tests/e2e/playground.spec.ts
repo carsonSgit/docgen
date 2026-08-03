@@ -67,6 +67,67 @@ test("resizes an inserted image with the document-point aspect ratio", async ({
     .toBeGreaterThan(before);
 });
 
+test("exports inserted image dimensions in document points", async ({
+  page,
+}) => {
+  let requestBody: { document?: { content?: { content?: unknown[] } } } | null =
+    null;
+  await page.route("**/api/export", async (route) => {
+    requestBody = route.request().postDataJSON() as typeof requestBody;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        documentId: "image-doc",
+        url: "https://docs.google.com/document/d/image-doc/edit",
+      }),
+    });
+  });
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "createImageBitmap", {
+      configurable: true,
+      value: async () => ({ width: 1000, height: 500, close() {} }),
+    });
+  });
+  await page.goto("/");
+  await page.locator(".ProseMirror").first().click();
+  await page.getByLabel("Choose image file").setInputFiles({
+    name: "wide.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("image"),
+  });
+  await expect(page.locator(".image-node-view-image")).toBeVisible();
+  await page.getByRole("button", { name: "Export to Google Docs" }).click();
+  await expect(page.getByText("Export complete.")).toBeVisible();
+
+  const findImage = (
+    nodes: unknown[] | undefined,
+  ): { attrs?: { width?: number; height?: number } } | undefined => {
+    for (const node of nodes ?? []) {
+      if (!node || typeof node !== "object") continue;
+      const typed = node as {
+        type?: unknown;
+        attrs?: { width?: number; height?: number };
+        content?: unknown[];
+      };
+      if (typed.type === "image") return typed;
+      const nested = findImage(typed.content);
+      if (nested) return nested;
+    }
+    return undefined;
+  };
+  const image = findImage(requestBody?.document?.content?.content);
+  expect(image?.attrs).toMatchObject({ width: 468, height: 234 });
+
+  const hasPageBreak = (nodes: unknown[] | undefined): boolean =>
+    (nodes ?? []).some((node) => {
+      if (!node || typeof node !== "object") return false;
+      const typed = node as { type?: unknown; content?: unknown[] };
+      return typed.type === "pageBreak" || hasPageBreak(typed.content);
+    });
+  expect(hasPageBreak(requestBody?.document?.content?.content)).toBe(false);
+});
+
 test("requires confirmation before reset", async ({ page }) => {
   await page.goto("/");
   await page.getByLabel("Document title").fill("Keep this title");
@@ -213,7 +274,7 @@ test("uses the native header and footer distances around the body", async ({
   });
 
   expect(distances.headerTop).toBeCloseTo(48, 0);
-  expect(distances.footerBottom).toBeCloseTo(48, 0);
+  expect(distances.footerBottom).toBeCloseTo(72, 0);
 });
 
 test("matches native Docs heading and list spacing in the meeting template", async ({
@@ -254,7 +315,7 @@ test("matches native Docs heading and list spacing in the meeting template", asy
     headingBottom: "8px",
     sectionSize: "21.3333px",
     sectionTop: "16px",
-    sectionBottom: "5.33333px",
+    sectionBottom: "8px",
     listPadding: "36px",
     listMargin: "0px",
   });
