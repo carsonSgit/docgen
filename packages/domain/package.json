@@ -1,0 +1,8 @@
+{
+  "name": "@document-playground/domain",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
