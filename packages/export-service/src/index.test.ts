@@ -209,7 +209,6 @@ describe("export service", () => {
             "pageSize,marginTop,marginBottom,marginLeft,marginRight,marginHeader,marginFooter",
         },
       },
-      { insertText: { location: { index: 1 }, text: "\n" } },
       {
         updateParagraphStyle: {
           range: { startIndex: 1, endIndex: 2 },

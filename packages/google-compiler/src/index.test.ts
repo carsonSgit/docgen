@@ -3,6 +3,25 @@ import { describe, expect, it } from "vitest";
 import { compileDocument, UnsupportedContentError } from "./index";
 
 describe("Google Docs compiler", () => {
+  it("uses the document's structural trailing newline for the final paragraph", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Hello" }] },
+      ],
+    };
+
+    const requests = compileDocument(document).requests;
+
+    expect(
+      requests.some(
+        (request) =>
+          "insertText" in request && request.insertText.text === "\n",
+      ),
+    ).toBe(false);
+  });
+
   it("compiles supported core content deterministically with native requests", () => {
     const document = createBlankDocument();
     document.title = "Export title";
@@ -149,7 +168,6 @@ describe("Google Docs compiler", () => {
       { insertText: { location: { index: 1 }, text: "First" } },
       { insertText: { location: { index: 6 }, text: "\n" } },
       { insertText: { location: { index: 7 }, text: "Second" } },
-      { insertText: { location: { index: 13 }, text: "\n" } },
       {
         updateParagraphStyle: {
           range: { startIndex: 1, endIndex: 14 },
@@ -234,7 +252,6 @@ describe("Google Docs compiler", () => {
         },
       },
       { insertText: { location: { index: 8 }, text: "After" } },
-      { insertText: { location: { index: 13 }, text: "\n" } },
       {
         updateParagraphStyle: {
           range: { startIndex: 1, endIndex: 14 },

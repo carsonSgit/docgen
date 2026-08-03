@@ -147,6 +147,27 @@ function assertSupported(node: TiptapNode, path: string): void {
   });
 }
 
+function removeFinalBodyParagraphBreak(
+  requests: GoogleDocsRequest[],
+  finalNode: TiptapNode | undefined,
+): void {
+  if (!finalNode || !["paragraph", "heading"].includes(finalNode.type)) {
+    return;
+  }
+  for (let index = requests.length - 1; index >= 0; index -= 1) {
+    const request = requests[index];
+    if (
+      request &&
+      "insertText" in request &&
+      request.insertText.text === "\n" &&
+      request.insertText.location.segmentId === undefined
+    ) {
+      requests.splice(index, 1);
+      return;
+    }
+  }
+}
+
 function markStyle(mark: {
   type: string;
   attrs?: Record<string, unknown>;
@@ -358,6 +379,7 @@ export function compileDocument(
     },
   ];
   compileNode(document.content, requests, { index: 1 }, imageUris);
+  removeFinalBodyParagraphBreak(requests, document.content.content?.at(-1));
   const compileSection = (section: TiptapNode | null) => {
     if (!section) return null;
     const sectionRequests: GoogleDocsRequest[] = [];
