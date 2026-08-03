@@ -398,12 +398,23 @@ button:disabled {
   box-shadow: 0 2px 12px rgb(0 0 0 / 12%);
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .page-header,
 .page-footer {
-  flex: 0 0 auto;
+  position: absolute;
+  right: 96px;
+  left: 96px;
   min-height: 1px;
+}
+
+.page-header {
+  top: 24px;
+}
+
+.page-footer {
+  bottom: 24px;
 }
 
 .page-header button,
