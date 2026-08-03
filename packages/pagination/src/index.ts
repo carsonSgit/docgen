@@ -51,7 +51,25 @@ function defaultMeasure(node: TiptapNode): number {
     );
   };
 
-  return DEFAULT_BLOCK_HEIGHT * Math.max(1, lineCount(node));
+  const imageHeight = (current: TiptapNode): number => {
+    if (current.type === "image") {
+      const height = current.attrs?.height;
+      return typeof height === "number" && Number.isFinite(height)
+        ? Math.max(1, height)
+        : 0;
+    }
+    return (
+      current.content?.reduce(
+        (maxHeight, child) => Math.max(maxHeight, imageHeight(child)),
+        0,
+      ) ?? 0
+    );
+  };
+
+  return Math.max(
+    DEFAULT_BLOCK_HEIGHT * Math.max(1, lineCount(node)),
+    imageHeight(node),
+  );
 }
 
 function splitNodeToFit(node: TiptapNode, maxHeight: number): TiptapNode[] {

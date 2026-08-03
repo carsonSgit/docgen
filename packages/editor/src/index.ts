@@ -1,7 +1,8 @@
-import type {
-  DocumentEnvelope,
-  ImageAttributes,
-  TiptapNode,
+import {
+  type DocumentEnvelope,
+  type ImageAttributes,
+  MAX_IMAGE_DIMENSION_POINTS,
+  type TiptapNode,
 } from "@document-playground/domain";
 import { Editor, Node } from "@tiptap/core";
 import Link from "@tiptap/extension-link";
@@ -60,6 +61,103 @@ function createImageExtension(resolveSource?: ImageSourceResolver) {
           height: attrs.height * (96 / 72),
         },
       ];
+    },
+
+    addNodeView() {
+      return ({ node, editor, getPos }) => {
+        let currentNode = node;
+        const wrapper = document.createElement("span");
+        wrapper.className = "image-node-view";
+        wrapper.contentEditable = "false";
+
+        const image = document.createElement("img");
+        image.className = "image-node-view-image";
+        const handle = document.createElement("span");
+        handle.className = "image-resize-handle";
+        handle.setAttribute("role", "slider");
+        handle.setAttribute("aria-label", "Resize image");
+        handle.setAttribute("tabindex", "0");
+        wrapper.append(image, handle);
+
+        const render = () => {
+          const attrs = currentNode.attrs as ImageAttributes;
+          image.src = resolveSource?.(attrs.assetId) ?? "";
+          image.alt = attrs.alt;
+          image.width = attrs.width * (96 / 72);
+          image.height = attrs.height * (96 / 72);
+        };
+        render();
+
+        let dragStartX = 0;
+        let dragStartWidth = 0;
+        let dragStartHeight = 0;
+        let dragging = false;
+
+        const stopDragging = () => {
+          if (!dragging) return;
+          dragging = false;
+          document.removeEventListener("mousemove", moveImage);
+          document.removeEventListener("mouseup", stopDragging);
+        };
+
+        const moveImage = (event: MouseEvent) => {
+          if (!dragging) return;
+          const width = Math.min(
+            MAX_IMAGE_DIMENSION_POINTS,
+            Math.max(
+              12,
+              dragStartWidth + (event.clientX - dragStartX) * (72 / 96),
+            ),
+          );
+          const height = width * (dragStartHeight / dragStartWidth);
+          const position = getPos();
+          if (typeof position !== "number") return;
+          editor.view.dispatch(
+            editor.state.tr.setNodeMarkup(position, undefined, {
+              ...currentNode.attrs,
+              width,
+              height,
+            }),
+          );
+        };
+
+        const startDragging = (event: MouseEvent) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const attrs = currentNode.attrs as ImageAttributes;
+          dragStartX = event.clientX;
+          dragStartWidth = attrs.width;
+          dragStartHeight = attrs.height;
+          dragging = true;
+          editor.commands.focus();
+          document.addEventListener("mousemove", moveImage);
+          document.addEventListener("mouseup", stopDragging);
+        };
+
+        handle.addEventListener("mousedown", startDragging);
+
+        return {
+          dom: wrapper,
+          selectNode() {
+            wrapper.classList.add("selected");
+          },
+          deselectNode() {
+            wrapper.classList.remove("selected");
+          },
+          update(nextNode) {
+            if (nextNode.type !== currentNode.type) return false;
+            currentNode = nextNode;
+            render();
+            return true;
+          },
+          stopEvent: (event) =>
+            event.type === "mousedown" || event.type === "mousemove",
+          destroy() {
+            stopDragging();
+            handle.removeEventListener("mousedown", startDragging);
+          },
+        };
+      };
     },
   });
 }

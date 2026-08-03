@@ -117,8 +117,9 @@ export async function exportDocument(
         imageUris.set(assetId, uploaded.uri);
       }
     } catch (error) {
+      const detail = error instanceof Error ? ` ${error.message}` : "";
       throw new ExportServiceError(
-        "Google image upload failed. Your local document was not changed; retry when the provider is available.",
+        `Google image upload failed.${detail} Your local document was not changed; retry when the provider is available.`,
         { cause: error },
       );
     }

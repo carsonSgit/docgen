@@ -77,4 +77,28 @@ describe("Google provider client", () => {
       expect.objectContaining({ method: "POST" }),
     );
   });
+
+  it("preserves the provider reason when image upload is rejected", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ error: { message: "Drive API is disabled" } }),
+          { status: 403 },
+        ),
+      );
+    const provider = createGoogleProviderClient({
+      accessToken: "token",
+      fetchImpl,
+    });
+
+    await expect(
+      provider.uploadImage?.({
+        assetId: "asset_fixture",
+        blob: new Blob(["fixture"], { type: "image/png" }),
+        mimeType: "image/png",
+        size: 7,
+      }),
+    ).rejects.toThrow("Google API request failed (403): Drive API is disabled");
+  });
 });
