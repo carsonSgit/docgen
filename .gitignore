@@ -41,6 +41,11 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Local Codex/Matt Pocock skill installation and repo-local skill metadata
+/.agents/
+/skills-lock.json
+/docs/agents/
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 
