@@ -139,4 +139,70 @@ describe("Google Docs compiler", () => {
       "Image asset asset_image is not available for export",
     );
   });
+
+  it("compiles header and footer in deterministic segment-local order", () => {
+    const document = createBlankDocument();
+    document.header = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          attrs: { textAlign: "center" },
+          content: [
+            { type: "text", text: "Header", marks: [{ type: "bold" }] },
+          ],
+        },
+      ],
+    };
+    document.footer = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          attrs: { textAlign: "right" },
+          content: [{ type: "text", text: "Footer" }],
+        },
+      ],
+    };
+
+    expect(compileDocument(document).sections).toEqual({
+      header: [
+        { insertText: { location: { index: 0 }, text: "Header" } },
+        {
+          updateTextStyle: {
+            range: { startIndex: 0, endIndex: 6 },
+            textStyle: { bold: true },
+            fields: "bold",
+          },
+        },
+        { insertText: { location: { index: 6 }, text: "\n" } },
+        {
+          updateParagraphStyle: {
+            range: { startIndex: 0, endIndex: 7 },
+            paragraphStyle: { alignment: "CENTER" },
+            fields: "alignment",
+          },
+        },
+      ],
+      footer: [
+        { insertText: { location: { index: 0 }, text: "Footer" } },
+        { insertText: { location: { index: 6 }, text: "\n" } },
+        {
+          updateParagraphStyle: {
+            range: { startIndex: 0, endIndex: 7 },
+            paragraphStyle: { alignment: "RIGHT" },
+            fields: "alignment",
+          },
+        },
+      ],
+    });
+  });
+
+  it("rejects unsupported header content before section compilation", () => {
+    const document = createBlankDocument();
+    document.header = { type: "doc", content: [{ type: "table" }] };
+
+    expect(() => compileDocument(document)).toThrow("header.content[0]");
+    expect(() => compileDocument(document)).toThrow("table");
+  });
 });
