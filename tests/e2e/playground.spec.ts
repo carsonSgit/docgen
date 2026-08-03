@@ -31,6 +31,44 @@ test("requires confirmation before reset", async ({ page }) => {
   );
 });
 
+test("cancelling template selection protects the current document", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Document title").fill("Keep this title");
+  await page.locator(".ProseMirror").first().fill("Keep this content");
+
+  await page.getByRole("button", { name: "New document" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("radio", { name: /Resume/ }).check();
+  await page.getByRole("button", { name: "Cancel" }).click();
+
+  await expect(page.getByLabel("Document title")).toHaveValue(
+    "Keep this title",
+  );
+  await expect(page.locator(".ProseMirror").first()).toContainText(
+    "Keep this content",
+  );
+});
+
+test("confirms a selected template and persists it after refresh", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Document title").fill("Replace this title");
+
+  await page.getByRole("button", { name: "New document" }).click();
+  await page.getByRole("radio", { name: /Meeting notes/ }).check();
+  await page.getByRole("button", { name: "Create document" }).click();
+
+  await expect(page.getByLabel("Document title")).toHaveValue("Meeting notes");
+  await expect(page.locator(".ProseMirror").first()).toContainText("Agenda");
+
+  await page.reload();
+  await expect(page.getByLabel("Document title")).toHaveValue("Meeting notes");
+  await expect(page.locator(".ProseMirror").first()).toContainText("Agenda");
+});
+
 test("edits across automatically paginated editor pages", async ({ page }) => {
   await page.goto("/");
   const editor = page.locator(".ProseMirror").first();

@@ -123,6 +123,7 @@ export const DocumentTemplateSchema = z
   .object({
     id: DocumentTemplateIdSchema,
     name: z.string().trim().min(1),
+    description: z.string().trim().min(1),
     version: z.literal(TEMPLATE_VERSION),
     document: DocumentEnvelopeSchema,
   })
@@ -152,12 +153,14 @@ const templateDefinitions: readonly DocumentTemplate[] = [
   {
     id: "blank",
     name: "Blank",
+    description: "Start with an empty document.",
     version: TEMPLATE_VERSION,
     document: createBlankDocument(),
   },
   {
     id: "resume",
     name: "Resume",
+    description: "A polished starting point for your experience.",
     version: TEMPLATE_VERSION,
     document: templateDocument("Resume", [
       {
@@ -203,6 +206,7 @@ const templateDefinitions: readonly DocumentTemplate[] = [
   {
     id: "meeting-notes",
     name: "Meeting notes",
+    description: "Capture an agenda, notes, and action items.",
     version: TEMPLATE_VERSION,
     document: templateDocument("Meeting notes", [
       {
@@ -243,6 +247,7 @@ const templateDefinitions: readonly DocumentTemplate[] = [
   {
     id: "letter",
     name: "Letter",
+    description: "A simple structure for writing a letter.",
     version: TEMPLATE_VERSION,
     document: templateDocument("Letter", [
       { type: "paragraph", content: [{ type: "text", text: "Date" }] },
@@ -286,11 +291,13 @@ export function parseDocumentTemplate(input: unknown): DocumentTemplate {
 export function listDocumentTemplates(): readonly {
   id: DocumentTemplateId;
   name: string;
+  description: string;
   version: typeof TEMPLATE_VERSION;
 }[] {
-  return BUILT_IN_TEMPLATES.map(({ id, name, version }) => ({
+  return BUILT_IN_TEMPLATES.map(({ id, name, description, version }) => ({
     id,
     name,
+    description,
     version,
   }));
 }
