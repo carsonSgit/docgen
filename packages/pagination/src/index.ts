@@ -20,17 +20,51 @@ export type NodeMeasurement = (node: TiptapNode) => number;
 export const PAGE_FRAGMENT_ATTR = "data-page-fragment";
 
 function defaultMeasure(node: TiptapNode): number {
+  if (node.type === "image") {
+    const height = node.attrs?.height;
+    return typeof height === "number" && Number.isFinite(height)
+      ? Math.max(1, height)
+      : DEFAULT_BLOCK_HEIGHT;
+  }
   if (node.type === "heading") {
     return HEADING_HEIGHT;
   }
 
-  const textLength =
-    node.content?.reduce(
-      (length, child) => length + (child.text?.length ?? 0),
-      0,
-    ) ?? 0;
+  const lineCount = (current: TiptapNode): number => {
+    if (current.type === "hardBreak") return 1;
+    if (current.text) return Math.max(1, Math.ceil(current.text.length / 90));
+    return (
+      current.content?.reduce((lines, child) => lines + lineCount(child), 0) ??
+      0
+    );
+  };
 
-  return DEFAULT_BLOCK_HEIGHT * Math.max(1, Math.ceil(textLength / 90));
+  return DEFAULT_BLOCK_HEIGHT * Math.max(1, lineCount(node));
+}
+
+function splitNodeToFit(node: TiptapNode, maxHeight: number): TiptapNode[] {
+  if (node.type !== "paragraph" || !node.content?.length) return [node];
+
+  const maxLines = Math.floor(maxHeight / DEFAULT_BLOCK_HEIGHT);
+  if (maxLines < 1) return [node];
+
+  const fragments: TiptapNode[] = [];
+  let content: TiptapNode[] = [];
+  let lines = 0;
+  for (const child of node.content) {
+    const childLines = Math.max(1, Math.ceil((child.text?.length ?? 0) / 90));
+    const nextLines =
+      child.type === "hardBreak" ? lines + 1 : lines + childLines;
+    if (content.length > 0 && nextLines > maxLines) {
+      fragments.push({ ...node, content });
+      content = [];
+      lines = 0;
+    }
+    content.push(child);
+    lines += child.type === "hardBreak" ? 1 : childLines;
+  }
+  if (content.length > 0) fragments.push({ ...node, content });
+  return fragments.length > 0 ? fragments : [node];
 }
 
 function splitTextNode(
@@ -111,11 +145,16 @@ export function paginateDocument(
 
     let remainingNode: TiptapNode | null = node;
     while (remainingNode) {
-      const fragments = splitTextNode(
+      const textFragments = splitTextNode(
         remainingNode,
         remainingHeight,
         String(nodeIndex),
       );
+      const fragments =
+        textFragments.length === 1 &&
+        measureNode(textFragments[0] ?? remainingNode) > remainingHeight
+          ? splitNodeToFit(remainingNode, remainingHeight)
+          : textFragments;
       const fragment = fragments[0];
       if (!fragment) break;
       const height = Math.max(1, measureNode(fragment));
