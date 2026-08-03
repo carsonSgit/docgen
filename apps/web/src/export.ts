@@ -15,6 +15,12 @@ type FetchLike = (
   init?: RequestInit,
 ) => Promise<Response>;
 
+export type ExportRequestAsset = {
+  assetId: string;
+  mimeType: string;
+  data: string;
+};
+
 export class ExportAuthorizationRequiredError extends Error {
   constructor(readonly authorizationUrl: string) {
     super("Google authorization is required.");
@@ -24,14 +30,18 @@ export class ExportAuthorizationRequiredError extends Error {
 
 export async function requestExport(
   document: DocumentEnvelope,
+  assetsOrFetch: ExportRequestAsset[] | FetchLike = [],
   fetchImpl: FetchLike = fetch,
 ): Promise<{ documentId: string; url: string }> {
+  const assets = typeof assetsOrFetch === "function" ? [] : assetsOrFetch;
+  const requestFetch =
+    typeof assetsOrFetch === "function" ? assetsOrFetch : fetchImpl;
   let response: Response;
   try {
-    response = await fetchImpl("/api/export", {
+    response = await requestFetch("/api/export", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ document }),
+      body: JSON.stringify({ document, assets }),
     });
   } catch (error) {
     throw new Error("Export could not connect to the local API.", {
