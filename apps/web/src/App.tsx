@@ -19,7 +19,11 @@ import {
   restoreDocument,
 } from "@document-playground/persistence";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ExportAuthorizationRequiredError, requestExport } from "./export";
+import {
+  ExportAuthorizationRequiredError,
+  type ExportRequestAsset,
+  requestExport,
+} from "./export";
 
 type CoreEditor = ReturnType<typeof createCoreEditor>;
 
@@ -242,7 +246,34 @@ export function App() {
     setExportState("loading");
     setExportError(null);
     try {
-      const result = await requestExport(documentRef.current);
+      const assetIds: string[] = [];
+      const collectImageIds = (
+        node: (typeof documentRef.current)["content"],
+      ): void => {
+        if (node.type === "image" && typeof node.attrs?.assetId === "string") {
+          if (!assetIds.includes(node.attrs.assetId))
+            assetIds.push(node.attrs.assetId);
+        }
+        node.content?.forEach(collectImageIds);
+      };
+      collectImageIds(documentRef.current.content);
+      const exportAssets: ExportRequestAsset[] = [];
+      for (const assetId of assetIds) {
+        const asset = await assetStorage.get(assetId);
+        if (!asset)
+          throw new Error(
+            `Image asset ${assetId} is missing. Restore the image and retry export.`,
+          );
+        const bytes = new Uint8Array(await asset.blob.arrayBuffer());
+        let binary = "";
+        for (const byte of bytes) binary += String.fromCharCode(byte);
+        exportAssets.push({
+          assetId,
+          mimeType: asset.mimeType,
+          data: btoa(binary),
+        });
+      }
+      const result = await requestExport(documentRef.current, exportAssets);
       setExportUrl(result.url);
       setExportState("success");
     } catch (error) {
