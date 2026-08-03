@@ -1,5 +1,10 @@
 {
   "name": "@document-playground/api",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@document-playground/export-service": "workspace:*",
+    "@document-playground/domain": "workspace:*",
+    "zod": "^4.0.0"
+  }
 }

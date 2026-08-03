@@ -30,6 +30,11 @@
     },
     "apps/api": {
       "name": "@document-playground/api",
+      "dependencies": {
+        "@document-playground/domain": "workspace:*",
+        "@document-playground/export-service": "workspace:*",
+        "zod": "^4.0.0",
+      },
     },
     "apps/web": {
       "name": "@document-playground/web",
@@ -47,6 +52,13 @@
       "name": "@document-playground/editor",
       "dependencies": {
         "@document-playground/domain": "workspace:*",
+      },
+    },
+    "packages/export-service": {
+      "name": "@document-playground/export-service",
+      "dependencies": {
+        "@document-playground/domain": "workspace:*",
+        "@document-playground/google-compiler": "workspace:*",
       },
     },
     "packages/google-compiler": {
@@ -142,6 +154,8 @@
     "@document-playground/domain": ["@document-playground/domain@workspace:packages/domain"],
 
     "@document-playground/editor": ["@document-playground/editor@workspace:packages/editor"],
+
+    "@document-playground/export-service": ["@document-playground/export-service@workspace:packages/export-service"],
 
     "@document-playground/google-compiler": ["@document-playground/google-compiler@workspace:packages/google-compiler"],
 
