@@ -7,6 +7,7 @@ import {
   type GoogleProviderClient,
 } from "@document-playground/export-service";
 import { z } from "zod";
+import { GoogleOAuthService } from "./google-oauth";
 import { createGoogleProviderClient } from "./google-provider";
 
 const port = Number(process.env.PORT ?? 3000);
@@ -16,15 +17,65 @@ const ExportRequestSchema = z.object({ document: z.unknown() }).strict();
 const defaultProvider = createGoogleProviderClient({
   accessToken: process.env.GOOGLE_ACCESS_TOKEN,
 });
+const oauthService = new GoogleOAuthService({
+  clientId: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  redirectUri:
+    process.env.GOOGLE_REDIRECT_URI ??
+    `http://localhost:${port}/api/auth/google/callback`,
+});
 
 export async function handleRequest(
   request: Request,
-  provider: GoogleProviderClient = defaultProvider,
+  provider?: GoogleProviderClient,
+  oauth: GoogleOAuthService = oauthService,
 ): Promise<Response> {
   const url = new URL(request.url);
 
   if (request.method === "GET" && url.pathname === "/health") {
     return Response.json({ status: "ok" });
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/auth/google") {
+    try {
+      return Response.redirect(oauth.startAuthorization(), 302);
+    } catch (error) {
+      return Response.json(
+        {
+          error:
+            error instanceof Error ? error.message : "OAuth is unavailable",
+        },
+        { status: 503 },
+      );
+    }
+  }
+
+  if (
+    request.method === "GET" &&
+    url.pathname === "/api/auth/google/callback"
+  ) {
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+    if (!code || !state)
+      return Response.json(
+        { error: "OAuth callback is missing code or state" },
+        { status: 400 },
+      );
+    try {
+      await oauth.completeAuthorization(code, state);
+      return Response.redirect(
+        process.env.WEB_ORIGIN ?? "http://localhost:5173/?oauth=success",
+        302,
+      );
+    } catch (error) {
+      return Response.json(
+        {
+          error:
+            error instanceof Error ? error.message : "OAuth callback failed",
+        },
+        { status: 400 },
+      );
+    }
   }
 
   if (request.method === "POST" && url.pathname === "/api/export") {
@@ -49,7 +100,38 @@ export async function handleRequest(
           );
         }
 
-        return exportDocument(document, provider)
+        if (
+          !provider &&
+          !oauth.hasAccessToken() &&
+          !process.env.GOOGLE_ACCESS_TOKEN
+        ) {
+          let authorizationUrl: string;
+          try {
+            authorizationUrl = oauth.startAuthorization();
+          } catch (error) {
+            return Response.json(
+              {
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "OAuth is unavailable",
+              },
+              { status: 503 },
+            );
+          }
+          return Response.json(
+            { error: "Google authorization required", authorizationUrl },
+            { status: 401 },
+          );
+        }
+
+        return exportDocument(
+          document,
+          provider ??
+            (process.env.GOOGLE_ACCESS_TOKEN
+              ? defaultProvider
+              : oauth.provider()),
+        )
           .then((result) => Response.json(result))
           .catch((error: unknown) =>
             Response.json(

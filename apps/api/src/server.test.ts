@@ -1,6 +1,7 @@
 import { createBlankDocument } from "@document-playground/domain";
 import type { GoogleProviderClient } from "@document-playground/export-service";
 import { describe, expect, it } from "vitest";
+import { GoogleOAuthService } from "./google-oauth";
 import { handleRequest } from "./server";
 
 describe("API", () => {
@@ -41,5 +42,22 @@ describe("API", () => {
       documentId: "new-doc",
       url: "https://docs.google.com/document/d/new-doc/edit",
     });
+  });
+
+  it("starts OAuth only when an export needs authorization", async () => {
+    const oauth = new GoogleOAuthService({
+      clientId: "client",
+      clientSecret: "secret",
+      redirectUri: "http://localhost/callback",
+      stateFactory: () => "state",
+    });
+    const response = await handleRequest(
+      new Request("http://localhost/api/auth/google"),
+      undefined,
+      oauth,
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toContain("state=state");
   });
 });
