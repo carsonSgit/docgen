@@ -82,4 +82,34 @@ describe("API", () => {
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toContain("state=state");
   });
+
+  it("rejects unsupported content before requiring authorization", async () => {
+    const oauth = new GoogleOAuthService({
+      clientId: "client",
+      clientSecret: "secret",
+      redirectUri: "http://localhost/callback",
+      stateFactory: () => "state",
+      tokenStore: {
+        load: () => undefined,
+        save: () => undefined,
+        clear: () => undefined,
+      },
+    });
+    const document = createBlankDocument();
+    document.content = { type: "doc", content: [{ type: "table" }] };
+    const response = await handleRequest(
+      new Request("http://localhost/api/export", {
+        method: "POST",
+        body: JSON.stringify({ document, assets: [] }),
+        headers: { "content-type": "application/json" },
+      }),
+      undefined,
+      oauth,
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("table"),
+    });
+  });
 });

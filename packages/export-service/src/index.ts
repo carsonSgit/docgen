@@ -41,11 +41,64 @@ export class ExportServiceError extends Error {
   }
 }
 
+/** Validates all local inputs before OAuth or any remote write is attempted. */
+export function preflightExport(
+  document: DocumentEnvelope,
+  assets: ReadonlyMap<string, ExportImageAsset> = new Map(),
+): void {
+  const imageIds: string[] = [];
+  const collectImages = (node: DocumentEnvelope["content"]): void => {
+    if (node.type === "image") {
+      const assetId = node.attrs?.assetId;
+      if (typeof assetId === "string" && !imageIds.includes(assetId))
+        imageIds.push(assetId);
+    }
+    node.content?.forEach(collectImages);
+  };
+  collectImages(document.content);
+  for (const assetId of imageIds) {
+    const asset = assets.get(assetId);
+    if (!asset)
+      throw new ExportServiceError(
+        `Image asset ${assetId} is missing. Restore the image locally and retry export.`,
+      );
+    if (
+      !EXPORT_IMAGE_MIME_TYPES.includes(asset.mimeType) ||
+      asset.blob.type !== asset.mimeType
+    ) {
+      throw new ExportServiceError(
+        `Image asset ${assetId} has an unsupported image format (${asset.mimeType}).`,
+      );
+    }
+    if (asset.size !== asset.blob.size || asset.size > EXPORT_IMAGE_MAX_BYTES) {
+      throw new ExportServiceError(
+        `Image asset ${assetId} is invalid or exceeds the 10 MB size limit.`,
+      );
+    }
+  }
+  try {
+    compileDocument(
+      document,
+      new Map(
+        imageIds.map((assetId) => [assetId, "https://placeholder.invalid"]),
+      ),
+    );
+  } catch (error) {
+    throw new ExportServiceError(
+      error instanceof Error
+        ? error.message
+        : "The document could not be compiled for export.",
+      { cause: error },
+    );
+  }
+}
+
 export async function exportDocument(
   document: DocumentEnvelope,
   provider: GoogleProviderClient,
   assets: ReadonlyMap<string, ExportImageAsset> = new Map(),
 ): Promise<ExportResult> {
+  preflightExport(document, assets);
   const imageIds: string[] = [];
   const collectImages = (node: DocumentEnvelope["content"]): void => {
     if (node.type === "image") {

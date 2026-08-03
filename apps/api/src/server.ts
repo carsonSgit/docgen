@@ -6,6 +6,7 @@ import {
   type ExportImageAsset,
   exportDocument,
   type GoogleProviderClient,
+  preflightExport,
 } from "@document-playground/export-service";
 import { z } from "zod";
 import { GoogleOAuthService } from "./google-oauth";
@@ -45,6 +46,30 @@ const oauthService = new GoogleOAuthService({
     process.env.GOOGLE_REDIRECT_URI ??
     `http://localhost:${port}/api/auth/google/callback`,
 });
+
+async function exportResponse(
+  operation: Promise<{ documentId: string; url: string }>,
+  oauth: GoogleOAuthService,
+): Promise<Response> {
+  try {
+    return Response.json(await operation);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Export failed";
+    if (message.includes("Google authorization expired")) {
+      let authorizationUrl: string | undefined;
+      try {
+        authorizationUrl = oauth.startAuthorization();
+      } catch {
+        // Keep the provider reason when OAuth is not configured.
+      }
+      return Response.json(
+        { error: message, ...(authorizationUrl ? { authorizationUrl } : {}) },
+        { status: 401 },
+      );
+    }
+    return Response.json({ error: message }, { status: 502 });
+  }
+}
 
 export async function handleRequest(
   request: Request,
@@ -102,7 +127,7 @@ export async function handleRequest(
   if (request.method === "POST" && url.pathname === "/api/export") {
     return request
       .json()
-      .then((body) => {
+      .then(async (body) => {
         const parsed = ExportRequestSchema.safeParse(body);
         if (!parsed.success) {
           return Response.json(
@@ -134,11 +159,48 @@ export async function handleRequest(
           });
         }
 
-        if (
-          !provider &&
-          !oauth.hasAccessToken() &&
-          !process.env.GOOGLE_ACCESS_TOKEN
-        ) {
+        try {
+          preflightExport(document, assets);
+        } catch (error) {
+          return Response.json(
+            {
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Document is not exportable",
+            },
+            { status: 400 },
+          );
+        }
+
+        if (!provider && !process.env.GOOGLE_ACCESS_TOKEN) {
+          let accessToken: string | undefined;
+          try {
+            accessToken = await oauth.getAccessToken();
+          } catch (error) {
+            let authorizationUrl: string | undefined;
+            try {
+              authorizationUrl = oauth.startAuthorization();
+            } catch {
+              // The error below remains useful when OAuth is not configured.
+            }
+            return Response.json(
+              {
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "Google authorization expired. Authorize Google again and retry export.",
+                ...(authorizationUrl ? { authorizationUrl } : {}),
+              },
+              { status: 401 },
+            );
+          }
+          if (accessToken) {
+            return exportResponse(
+              exportDocument(document, oauth.provider(), assets),
+              oauth,
+            );
+          }
           let authorizationUrl: string;
           try {
             authorizationUrl = oauth.startAuthorization();
@@ -159,23 +221,10 @@ export async function handleRequest(
           );
         }
 
-        return exportDocument(
-          document,
-          provider ??
-            (process.env.GOOGLE_ACCESS_TOKEN
-              ? defaultProvider
-              : oauth.provider()),
-          assets,
-        )
-          .then((result) => Response.json(result))
-          .catch((error: unknown) =>
-            Response.json(
-              {
-                error: error instanceof Error ? error.message : "Export failed",
-              },
-              { status: 502 },
-            ),
-          );
+        return exportResponse(
+          exportDocument(document, provider ?? defaultProvider, assets),
+          oauth,
+        );
       })
       .catch(() =>
         Response.json(

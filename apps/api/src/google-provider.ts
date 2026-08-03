@@ -12,11 +12,26 @@ type FetchLike = (
   init?: RequestInit,
 ) => Promise<Response>;
 
+const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
+
+class GoogleProviderError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    options?: { cause?: unknown },
+  ) {
+    super(message, options);
+    this.name = "GoogleProviderError";
+  }
+}
+
 export function createGoogleProviderClient(options: {
   accessToken: string | undefined;
   fetchImpl?: FetchLike;
+  retryDelayMs?: number;
 }): GoogleProviderClient {
   const fetchImpl = options.fetchImpl ?? fetch;
+  const retryDelayMs = options.retryDelayMs ?? 100;
   if (!options.accessToken) {
     return {
       async createDocument() {
@@ -41,25 +56,38 @@ export function createGoogleProviderClient(options: {
     input: RequestInfo | URL,
     init: RequestInit,
   ): Promise<unknown> {
-    const response = await fetchImpl(input, {
-      ...init,
-      headers: {
-        authorization: `Bearer ${options.accessToken}`,
-        "content-type": "application/json",
-        ...init.headers,
-      },
-    });
-    const body: unknown = await response.json().catch(() => undefined);
-    if (!response.ok) {
+    for (let attempt = 0; ; attempt += 1) {
+      const response = await fetchImpl(input, {
+        ...init,
+        headers: {
+          authorization: `Bearer ${options.accessToken}`,
+          "content-type": "application/json",
+          ...init.headers,
+        },
+      });
+      const body: unknown = await response.json().catch(() => undefined);
+      if (response.ok) return body;
+      if (RETRYABLE_STATUS.has(response.status) && attempt < 2) {
+        const retryAfter = Number(response.headers.get("retry-after"));
+        const delay = Number.isFinite(retryAfter)
+          ? retryAfter * 1000
+          : retryDelayMs * 2 ** attempt;
+        if (delay > 0)
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.min(delay, 1000)),
+          );
+        continue;
+      }
       const detail =
         body && typeof body === "object" && "error" in body
           ? (body as { error?: { message?: unknown } }).error?.message
           : undefined;
-      throw new Error(
-        `Google API request failed (${response.status})${typeof detail === "string" ? `: ${detail}` : "."}`,
-      );
+      const message =
+        response.status === 401
+          ? "Google authorization expired or was revoked. Authorize Google again and retry export."
+          : `Google API request failed (${response.status})${typeof detail === "string" ? `: ${detail}` : "."}`;
+      throw new GoogleProviderError(message, response.status);
     }
-    return body;
   }
 
   return {

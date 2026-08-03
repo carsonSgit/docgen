@@ -19,7 +19,7 @@ export GOOGLE_REDIRECT_URI='http://localhost:3000/api/auth/google/callback'
 export WEB_ORIGIN='http://localhost:5173'
 ```
 
-The Export action starts the authorization redirect when no server-side token exists. The callback exchanges the code on the API server and stores the short-lived access token in the single-user server process. For a manual provider-only verification, a short-lived access token may be supplied directly instead:
+The Export action starts the authorization redirect when no server-side token exists. The callback exchanges the code on the API server and stores the access and refresh token in the server-only durable token file (mode `0600`, default `.data/google-oauth-token.json`). The access token is refreshed automatically after expiry; if the refresh token is revoked, export returns an authorization handoff. Set `GOOGLE_TOKEN_FILE` to choose another server-side path. For a manual provider-only verification, a short-lived access token may be supplied directly instead:
 
 ```sh
 export GOOGLE_ACCESS_TOKEN='your-test-account-access-token'

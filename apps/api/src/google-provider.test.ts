@@ -101,4 +101,45 @@ describe("Google provider client", () => {
       }),
     ).rejects.toThrow("Google API request failed (403): Drive API is disabled");
   });
+
+  it("retries transient Google failures with a bounded policy", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: { message: "busy" } }), {
+          status: 503,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ documentId: "doc-1" }), { status: 200 }),
+      );
+    const provider = createGoogleProviderClient({
+      accessToken: "token",
+      fetchImpl,
+      retryDelayMs: 0,
+    });
+
+    await expect(provider.createDocument("Title")).resolves.toEqual({
+      documentId: "doc-1",
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry authorization failures and explains recovery", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ error: { message: "invalid token" } }), {
+        status: 401,
+      }),
+    );
+    const provider = createGoogleProviderClient({
+      accessToken: "token",
+      fetchImpl,
+      retryDelayMs: 0,
+    });
+
+    await expect(provider.createDocument("Title")).rejects.toThrow(
+      "Google authorization expired or was revoked. Authorize Google again and retry export.",
+    );
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
 });
