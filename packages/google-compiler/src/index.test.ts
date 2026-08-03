@@ -23,6 +23,24 @@ describe("Google Docs compiler", () => {
 
     expect(result.title).toBe("Export title");
     expect(result.requests).toEqual([
+      {
+        updateDocumentStyle: {
+          documentStyle: {
+            pageSize: {
+              width: { magnitude: 612, unit: "PT" },
+              height: { magnitude: 792, unit: "PT" },
+            },
+            marginTop: { magnitude: 72, unit: "PT" },
+            marginBottom: { magnitude: 72, unit: "PT" },
+            marginLeft: { magnitude: 72, unit: "PT" },
+            marginRight: { magnitude: 72, unit: "PT" },
+            marginHeader: { magnitude: 36, unit: "PT" },
+            marginFooter: { magnitude: 36, unit: "PT" },
+          },
+          fields:
+            "pageSize,marginTop,marginBottom,marginLeft,marginRight,marginHeader,marginFooter",
+        },
+      },
       { insertText: { location: { index: 1 }, text: "Hello" } },
       {
         updateTextStyle: {
@@ -40,8 +58,11 @@ describe("Google Docs compiler", () => {
             lineSpacing: 115,
             spaceAbove: { magnitude: 12, unit: "PT" },
             spaceBelow: { magnitude: 4, unit: "PT" },
+            keepWithNext: true,
+            keepLinesTogether: true,
           },
-          fields: "namedStyleType,lineSpacing,spaceAbove,spaceBelow",
+          fields:
+            "namedStyleType,lineSpacing,spaceAbove,spaceBelow,keepWithNext,keepLinesTogether",
         },
       },
       {
@@ -107,6 +128,24 @@ describe("Google Docs compiler", () => {
     };
 
     expect(compileDocument(document).requests).toEqual([
+      {
+        updateDocumentStyle: {
+          documentStyle: {
+            pageSize: {
+              width: { magnitude: 612, unit: "PT" },
+              height: { magnitude: 792, unit: "PT" },
+            },
+            marginTop: { magnitude: 72, unit: "PT" },
+            marginBottom: { magnitude: 72, unit: "PT" },
+            marginLeft: { magnitude: 72, unit: "PT" },
+            marginRight: { magnitude: 72, unit: "PT" },
+            marginHeader: { magnitude: 36, unit: "PT" },
+            marginFooter: { magnitude: 36, unit: "PT" },
+          },
+          fields:
+            "pageSize,marginTop,marginBottom,marginLeft,marginRight,marginHeader,marginFooter",
+        },
+      },
       { insertText: { location: { index: 1 }, text: "First" } },
       { insertText: { location: { index: 6 }, text: "\n" } },
       { insertText: { location: { index: 7 }, text: "Second" } },
@@ -165,6 +204,24 @@ describe("Google Docs compiler", () => {
         new Map([["asset_image", "https://images.test/diagram.png"]]),
       ).requests,
     ).toEqual([
+      {
+        updateDocumentStyle: {
+          documentStyle: {
+            pageSize: {
+              width: { magnitude: 612, unit: "PT" },
+              height: { magnitude: 792, unit: "PT" },
+            },
+            marginTop: { magnitude: 72, unit: "PT" },
+            marginBottom: { magnitude: 72, unit: "PT" },
+            marginLeft: { magnitude: 72, unit: "PT" },
+            marginRight: { magnitude: 72, unit: "PT" },
+            marginHeader: { magnitude: 36, unit: "PT" },
+            marginFooter: { magnitude: 36, unit: "PT" },
+          },
+          fields:
+            "pageSize,marginTop,marginBottom,marginLeft,marginRight,marginHeader,marginFooter",
+        },
+      },
       { insertText: { location: { index: 1 }, text: "Before" } },
       {
         insertInlineImage: {

@@ -140,4 +140,28 @@ describe("pagination adapter", () => {
       content: [{ type: "image", attrs: { height: 120 } }],
     });
   });
+
+  it("keeps a heading with its following paragraph at a page boundary", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        ...Array.from({ length: 49 }, () => ({ type: "paragraph" })),
+        {
+          type: "heading",
+          attrs: { level: 2 },
+          content: [{ type: "text", text: "Heading" }],
+        },
+        { type: "paragraph", content: [{ type: "text", text: "Body" }] },
+      ],
+    };
+
+    const result = paginateDocument(document);
+
+    expect(result.pages).toHaveLength(2);
+    expect(result.pages[1]?.content[0]).toMatchObject({
+      type: "heading",
+      attrs: { level: 2 },
+    });
+  });
 });

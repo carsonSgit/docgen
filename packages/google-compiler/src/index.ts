@@ -1,6 +1,8 @@
 import {
   DOCUMENT_TYPOGRAPHY,
   type DocumentEnvelope,
+  FOOTER_DISTANCE_POINTS,
+  HEADER_DISTANCE_POINTS,
   parseDocumentEnvelope,
   type TiptapNode,
 } from "@document-playground/domain";
@@ -41,8 +43,11 @@ function paragraphStyle(node: TiptapNode) {
       lineSpacing: DOCUMENT_TYPOGRAPHY.lineSpacingPercent,
       spaceAbove: { magnitude: metrics.spaceAbovePoints, unit: "PT" },
       spaceBelow: { magnitude: metrics.spaceBelowPoints, unit: "PT" },
+      keepWithNext: true,
+      keepLinesTogether: true,
     },
-    fields: "namedStyleType,lineSpacing,spaceAbove,spaceBelow",
+    fields:
+      "namedStyleType,lineSpacing,spaceAbove,spaceBelow,keepWithNext,keepLinesTogether",
   };
 }
 
@@ -65,6 +70,12 @@ function textStyle(node: TiptapNode) {
 }
 
 export type GoogleDocsRequest =
+  | {
+      updateDocumentStyle: {
+        documentStyle: Record<string, unknown>;
+        fields: string;
+      };
+    }
   | { createHeader: { type: "DEFAULT" } }
   | { createFooter: { type: "DEFAULT" } }
   | { insertText: { location: Location; text: string } }
@@ -323,7 +334,29 @@ export function compileDocument(
   assertSupported(document.content, "content");
   if (document.header) assertSupported(document.header, "header");
   if (document.footer) assertSupported(document.footer, "footer");
-  const requests: GoogleDocsRequest[] = [];
+  const requests: GoogleDocsRequest[] = [
+    {
+      updateDocumentStyle: {
+        documentStyle: {
+          pageSize: {
+            width: { magnitude: document.page.width, unit: "PT" },
+            height: { magnitude: document.page.height, unit: "PT" },
+          },
+          marginTop: { magnitude: document.page.margins.top, unit: "PT" },
+          marginBottom: {
+            magnitude: document.page.margins.bottom,
+            unit: "PT",
+          },
+          marginLeft: { magnitude: document.page.margins.left, unit: "PT" },
+          marginRight: { magnitude: document.page.margins.right, unit: "PT" },
+          marginHeader: { magnitude: HEADER_DISTANCE_POINTS, unit: "PT" },
+          marginFooter: { magnitude: FOOTER_DISTANCE_POINTS, unit: "PT" },
+        },
+        fields:
+          "pageSize,marginTop,marginBottom,marginLeft,marginRight,marginHeader,marginFooter",
+      },
+    },
+  ];
   compileNode(document.content, requests, { index: 1 }, imageUris);
   const compileSection = (section: TiptapNode | null) => {
     if (!section) return null;

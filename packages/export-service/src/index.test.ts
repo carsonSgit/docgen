@@ -106,26 +106,29 @@ describe("export service", () => {
       assets.get("asset_b"),
     );
     expect(provider.createDocument).toHaveBeenCalledOnce();
-    expect(provider.batchUpdate).toHaveBeenCalledWith("image-doc", [
-      expect.objectContaining({
-        insertInlineImage: expect.objectContaining({
-          location: { index: 1 },
-          objectSize: {
-            width: { magnitude: 100, unit: "PT" },
-            height: { magnitude: 50, unit: "PT" },
-          },
+    expect(provider.batchUpdate).toHaveBeenCalledWith(
+      "image-doc",
+      expect.arrayContaining([
+        expect.objectContaining({
+          insertInlineImage: expect.objectContaining({
+            location: { index: 1 },
+            objectSize: {
+              width: { magnitude: 100, unit: "PT" },
+              height: { magnitude: 50, unit: "PT" },
+            },
+          }),
         }),
-      }),
-      expect.objectContaining({
-        insertInlineImage: expect.objectContaining({
-          location: { index: 2 },
-          objectSize: {
-            width: { magnitude: 200, unit: "PT" },
-            height: { magnitude: 75, unit: "PT" },
-          },
+        expect.objectContaining({
+          insertInlineImage: expect.objectContaining({
+            location: { index: 2 },
+            objectSize: {
+              width: { magnitude: 200, unit: "PT" },
+              height: { magnitude: 75, unit: "PT" },
+            },
+          }),
         }),
-      }),
-    ]);
+      ]),
+    );
   });
 
   it("rejects a missing image before any provider write", async () => {
@@ -188,6 +191,24 @@ describe("export service", () => {
       { createFooter: { type: "DEFAULT" } },
     ]);
     expect(provider.batchUpdate).toHaveBeenNthCalledWith(2, "section-doc", [
+      {
+        updateDocumentStyle: {
+          documentStyle: {
+            pageSize: {
+              width: { magnitude: 612, unit: "PT" },
+              height: { magnitude: 792, unit: "PT" },
+            },
+            marginTop: { magnitude: 72, unit: "PT" },
+            marginBottom: { magnitude: 72, unit: "PT" },
+            marginLeft: { magnitude: 72, unit: "PT" },
+            marginRight: { magnitude: 72, unit: "PT" },
+            marginHeader: { magnitude: 36, unit: "PT" },
+            marginFooter: { magnitude: 36, unit: "PT" },
+          },
+          fields:
+            "pageSize,marginTop,marginBottom,marginLeft,marginRight,marginHeader,marginFooter",
+        },
+      },
       { insertText: { location: { index: 1 }, text: "\n" } },
       {
         updateParagraphStyle: {
