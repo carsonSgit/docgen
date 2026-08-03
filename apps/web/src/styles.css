@@ -57,9 +57,10 @@ body {
 
 .page {
   box-sizing: border-box;
-  width: 612px;
-  height: 792px;
-  padding: 72px;
+  /* Document points become CSS pixels at 96 / 72. */
+  width: 816px;
+  height: 1056px;
+  padding: 96px;
   background: white;
   box-shadow: 0 2px 12px rgb(0 0 0 / 12%);
   display: flex;
@@ -76,9 +77,46 @@ body {
   min-height: 100%;
   outline: 0;
   cursor: text;
+  color: #202124;
+  font-family: Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.15;
 }
 
-.page footer {
-  color: #6b7280;
-  text-align: center;
+.editor > .ProseMirror p,
+.editor > .ProseMirror li p {
+  margin: 0;
+}
+
+.editor > .ProseMirror h1,
+.editor > .ProseMirror h2,
+.editor > .ProseMirror h3,
+.editor > .ProseMirror h4,
+.editor > .ProseMirror h5,
+.editor > .ProseMirror h6 {
+  margin: 0;
+  line-height: 1.15;
+}
+
+.editor > .ProseMirror h1 {
+  font-size: 20pt;
+}
+
+.editor > .ProseMirror h2 {
+  font-size: 16pt;
+}
+
+.editor > .ProseMirror h3 {
+  font-size: 14pt;
+}
+
+.editor > .ProseMirror ul,
+.editor > .ProseMirror ol {
+  margin: 0;
+  padding-left: 36px;
+}
+
+.editor > .ProseMirror a {
+  color: #1155cc;
+  text-decoration: underline;
 }
