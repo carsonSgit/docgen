@@ -1,0 +1,36 @@
+{
+  "name": "document-playground",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently --names web,api --prefix-colors cyan,magenta \"bun run dev:web\" \"bun run dev:api\"",
+    "dev:web": "vite --config apps/web/vite.config.ts",
+    "dev:api": "bun run apps/api/src/server.ts",
+    "build": "vite build --config apps/web/vite.config.ts",
+    "typecheck": "tsc --build",
+    "test": "vitest run",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "knip": "knip"
+  },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.1.3",
+    "@types/bun": "^1.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^9.2.0",
+    "knip": "^5.62.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3",
+    "vitest": "^3.2.4"
+  }
+}
