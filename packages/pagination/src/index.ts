@@ -1,8 +1,8 @@
 import type { DocumentEnvelope, TiptapNode } from "@document-playground/domain";
 
 const CONTENT_HEIGHT = 648;
-const DEFAULT_BLOCK_HEIGHT = 24;
-const HEADING_HEIGHT = 32;
+const DEFAULT_BLOCK_HEIGHT = 15;
+const HEADING_HEIGHT = 24;
 
 export type PaginationPage = {
   number: number;

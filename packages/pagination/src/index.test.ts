@@ -7,7 +7,7 @@ describe("pagination adapter", () => {
     const document = createBlankDocument();
     document.content = {
       type: "doc",
-      content: Array.from({ length: 28 }, () => ({ type: "paragraph" })),
+      content: Array.from({ length: 44 }, () => ({ type: "paragraph" })),
     };
 
     const result = paginateDocument(document);
