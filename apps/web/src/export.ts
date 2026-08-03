@@ -7,10 +7,20 @@ const ExportResponseSchema = z.object({
 });
 
 const ExportErrorSchema = z.object({ error: z.string().min(1) });
+const AuthorizationRequiredSchema = ExportErrorSchema.extend({
+  authorizationUrl: z.string().url(),
+});
 type FetchLike = (
   input: RequestInfo | URL,
   init?: RequestInit,
 ) => Promise<Response>;
+
+export class ExportAuthorizationRequiredError extends Error {
+  constructor(readonly authorizationUrl: string) {
+    super("Google authorization is required.");
+    this.name = "ExportAuthorizationRequiredError";
+  }
+}
 
 export async function requestExport(
   document: DocumentEnvelope,
@@ -31,6 +41,12 @@ export async function requestExport(
 
   const payload: unknown = await response.json();
   if (!response.ok) {
+    const authorization = AuthorizationRequiredSchema.safeParse(payload);
+    if (authorization.success) {
+      throw new ExportAuthorizationRequiredError(
+        authorization.data.authorizationUrl,
+      );
+    }
     const parsed = ExportErrorSchema.safeParse(payload);
     throw new Error(parsed.success ? parsed.data.error : "Export failed.");
   }
