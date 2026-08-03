@@ -1,0 +1,11 @@
+{
+  "name": "@document-playground/editor",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@document-playground/domain": "workspace:*"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
