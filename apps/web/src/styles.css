@@ -287,8 +287,18 @@ button:disabled {
   background: #e8eaed;
 }
 
-.toolbar-button input[type="file"] {
-  display: none;
+.image-upload-button {
+  gap: 0.4rem;
+}
+
+.image-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
 }
 
 .template-dialog {
