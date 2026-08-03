@@ -191,6 +191,25 @@ export function normalizeDocument(input: unknown): DocumentEnvelope {
 }
 
 export function compileDocument(input: unknown): CompileResult {
+  // Unsupported content must produce the compiler's actionable error even
+  // when its node is malformed; schema validation remains the normal boundary.
+  const rawContent =
+    input && typeof input === "object" && "content" in input
+      ? (input as { content?: { content?: unknown[] } }).content?.content
+      : undefined;
+  const rejectUnsupportedRawNode = (node: unknown, path: string): void => {
+    if (!node || typeof node !== "object") return;
+    const typed = node as { type?: unknown; content?: unknown[] };
+    if (typeof typed.type === "string" && !supportedNodes.has(typed.type)) {
+      throw new UnsupportedContentError(path, typed.type);
+    }
+    typed.content?.forEach((child, index) => {
+      rejectUnsupportedRawNode(child, `${path}.content[${index}]`);
+    });
+  };
+  rawContent?.forEach((node, index) => {
+    rejectUnsupportedRawNode(node, `content.content[${index}]`);
+  });
   const document = normalizeDocument(input);
   assertSupported(document.content, "content");
   const requests: GoogleDocsRequest[] = [];
