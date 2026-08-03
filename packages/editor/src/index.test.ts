@@ -81,4 +81,44 @@ describe("core editor adapter", () => {
     });
     editor.destroy();
   });
+
+  it("resizes an image through its visible resize handle", () => {
+    const host = document.createElement("div");
+    const editor = createCoreEditor(host, {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "image",
+              attrs: {
+                assetId: "asset_original",
+                alt: "Photo",
+                width: 40,
+                height: 20,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const handle = host.querySelector(".image-resize-handle");
+    expect(handle).not.toBeNull();
+    handle?.dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, clientX: 100 }),
+    );
+    document.dispatchEvent(
+      new MouseEvent("mousemove", { bubbles: true, clientX: 140 }),
+    );
+    document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+
+    expect(
+      saveDocument(editor, createBlankDocument()).content.content?.[0],
+    ).toMatchObject({
+      content: [{ type: "image", attrs: { width: 70, height: 35 } }],
+    });
+    editor.destroy();
+  });
 });

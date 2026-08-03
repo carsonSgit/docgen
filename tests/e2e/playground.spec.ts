@@ -28,6 +28,45 @@ test("shows the image upload control in the toolbar", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("resizes an inserted image with the document-point aspect ratio", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "createImageBitmap", {
+      configurable: true,
+      value: async () => ({ width: 100, height: 100, close() {} }),
+    });
+  });
+  await page.goto("/");
+  await page.locator(".ProseMirror").click();
+  await page.getByLabel("Choose image file").setInputFiles({
+    name: "pixel.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
+
+  const image = page.locator(".image-node-view-image");
+  await expect(image).toBeVisible();
+  await image.hover();
+  const handle = page.getByRole("slider", { name: "Resize image" });
+  await expect(handle).toBeVisible();
+  const before = Number(await image.getAttribute("width"));
+  const box = await handle.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+  await page.mouse.move(box.x + 2, box.y + 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 42, box.y + 2);
+  await page.mouse.up();
+
+  await expect
+    .poll(async () => Number(await image.getAttribute("width")))
+    .toBeGreaterThan(before);
+});
+
 test("requires confirmation before reset", async ({ page }) => {
   await page.goto("/");
   await page.getByLabel("Document title").fill("Keep this title");
