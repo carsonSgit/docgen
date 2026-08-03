@@ -6,7 +6,7 @@ export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
 
 export type JsonObject = { [key: string]: JsonValue };
 
-export const DOCUMENT_VERSION = 1 as const;
+export const DOCUMENT_VERSION = 2 as const;
 export const TEMPLATE_VERSION = 1 as const;
 
 const TiptapMarkSchema = z.object({
@@ -39,6 +39,8 @@ const TiptapNodeSchema: z.ZodType<TiptapNode> = z.lazy(() =>
     .strict(),
 );
 
+const DocumentSectionSchema = TiptapNodeSchema;
+
 const PageLayoutSchema = z
   .object({
     size: z.literal("letter"),
@@ -55,14 +57,33 @@ const PageLayoutSchema = z
   })
   .strict();
 
-export const DocumentEnvelopeSchema = z
+const DocumentEnvelopeInputSchema = z
   .object({
     version: z.literal(DOCUMENT_VERSION),
     title: z.string().trim().min(1),
     page: PageLayoutSchema,
     content: TiptapNodeSchema,
+    header: DocumentSectionSchema.nullable().optional(),
+    footer: DocumentSectionSchema.nullable().optional(),
   })
   .strict();
+
+const DocumentEnvelopeV1Schema = z
+  .object({
+    version: z.literal(1),
+    title: z.string().trim().min(1),
+    page: PageLayoutSchema,
+    content: TiptapNodeSchema,
+  })
+  .strict();
+
+export const DocumentEnvelopeSchema = DocumentEnvelopeInputSchema.transform(
+  ({ header, footer, ...document }) => ({
+    ...document,
+    header: header ?? null,
+    footer: footer ?? null,
+  }),
+);
 
 export type DocumentEnvelope = z.infer<typeof DocumentEnvelopeSchema>;
 export type PageLayout = z.infer<typeof PageLayoutSchema>;
@@ -264,6 +285,7 @@ export function createDocumentFromTemplate(
 ): DocumentEnvelope {
   return getDocumentTemplate(id).document;
 }
+export type DocumentSection = z.infer<typeof DocumentSectionSchema>;
 
 export function createBlankDocument(): DocumentEnvelope {
   return {
@@ -276,13 +298,37 @@ export function createBlankDocument(): DocumentEnvelope {
       margins: { top: 72, right: 72, bottom: 72, left: 72 },
     },
     content: { type: "doc", content: [{ type: "paragraph" }] },
+    header: null,
+    footer: null,
   };
 }
 
 export function parseDocumentEnvelope(input: unknown): DocumentEnvelope {
-  return DocumentEnvelopeSchema.parse(input);
+  const current = DocumentEnvelopeSchema.safeParse(input);
+  if (current.success) {
+    return current.data;
+  }
+
+  const legacy = DocumentEnvelopeV1Schema.safeParse(input);
+  if (legacy.success) {
+    return {
+      ...legacy.data,
+      version: DOCUMENT_VERSION,
+      header: null,
+      footer: null,
+    };
+  }
+
+  throw current.error;
 }
 
 export function validateDocumentEnvelope(input: unknown) {
-  return DocumentEnvelopeSchema.safeParse(input);
+  try {
+    return { success: true as const, data: parseDocumentEnvelope(input) };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { success: false as const, error };
+    }
+    throw error;
+  }
 }
