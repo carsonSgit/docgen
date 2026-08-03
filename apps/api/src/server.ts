@@ -3,6 +3,7 @@ import {
   parseDocumentEnvelope,
 } from "@document-playground/domain";
 import {
+  type ExportImageAsset,
   exportDocument,
   type GoogleProviderClient,
 } from "@document-playground/export-service";
@@ -12,7 +13,27 @@ import { createGoogleProviderClient } from "./google-provider";
 
 const port = Number(process.env.PORT ?? 3000);
 
-const ExportRequestSchema = z.object({ document: z.unknown() }).strict();
+const ExportRequestSchema = z
+  .object({
+    document: z.unknown(),
+    assets: z
+      .array(
+        z
+          .object({
+            assetId: z.string().min(1),
+            mimeType: z.enum([
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+              "image/gif",
+            ]),
+            data: z.string().regex(/^[A-Za-z0-9+/]*={0,2}$/),
+          })
+          .strict(),
+      )
+      .default([]),
+  })
+  .strict();
 
 const defaultProvider = createGoogleProviderClient({
   accessToken: process.env.GOOGLE_ACCESS_TOKEN,
@@ -100,6 +121,19 @@ export async function handleRequest(
           );
         }
 
+        const assets = new Map<string, ExportImageAsset>();
+        for (const asset of parsed.data.assets) {
+          const bytes = Uint8Array.from(atob(asset.data), (character) =>
+            character.charCodeAt(0),
+          );
+          assets.set(asset.assetId, {
+            assetId: asset.assetId,
+            blob: new Blob([bytes], { type: asset.mimeType }),
+            mimeType: asset.mimeType,
+            size: bytes.byteLength,
+          });
+        }
+
         if (
           !provider &&
           !oauth.hasAccessToken() &&
@@ -131,6 +165,7 @@ export async function handleRequest(
             (process.env.GOOGLE_ACCESS_TOKEN
               ? defaultProvider
               : oauth.provider()),
+          assets,
         )
           .then((result) => Response.json(result))
           .catch((error: unknown) =>
