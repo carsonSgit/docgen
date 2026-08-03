@@ -57,14 +57,19 @@ export function createDebouncedPersister(
   key = DOCUMENT_STORAGE_KEY,
 ) {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let pendingDocument: DocumentEnvelope | undefined;
 
   return {
     schedule(document: DocumentEnvelope): void {
+      pendingDocument = document;
       if (timer !== undefined) {
         clearTimeout(timer);
       }
       timer = setTimeout(() => {
-        persistDocument(storage, document, key);
+        if (pendingDocument) {
+          persistDocument(storage, pendingDocument, key);
+          pendingDocument = undefined;
+        }
         timer = undefined;
       }, delayMs);
     },
@@ -73,12 +78,17 @@ export function createDebouncedPersister(
         clearTimeout(timer);
         timer = undefined;
       }
+      if (pendingDocument) {
+        persistDocument(storage, pendingDocument, key);
+        pendingDocument = undefined;
+      }
     },
     cancel(): void {
       if (timer !== undefined) {
         clearTimeout(timer);
         timer = undefined;
       }
+      pendingDocument = undefined;
     },
   };
 }

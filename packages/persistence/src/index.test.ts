@@ -58,4 +58,18 @@ describe("local document persistence", () => {
     expect(resetDocument(storage, true)?.title).toBe("Untitled document");
     vi.useRealTimers();
   });
+
+  it("flushes the latest pending document immediately", () => {
+    const storage = memoryStorage();
+    const persister = createDebouncedPersister(storage, 1000);
+    const document = createBlankDocument();
+    document.title = "Immediate draft";
+
+    persister.schedule(document);
+    persister.flush();
+
+    expect(
+      JSON.parse(storage.getItem(DOCUMENT_STORAGE_KEY) ?? "{}").title,
+    ).toBe("Immediate draft");
+  });
 });
