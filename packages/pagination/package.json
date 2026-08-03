@@ -1,0 +1,11 @@
+{
+  "name": "@document-playground/pagination",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@document-playground/domain": "workspace:*"
+  }
+}
