@@ -424,7 +424,9 @@ button:disabled {
 }
 
 .page-footer {
-  bottom: 48px;
+  /* The editor line box sits inside the footer region; 54pt visually matches
+     Google Docs' footer baseline while the export margin remains 36pt. */
+  bottom: 72px;
 }
 
 .page-header button,
@@ -508,7 +510,7 @@ button:disabled {
 
 .editor > .ProseMirror h2,
 .section-editor > .ProseMirror h2 {
-  margin: 12pt 0 4pt;
+  margin: 12pt 0 6pt;
   font-size: 16pt;
 }
 

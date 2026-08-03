@@ -21,7 +21,7 @@ export const DOCUMENT_TYPOGRAPHY = {
   lineSpacingPercent: 115,
   headings: {
     1: { fontSizePoints: 20, spaceAbovePoints: 0, spaceBelowPoints: 6 },
-    2: { fontSizePoints: 16, spaceAbovePoints: 12, spaceBelowPoints: 4 },
+    2: { fontSizePoints: 16, spaceAbovePoints: 12, spaceBelowPoints: 6 },
     3: { fontSizePoints: 14, spaceAbovePoints: 10, spaceBelowPoints: 2 },
     4: { fontSizePoints: 12, spaceAbovePoints: 8, spaceBelowPoints: 2 },
     5: { fontSizePoints: 11, spaceAbovePoints: 6, spaceBelowPoints: 2 },

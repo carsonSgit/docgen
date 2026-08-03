@@ -57,7 +57,7 @@ describe("Google Docs compiler", () => {
             namedStyleType: "HEADING_2",
             lineSpacing: 115,
             spaceAbove: { magnitude: 12, unit: "PT" },
-            spaceBelow: { magnitude: 4, unit: "PT" },
+            spaceBelow: { magnitude: 6, unit: "PT" },
             keepWithNext: true,
             keepLinesTogether: true,
           },
