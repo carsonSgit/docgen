@@ -49,3 +49,17 @@ For a repeatable provider-level check using the committed fixture, run:
 ```sh
 bun run verify:google
 ```
+
+To verify the complete OAuth authorization, document creation, native batch
+update, and link-return path, register
+`http://localhost:3001/oauth/callback` as an authorized redirect URI and run:
+
+```sh
+bun run verify:google:oauth
+```
+
+Open the printed authorization URL with the test account, approve the
+requested `documents` and `drive.file` scopes, and wait for the command to
+print the created Google Doc URL. Record that URL and the test date in the
+verification handoff; do not commit the URL if it contains sensitive test
+data.

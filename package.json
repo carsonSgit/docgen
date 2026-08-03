@@ -18,6 +18,7 @@
     "format:check": "biome format .",
     "knip": "knip",
     "verify:google": "bun run scripts/verify-google-export.ts",
+    "verify:google:oauth": "bun run scripts/verify-google-oauth.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
