@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  BUILT_IN_TEMPLATES,
   createBlankDocument,
+  createDocumentFromTemplate,
   DOCUMENT_VERSION,
+  listDocumentTemplates,
   parseDocumentEnvelope,
+  parseDocumentTemplate,
   validateDocumentEnvelope,
 } from "./index";
 
@@ -52,5 +56,52 @@ describe("document envelope", () => {
         expect.objectContaining({ path: ["content"] }),
       ]),
     );
+  });
+
+  it("provides validated, versioned built-in templates", () => {
+    expect(listDocumentTemplates()).toEqual([
+      { id: "blank", name: "Blank", version: 1 },
+      { id: "resume", name: "Resume", version: 1 },
+      { id: "meeting-notes", name: "Meeting notes", version: 1 },
+      { id: "letter", name: "Letter", version: 1 },
+    ]);
+
+    for (const template of BUILT_IN_TEMPLATES) {
+      expect(validateDocumentEnvelope(template.document).success).toBe(true);
+      expect(template.document.page).toEqual({
+        size: "letter",
+        width: 612,
+        height: 792,
+        margins: { top: 72, right: 72, bottom: 72, left: 72 },
+      });
+      expect(parseDocumentTemplate(template)).toEqual(template);
+    }
+  });
+
+  it("rejects malformed template data at the domain boundary", () => {
+    expect(() =>
+      parseDocumentTemplate({
+        id: "resume",
+        name: "Resume",
+        version: 1,
+        document: { version: 999 },
+      }),
+    ).toThrow();
+  });
+
+  it("creates independent fresh document instances from templates", () => {
+    const first = createDocumentFromTemplate("resume");
+    const second = createDocumentFromTemplate("resume");
+
+    expect(first).toEqual(second);
+    expect(first).not.toBe(second);
+    expect(first.content).not.toBe(second.content);
+    expect(first.page).not.toBe(second.page);
+
+    const firstParagraph = first.content.content?.[0];
+    const secondParagraph = second.content.content?.[0];
+    const firstText = firstParagraph?.content?.[0];
+    if (firstText) firstText.text = "Changed";
+    expect(secondParagraph?.content?.[0]?.text).not.toBe("Changed");
   });
 });
