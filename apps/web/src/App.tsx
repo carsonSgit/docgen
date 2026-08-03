@@ -10,7 +10,7 @@ import {
   restoreDocument,
 } from "@document-playground/persistence";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { requestExport } from "./export";
+import { ExportAuthorizationRequiredError, requestExport } from "./export";
 
 export function App() {
   const [document, setDocument] = useState<DocumentEnvelope>(() => {
@@ -89,6 +89,10 @@ export function App() {
       setExportUrl(result.url);
       setExportState("success");
     } catch (error) {
+      if (error instanceof ExportAuthorizationRequiredError) {
+        window.location.assign(error.authorizationUrl);
+        return;
+      }
       setExportError(error instanceof Error ? error.message : "Export failed.");
       setExportState("error");
     }
