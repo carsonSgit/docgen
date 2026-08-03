@@ -67,4 +67,20 @@ describe("pagination adapter", () => {
     expect(result.pages[0]?.content[0]?.content).toHaveLength(43);
     expect(result.pages[1]?.content[0]?.content).toHaveLength(7);
   });
+
+  it("uses persisted image height in points for deterministic pagination", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "image",
+          attrs: { assetId: "asset_image", alt: "", width: 300, height: 640 },
+        },
+        { type: "paragraph" },
+      ],
+    };
+
+    expect(paginateDocument(document).pages).toHaveLength(2);
+  });
 });
