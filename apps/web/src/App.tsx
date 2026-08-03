@@ -55,9 +55,15 @@ export function App() {
     return () => {
       editor.off("update", handleUpdate);
       editor.destroy();
-      persister.cancel();
+      persister.flush();
     };
   }, []);
+
+  useEffect(() => {
+    const flushPendingDocument = () => persister.flush();
+    window.addEventListener("pagehide", flushPendingDocument);
+    return () => window.removeEventListener("pagehide", flushPendingDocument);
+  }, [persister]);
 
   const pages = paginateDocument(document).pages;
 
@@ -72,6 +78,7 @@ export function App() {
 
   function reset() {
     if (!window.confirm("Start a new blank document?")) return;
+    persister.flush();
     const nextDocument = resetDocument(window.localStorage, true);
     if (!nextDocument) return;
     editorRef.current?.commands.setContent(nextDocument.content);
