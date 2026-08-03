@@ -190,6 +190,27 @@ describe("export service", () => {
     expect(provider.batchUpdate).toHaveBeenNthCalledWith(2, "section-doc", [
       { insertText: { location: { index: 1 }, text: "\n" } },
       {
+        updateParagraphStyle: {
+          range: { startIndex: 1, endIndex: 2 },
+          paragraphStyle: {
+            lineSpacing: 115,
+            spaceAbove: { magnitude: 0, unit: "PT" },
+            spaceBelow: { magnitude: 0, unit: "PT" },
+          },
+          fields: "lineSpacing,spaceAbove,spaceBelow",
+        },
+      },
+      {
+        updateTextStyle: {
+          range: { startIndex: 1, endIndex: 2 },
+          textStyle: {
+            weightedFontFamily: { fontFamily: "Arial" },
+            fontSize: { magnitude: 11, unit: "PT" },
+          },
+          fields: "weightedFontFamily,fontSize",
+        },
+      },
+      {
         insertText: {
           location: { index: 0, segmentId: "header-1" },
           text: "H",
@@ -209,6 +230,25 @@ describe("export service", () => {
       expect.objectContaining({
         updateParagraphStyle: expect.objectContaining({
           range: { startIndex: 0, endIndex: 2, segmentId: "header-1" },
+          paragraphStyle: {
+            lineSpacing: 115,
+            spaceAbove: { magnitude: 0, unit: "PT" },
+            spaceBelow: { magnitude: 0, unit: "PT" },
+          },
+        }),
+      }),
+      expect.objectContaining({
+        updateTextStyle: expect.objectContaining({
+          range: { startIndex: 0, endIndex: 2, segmentId: "header-1" },
+          textStyle: {
+            weightedFontFamily: { fontFamily: "Arial" },
+            fontSize: { magnitude: 11, unit: "PT" },
+          },
+        }),
+      }),
+      expect.objectContaining({
+        updateParagraphStyle: expect.objectContaining({
+          range: { startIndex: 0, endIndex: 2, segmentId: "header-1" },
         }),
       }),
       {
@@ -223,6 +263,16 @@ describe("export service", () => {
           text: "\n",
         },
       },
+      expect.objectContaining({
+        updateParagraphStyle: expect.objectContaining({
+          range: { startIndex: 0, endIndex: 2, segmentId: "footer-1" },
+        }),
+      }),
+      expect.objectContaining({
+        updateTextStyle: expect.objectContaining({
+          range: { startIndex: 0, endIndex: 2, segmentId: "footer-1" },
+        }),
+      }),
     ]);
   });
 

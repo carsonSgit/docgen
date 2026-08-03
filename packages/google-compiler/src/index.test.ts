@@ -35,12 +35,49 @@ describe("Google Docs compiler", () => {
       {
         updateParagraphStyle: {
           range: { startIndex: 1, endIndex: 7 },
-          paragraphStyle: { namedStyleType: "HEADING_2" },
-          fields: "namedStyleType",
+          paragraphStyle: {
+            namedStyleType: "HEADING_2",
+            lineSpacing: 115,
+            spaceAbove: { magnitude: 12, unit: "PT" },
+            spaceBelow: { magnitude: 4, unit: "PT" },
+          },
+          fields: "namedStyleType,lineSpacing,spaceAbove,spaceBelow",
+        },
+      },
+      {
+        updateTextStyle: {
+          range: { startIndex: 1, endIndex: 7 },
+          textStyle: {
+            weightedFontFamily: { fontFamily: "Arial" },
+            fontSize: { magnitude: 16, unit: "PT" },
+            bold: true,
+          },
+          fields: "weightedFontFamily,fontSize,bold",
         },
       },
       { insertText: { location: { index: 7 }, text: "World" } },
       { insertText: { location: { index: 12 }, text: "\n" } },
+      {
+        updateParagraphStyle: {
+          range: { startIndex: 7, endIndex: 13 },
+          paragraphStyle: {
+            lineSpacing: 115,
+            spaceAbove: { magnitude: 0, unit: "PT" },
+            spaceBelow: { magnitude: 0, unit: "PT" },
+          },
+          fields: "lineSpacing,spaceAbove,spaceBelow",
+        },
+      },
+      {
+        updateTextStyle: {
+          range: { startIndex: 7, endIndex: 13 },
+          textStyle: {
+            weightedFontFamily: { fontFamily: "Arial" },
+            fontSize: { magnitude: 11, unit: "PT" },
+          },
+          fields: "weightedFontFamily,fontSize",
+        },
+      },
       { insertPageBreak: { location: { index: 13 } } },
     ]);
   });
@@ -74,6 +111,27 @@ describe("Google Docs compiler", () => {
       { insertText: { location: { index: 6 }, text: "\n" } },
       { insertText: { location: { index: 7 }, text: "Second" } },
       { insertText: { location: { index: 13 }, text: "\n" } },
+      {
+        updateParagraphStyle: {
+          range: { startIndex: 1, endIndex: 14 },
+          paragraphStyle: {
+            lineSpacing: 115,
+            spaceAbove: { magnitude: 0, unit: "PT" },
+            spaceBelow: { magnitude: 0, unit: "PT" },
+          },
+          fields: "lineSpacing,spaceAbove,spaceBelow",
+        },
+      },
+      {
+        updateTextStyle: {
+          range: { startIndex: 1, endIndex: 14 },
+          textStyle: {
+            weightedFontFamily: { fontFamily: "Arial" },
+            fontSize: { magnitude: 11, unit: "PT" },
+          },
+          fields: "weightedFontFamily,fontSize",
+        },
+      },
     ]);
   });
 
@@ -120,6 +178,27 @@ describe("Google Docs compiler", () => {
       },
       { insertText: { location: { index: 8 }, text: "After" } },
       { insertText: { location: { index: 13 }, text: "\n" } },
+      {
+        updateParagraphStyle: {
+          range: { startIndex: 1, endIndex: 14 },
+          paragraphStyle: {
+            lineSpacing: 115,
+            spaceAbove: { magnitude: 0, unit: "PT" },
+            spaceBelow: { magnitude: 0, unit: "PT" },
+          },
+          fields: "lineSpacing,spaceAbove,spaceBelow",
+        },
+      },
+      {
+        updateTextStyle: {
+          range: { startIndex: 1, endIndex: 14 },
+          textStyle: {
+            weightedFontFamily: { fontFamily: "Arial" },
+            fontSize: { magnitude: 11, unit: "PT" },
+          },
+          fields: "weightedFontFamily,fontSize",
+        },
+      },
     ]);
   });
 
@@ -179,6 +258,27 @@ describe("Google Docs compiler", () => {
         {
           updateParagraphStyle: {
             range: { startIndex: 0, endIndex: 7 },
+            paragraphStyle: {
+              lineSpacing: 115,
+              spaceAbove: { magnitude: 0, unit: "PT" },
+              spaceBelow: { magnitude: 0, unit: "PT" },
+            },
+            fields: "lineSpacing,spaceAbove,spaceBelow",
+          },
+        },
+        {
+          updateTextStyle: {
+            range: { startIndex: 0, endIndex: 7 },
+            textStyle: {
+              weightedFontFamily: { fontFamily: "Arial" },
+              fontSize: { magnitude: 11, unit: "PT" },
+            },
+            fields: "weightedFontFamily,fontSize",
+          },
+        },
+        {
+          updateParagraphStyle: {
+            range: { startIndex: 0, endIndex: 7 },
             paragraphStyle: { alignment: "CENTER" },
             fields: "alignment",
           },
@@ -187,6 +287,27 @@ describe("Google Docs compiler", () => {
       footer: [
         { insertText: { location: { index: 0 }, text: "Footer" } },
         { insertText: { location: { index: 6 }, text: "\n" } },
+        {
+          updateParagraphStyle: {
+            range: { startIndex: 0, endIndex: 7 },
+            paragraphStyle: {
+              lineSpacing: 115,
+              spaceAbove: { magnitude: 0, unit: "PT" },
+              spaceBelow: { magnitude: 0, unit: "PT" },
+            },
+            fields: "lineSpacing,spaceAbove,spaceBelow",
+          },
+        },
+        {
+          updateTextStyle: {
+            range: { startIndex: 0, endIndex: 7 },
+            textStyle: {
+              weightedFontFamily: { fontFamily: "Arial" },
+              fontSize: { magnitude: 11, unit: "PT" },
+            },
+            fields: "weightedFontFamily,fontSize",
+          },
+        },
         {
           updateParagraphStyle: {
             range: { startIndex: 0, endIndex: 7 },

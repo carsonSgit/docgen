@@ -153,6 +153,50 @@ test("matches the native Docs page and default paragraph metrics", async ({
   expect(metrics.paragraphMarginBottom).toBe("0px");
 });
 
+test("matches native Docs heading and list spacing in the meeting template", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "New document" }).click();
+  await page.getByRole("radio", { name: /Meeting notes/ }).check();
+  await page.getByRole("button", { name: "Create document" }).click();
+
+  const metrics = await page
+    .locator(".page")
+    .first()
+    .evaluate((page) => {
+      const heading = page.querySelector("h1");
+      const section = page.querySelector("h2");
+      const list = page.querySelector("ul");
+      const style = (element: Element | null) =>
+        element ? getComputedStyle(element) : null;
+      const headingStyle = style(heading);
+      const sectionStyle = style(section);
+      const listStyle = style(list);
+      return {
+        headingSize: headingStyle?.fontSize,
+        headingWeight: headingStyle?.fontWeight,
+        headingBottom: headingStyle?.marginBottom,
+        sectionSize: sectionStyle?.fontSize,
+        sectionTop: sectionStyle?.marginTop,
+        sectionBottom: sectionStyle?.marginBottom,
+        listPadding: listStyle?.paddingLeft,
+        listMargin: listStyle?.marginTop,
+      };
+    });
+
+  expect(metrics).toEqual({
+    headingSize: "26.6667px",
+    headingWeight: "700",
+    headingBottom: "8px",
+    sectionSize: "21.3333px",
+    sectionTop: "16px",
+    sectionBottom: "5.33333px",
+    listPadding: "36px",
+    listMargin: "0px",
+  });
+});
+
 test("inserts a semantic manual page break from the toolbar", async ({
   page,
 }) => {
