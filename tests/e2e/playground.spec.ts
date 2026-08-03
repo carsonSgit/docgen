@@ -49,6 +49,15 @@ test("edits across automatically paginated editor pages", async ({ page }) => {
   );
 });
 
+test("focuses the editor when clicking blank page space", async ({ page }) => {
+  await page.goto("/");
+  const editor = page.locator(".ProseMirror").first();
+  await editor.click({ position: { x: 120, y: 420 } });
+  await page.keyboard.type("Text entered from blank page space");
+
+  await expect(editor).toContainText("Text entered from blank page space");
+});
+
 test("inserts a semantic manual page break from the toolbar", async ({
   page,
 }) => {
