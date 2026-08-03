@@ -1,4 +1,5 @@
 import {
+  DOCUMENT_TYPOGRAPHY,
   type DocumentEnvelope,
   parseDocumentEnvelope,
   type TiptapNode,
@@ -6,6 +7,62 @@ import {
 
 type Location = { index: number; segmentId?: string };
 type Range = { startIndex: number; endIndex: number; segmentId?: string };
+
+const baseTextStyle = {
+  weightedFontFamily: { fontFamily: DOCUMENT_TYPOGRAPHY.fontFamily },
+  fontSize: { magnitude: DOCUMENT_TYPOGRAPHY.bodyFontSizePoints, unit: "PT" },
+} as const;
+
+function headingMetrics(node: TiptapNode) {
+  const rawLevel = node.attrs?.level;
+  const level =
+    typeof rawLevel === "number" ? Math.min(6, Math.max(1, rawLevel)) : 1;
+  return {
+    level,
+    metrics: DOCUMENT_TYPOGRAPHY.headings[level as 1 | 2 | 3 | 4 | 5 | 6],
+  };
+}
+
+function paragraphStyle(node: TiptapNode) {
+  if (node.type !== "heading") {
+    return {
+      paragraphStyle: {
+        lineSpacing: DOCUMENT_TYPOGRAPHY.lineSpacingPercent,
+        spaceAbove: { magnitude: 0, unit: "PT" },
+        spaceBelow: { magnitude: 0, unit: "PT" },
+      },
+      fields: "lineSpacing,spaceAbove,spaceBelow",
+    };
+  }
+  const { level, metrics } = headingMetrics(node);
+  return {
+    paragraphStyle: {
+      namedStyleType: `HEADING_${level}`,
+      lineSpacing: DOCUMENT_TYPOGRAPHY.lineSpacingPercent,
+      spaceAbove: { magnitude: metrics.spaceAbovePoints, unit: "PT" },
+      spaceBelow: { magnitude: metrics.spaceBelowPoints, unit: "PT" },
+    },
+    fields: "namedStyleType,lineSpacing,spaceAbove,spaceBelow",
+  };
+}
+
+function textStyle(node: TiptapNode) {
+  if (node.type !== "heading") {
+    return {
+      textStyle: { ...baseTextStyle },
+      fields: "weightedFontFamily,fontSize",
+    };
+  }
+  const { metrics } = headingMetrics(node);
+  return {
+    textStyle: {
+      ...baseTextStyle,
+      fontSize: { magnitude: metrics.fontSizePoints, unit: "PT" },
+      bold: true,
+    },
+    fields: "weightedFontFamily,fontSize,bold",
+  };
+}
 
 export type GoogleDocsRequest =
   | { createHeader: { type: "DEFAULT" } }
@@ -192,16 +249,9 @@ function compileNode(
     state.index += 1;
     const range = { startIndex, endIndex: state.index };
 
-    if (node.type === "heading") {
-      const level = node.attrs?.level;
-      const namedStyleType = `HEADING_${typeof level === "number" ? Math.min(6, Math.max(1, level)) : 1}`;
-      requests.push({
-        updateParagraphStyle: {
-          range,
-          paragraphStyle: { namedStyleType },
-          fields: "namedStyleType",
-        },
-      });
+    requests.push({ updateParagraphStyle: { range, ...paragraphStyle(node) } });
+    if (node.type !== "listItem") {
+      requests.push({ updateTextStyle: { range, ...textStyle(node) } });
     }
 
     const alignment = node.attrs?.textAlign;

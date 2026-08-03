@@ -1,8 +1,11 @@
-import type { DocumentEnvelope, TiptapNode } from "@document-playground/domain";
+import {
+  DOCUMENT_TYPOGRAPHY,
+  type DocumentEnvelope,
+  type TiptapNode,
+} from "@document-playground/domain";
 
 const CONTENT_HEIGHT = 648;
 const DEFAULT_BLOCK_HEIGHT = 11 * 1.15;
-const HEADING_HEIGHT = 16 * 1.15;
 
 export type PaginationPage = {
   number: number;
@@ -27,7 +30,16 @@ function defaultMeasure(node: TiptapNode): number {
       : DEFAULT_BLOCK_HEIGHT;
   }
   if (node.type === "heading") {
-    return HEADING_HEIGHT;
+    const rawLevel = node.attrs?.level;
+    const level =
+      typeof rawLevel === "number" ? Math.min(6, Math.max(1, rawLevel)) : 1;
+    const metrics =
+      DOCUMENT_TYPOGRAPHY.headings[level as 1 | 2 | 3 | 4 | 5 | 6];
+    return (
+      metrics.fontSizePoints * (DOCUMENT_TYPOGRAPHY.lineSpacingPercent / 100) +
+      metrics.spaceAbovePoints +
+      metrics.spaceBelowPoints
+    );
   }
 
   const lineCount = (current: TiptapNode): number => {
