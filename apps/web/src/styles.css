@@ -420,11 +420,11 @@ button:disabled {
 }
 
 .page-header {
-  top: 24px;
+  top: 48px;
 }
 
 .page-footer {
-  bottom: 24px;
+  bottom: 48px;
 }
 
 .page-header button,
