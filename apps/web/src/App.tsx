@@ -10,6 +10,7 @@ import {
   restoreDocument,
 } from "@document-playground/persistence";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { requestExport } from "./export";
 
 export function App() {
   const [document, setDocument] = useState<DocumentEnvelope>(() => {
@@ -18,6 +19,12 @@ export function App() {
   });
   const [recoveryRaw, setRecoveryRaw] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState("Saved");
+  const [exportState, setExportState] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportUrl, setExportUrl] = useState<string | null>(null);
+  const documentRef = useRef(document);
   const editorHost = useRef<HTMLDivElement>(null);
   const editorRef = useRef<ReturnType<typeof createCoreEditor> | null>(null);
   const persister = useMemo(
@@ -37,7 +44,8 @@ export function App() {
     const editor = createCoreEditor(editorHost.current, document.content);
     editorRef.current = editor;
     const handleUpdate = () => {
-      const nextDocument = saveDocument(editor, document);
+      const nextDocument = saveDocument(editor, documentRef.current);
+      documentRef.current = nextDocument;
       setDocument(nextDocument);
       setSaveStatus("Saving…");
       persister.schedule(nextDocument);
@@ -54,7 +62,8 @@ export function App() {
   const pages = paginateDocument(document).pages;
 
   function updateTitle(title: string) {
-    const nextDocument = { ...document, title };
+    const nextDocument = { ...documentRef.current, title };
+    documentRef.current = nextDocument;
     setDocument(nextDocument);
     setSaveStatus("Saving…");
     persister.schedule(nextDocument);
@@ -66,9 +75,23 @@ export function App() {
     const nextDocument = resetDocument(window.localStorage, true);
     if (!nextDocument) return;
     editorRef.current?.commands.setContent(nextDocument.content);
+    documentRef.current = nextDocument;
     setDocument(nextDocument);
     setRecoveryRaw(null);
     setSaveStatus("Saved");
+  }
+
+  async function exportCurrentDocument() {
+    setExportState("loading");
+    setExportError(null);
+    try {
+      const result = await requestExport(documentRef.current);
+      setExportUrl(result.url);
+      setExportState("success");
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "Export failed.");
+      setExportState("error");
+    }
   }
 
   return (
@@ -84,8 +107,12 @@ export function App() {
         <button type="button" onClick={reset}>
           New document
         </button>
-        <button type="button" disabled>
-          Export
+        <button
+          type="button"
+          onClick={exportCurrentDocument}
+          disabled={exportState === "loading"}
+        >
+          {exportState === "loading" ? "Exporting…" : "Export"}
         </button>
       </header>
       {recoveryRaw && (
@@ -94,6 +121,19 @@ export function App() {
           recovery; editing starts from a blank document.
           <code>{recoveryRaw}</code>
         </aside>
+      )}
+      {exportState === "error" && (
+        <p role="alert" className="export-error">
+          {exportError}
+        </p>
+      )}
+      {exportState === "success" && exportUrl && (
+        <p className="export-success">
+          Export complete.{" "}
+          <a href={exportUrl} target="_blank" rel="noreferrer">
+            Open in Google Docs
+          </a>
+        </p>
       )}
       <section className="toolbar" aria-label="Editor toolbar">
         <button
