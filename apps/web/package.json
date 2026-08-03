@@ -1,5 +1,11 @@
 {
   "name": "@document-playground/web",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@document-playground/domain": "workspace:*",
+    "@document-playground/editor": "workspace:*",
+    "@document-playground/pagination": "workspace:*",
+    "@document-playground/persistence": "workspace:*"
+  }
 }
