@@ -243,8 +243,9 @@ export async function exportDocument(
       url: `https://docs.google.com/document/d/${encodeURIComponent(created.documentId)}/edit`,
     };
   } catch (error) {
+    const detail = error instanceof Error ? ` ${error.message}` : "";
     throw new ExportServiceError(
-      "Google export failed. Your local document was not changed; retry when the provider is available.",
+      `Google export failed.${detail} Your local document was not changed; retry when the provider is available.`,
       { cause: error },
     );
   }

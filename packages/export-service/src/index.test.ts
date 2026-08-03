@@ -35,7 +35,7 @@ describe("export service", () => {
 
     await expect(
       exportDocument(createBlankDocument(), provider),
-    ).rejects.toThrow("Google export failed");
+    ).rejects.toThrow("Google export failed. unauthorized");
   });
 
   it("rejects unsupported content before the provider is called", async () => {
