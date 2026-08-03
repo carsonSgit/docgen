@@ -287,6 +287,75 @@ button:disabled {
   background: #e8eaed;
 }
 
+.toolbar-button input[type="file"] {
+  display: none;
+}
+
+.template-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(17 24 39 / 45%);
+}
+
+.template-dialog-card {
+  box-sizing: border-box;
+  width: min(34rem, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 20%);
+}
+
+.template-dialog-card h2 {
+  margin: 0;
+}
+
+.template-dialog-warning {
+  color: #4b5563;
+}
+
+.template-options {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.template-option {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.template-option.selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.template-option span {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.template-option small {
+  color: #4b5563;
+}
+
+.template-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
 .pages {
   display: grid;
   gap: 2rem;
@@ -331,8 +400,36 @@ button:disabled {
   flex-direction: column;
 }
 
+.page-header,
+.page-footer {
+  flex: 0 0 auto;
+  min-height: 1px;
+}
+
+.page-header button,
+.page-footer button {
+  padding: 0;
+  border: 0;
+  color: #6b7280;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.page-header button:hover,
+.page-footer button:hover {
+  color: #202124;
+  text-decoration: underline;
+}
+
+.page-body-editor {
+  flex: 1;
+  min-height: 0;
+}
+
 .editor {
   flex: 1;
+  height: 100%;
   min-height: 0;
   outline: 0;
 }
@@ -347,8 +444,20 @@ button:disabled {
   line-height: 1.15;
 }
 
+.section-editor > .ProseMirror {
+  min-height: 1em;
+  outline: 0;
+  cursor: text;
+  color: #202124;
+  font-family: Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.15;
+}
+
 .editor > .ProseMirror p,
-.editor > .ProseMirror li p {
+.editor > .ProseMirror li p,
+.section-editor > .ProseMirror p,
+.section-editor > .ProseMirror li p {
   margin: 0;
 }
 
@@ -357,7 +466,13 @@ button:disabled {
 .editor > .ProseMirror h3,
 .editor > .ProseMirror h4,
 .editor > .ProseMirror h5,
-.editor > .ProseMirror h6 {
+.editor > .ProseMirror h6,
+.section-editor > .ProseMirror h1,
+.section-editor > .ProseMirror h2,
+.section-editor > .ProseMirror h3,
+.section-editor > .ProseMirror h4,
+.section-editor > .ProseMirror h5,
+.section-editor > .ProseMirror h6 {
   margin: 0;
   line-height: 1.15;
 }

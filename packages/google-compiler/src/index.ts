@@ -4,10 +4,12 @@ import {
   type TiptapNode,
 } from "@document-playground/domain";
 
-type Location = { index: number };
-type Range = { startIndex: number; endIndex: number };
+type Location = { index: number; segmentId?: string };
+type Range = { startIndex: number; endIndex: number; segmentId?: string };
 
 export type GoogleDocsRequest =
+  | { createHeader: { type: "DEFAULT" } }
+  | { createFooter: { type: "DEFAULT" } }
   | { insertText: { location: Location; text: string } }
   | { insertPageBreak: { location: Location } }
   | {
@@ -24,11 +26,25 @@ export type GoogleDocsRequest =
         fields: string;
       };
     }
-  | { createParagraphBullets: { range: Range; bulletPreset: string } };
+  | { createParagraphBullets: { range: Range; bulletPreset: string } }
+  | {
+      insertInlineImage: {
+        location: Location;
+        uri: string;
+        objectSize: {
+          width: { magnitude: number; unit: "PT" };
+          height: { magnitude: number; unit: "PT" };
+        };
+      };
+    };
 
 export type CompileResult = {
   title: string;
   requests: GoogleDocsRequest[];
+  sections: {
+    header: GoogleDocsRequest[] | null;
+    footer: GoogleDocsRequest[] | null;
+  };
 };
 
 export class UnsupportedContentError extends Error {
@@ -51,6 +67,7 @@ const supportedNodes = new Set([
   "orderedList",
   "listItem",
   "pageBreak",
+  "image",
 ]);
 
 function assertSupported(node: TiptapNode, path: string): void {
@@ -79,6 +96,7 @@ function compileNode(
   node: TiptapNode,
   requests: GoogleDocsRequest[],
   state: { index: number },
+  imageUris: ReadonlyMap<string, string>,
   listType?: "bullet" | "ordered",
 ): void {
   if (node.type === "hardBreak") {
@@ -91,6 +109,34 @@ function compileNode(
 
   if (node.type === "pageBreak") {
     requests.push({ insertPageBreak: { location: { index: state.index } } });
+    state.index += 1;
+    return;
+  }
+
+  if (node.type === "image") {
+    const assetId = node.attrs?.assetId;
+    const uri =
+      typeof assetId === "string" ? imageUris.get(assetId) : undefined;
+    if (!uri) {
+      throw new Error(
+        `Image asset ${assetId ?? "unknown"} is not available for export`,
+      );
+    }
+    const width = node.attrs?.width;
+    const height = node.attrs?.height;
+    if (typeof width !== "number" || typeof height !== "number") {
+      throw new Error(`Image asset ${assetId} has invalid dimensions`);
+    }
+    requests.push({
+      insertInlineImage: {
+        location: { index: state.index },
+        uri,
+        objectSize: {
+          width: { magnitude: width, unit: "PT" },
+          height: { magnitude: height, unit: "PT" },
+        },
+      },
+    });
     state.index += 1;
     return;
   }
@@ -117,7 +163,7 @@ function compileNode(
 
   if (node.type === "doc") {
     node.content?.forEach((child) => {
-      compileNode(child, requests, state);
+      compileNode(child, requests, state, imageUris);
     });
     return;
   }
@@ -125,14 +171,14 @@ function compileNode(
   if (node.type === "bulletList" || node.type === "orderedList") {
     const nextListType = node.type === "bulletList" ? "bullet" : "ordered";
     node.content?.forEach((child) => {
-      compileNode(child, requests, state, nextListType);
+      compileNode(child, requests, state, imageUris, nextListType);
     });
     return;
   }
 
   const startIndex = state.index;
   node.content?.forEach((child) => {
-    compileNode(child, requests, state, listType);
+    compileNode(child, requests, state, imageUris, listType);
   });
 
   if (
@@ -190,10 +236,57 @@ export function normalizeDocument(input: unknown): DocumentEnvelope {
   return parseDocumentEnvelope(input);
 }
 
-export function compileDocument(input: unknown): CompileResult {
+export function compileDocument(
+  input: unknown,
+  imageUris: ReadonlyMap<string, string> = new Map(),
+): CompileResult {
+  // Unsupported content must produce the compiler's actionable error even
+  // when its node is malformed; schema validation remains the normal boundary.
+  const rawContent =
+    input && typeof input === "object" && "content" in input
+      ? (input as { content?: { content?: unknown[] } }).content?.content
+      : undefined;
+  const rejectUnsupportedRawNode = (node: unknown, path: string): void => {
+    if (!node || typeof node !== "object") return;
+    const typed = node as { type?: unknown; content?: unknown[] };
+    if (typeof typed.type === "string" && !supportedNodes.has(typed.type)) {
+      throw new UnsupportedContentError(path, typed.type);
+    }
+    typed.content?.forEach((child, index) => {
+      rejectUnsupportedRawNode(child, `${path}.content[${index}]`);
+    });
+  };
+  const rawSections =
+    input && typeof input === "object"
+      ? (input as { header?: unknown; footer?: unknown })
+      : {};
+  rawContent?.forEach((node, index) => {
+    rejectUnsupportedRawNode(node, `content.content[${index}]`);
+  });
+  for (const section of ["header", "footer"] as const) {
+    const raw = rawSections[section];
+    if (raw && typeof raw === "object") {
+      rejectUnsupportedRawNode(raw, section);
+    }
+  }
   const document = normalizeDocument(input);
   assertSupported(document.content, "content");
+  if (document.header) assertSupported(document.header, "header");
+  if (document.footer) assertSupported(document.footer, "footer");
   const requests: GoogleDocsRequest[] = [];
-  compileNode(document.content, requests, { index: 1 });
-  return { title: document.title, requests };
+  compileNode(document.content, requests, { index: 1 }, imageUris);
+  const compileSection = (section: TiptapNode | null) => {
+    if (!section) return null;
+    const sectionRequests: GoogleDocsRequest[] = [];
+    compileNode(section, sectionRequests, { index: 0 }, imageUris);
+    return sectionRequests;
+  };
+  return {
+    title: document.title,
+    requests,
+    sections: {
+      header: compileSection(document.header),
+      footer: compileSection(document.footer),
+    },
+  };
 }

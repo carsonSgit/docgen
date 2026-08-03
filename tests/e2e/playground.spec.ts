@@ -31,6 +31,44 @@ test("requires confirmation before reset", async ({ page }) => {
   );
 });
 
+test("cancelling template selection protects the current document", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Document title").fill("Keep this title");
+  await page.locator(".ProseMirror").first().fill("Keep this content");
+
+  await page.getByRole("button", { name: "New document" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("radio", { name: /Resume/ }).check();
+  await page.getByRole("button", { name: "Cancel" }).click();
+
+  await expect(page.getByLabel("Document title")).toHaveValue(
+    "Keep this title",
+  );
+  await expect(page.locator(".ProseMirror").first()).toContainText(
+    "Keep this content",
+  );
+});
+
+test("confirms a selected template and persists it after refresh", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Document title").fill("Replace this title");
+
+  await page.getByRole("button", { name: "New document" }).click();
+  await page.getByRole("radio", { name: /Meeting notes/ }).check();
+  await page.getByRole("button", { name: "Create document" }).click();
+
+  await expect(page.getByLabel("Document title")).toHaveValue("Meeting notes");
+  await expect(page.locator(".ProseMirror").first()).toContainText("Agenda");
+
+  await page.reload();
+  await expect(page.getByLabel("Document title")).toHaveValue("Meeting notes");
+  await expect(page.locator(".ProseMirror").first()).toContainText("Agenda");
+});
+
 test("edits across automatically paginated editor pages", async ({ page }) => {
   await page.goto("/");
   const editor = page.locator(".ProseMirror").first();
@@ -167,4 +205,62 @@ test("moves wrapped lines of one paragraph onto the next page", async ({
       ({ contentHeight, editorHeight }) => contentHeight <= editorHeight + 1,
     ),
   ).toBe(true);
+test("edits a shared header and footer on page one", async ({ page }) => {
+  await page.goto("/");
+  const firstPage = page.getByLabel("Page 1");
+  await firstPage.getByRole("button", { name: "Add header" }).click();
+  await firstPage.locator(".header-editor .ProseMirror").fill("Report header");
+  await firstPage.getByRole("button", { name: "Add footer" }).click();
+  await firstPage.locator(".footer-editor .ProseMirror").fill("Page footer");
+
+  await expect(page.locator(".page-header .ProseMirror")).toHaveCount(1);
+  await expect(page.locator(".page-footer .ProseMirror")).toHaveCount(1);
+  await page.reload();
+  await expect(page.locator(".header-editor .ProseMirror")).toContainText(
+    "Report header",
+  );
+  await expect(page.locator(".footer-editor .ProseMirror")).toContainText(
+    "Page footer",
+  );
+});
+
+test("renders shared header and footer on later pages without changing body pagination", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .locator(".ProseMirror")
+    .first()
+    .fill(
+      Array.from({ length: 50 }, (_, index) => `Paragraph ${index + 1}`).join(
+        "\n",
+      ),
+    );
+  await expect(page.getByLabel("Page 2")).toBeVisible();
+  await page
+    .getByLabel("Page 2")
+    .getByRole("button", { name: "Add header" })
+    .click();
+  await page
+    .getByLabel("Page 2")
+    .locator(".header-editor .ProseMirror")
+    .fill("Shared header");
+  await page
+    .getByLabel("Page 2")
+    .getByRole("button", { name: "Add footer" })
+    .click();
+  await page
+    .getByLabel("Page 2")
+    .locator(".footer-editor .ProseMirror")
+    .fill("Shared footer");
+
+  await expect(page.locator(".page")).toHaveCount(2);
+  await expect(page.locator(".page-header .ProseMirror")).toHaveCount(2);
+  await expect(page.locator(".page-footer .ProseMirror")).toHaveCount(2);
+  await expect(page.locator(".page-header .ProseMirror").nth(1)).toContainText(
+    "Shared header",
+  );
+  await expect(page.locator(".page-footer .ProseMirror").nth(1)).toContainText(
+    "Shared footer",
+  );
 });

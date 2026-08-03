@@ -1,6 +1,10 @@
 import {
   createBlankDocument,
+  createImageNode,
   type DocumentEnvelope,
+  type DocumentSection,
+  type DocumentTemplateId,
+  listDocumentTemplates,
   type TiptapNode,
 } from "@document-playground/domain";
 import { createCoreEditor, saveDocument } from "@document-playground/editor";
@@ -10,12 +14,18 @@ import {
   paginateDocument,
 } from "@document-playground/pagination";
 import {
+  BrowserAssetStorage,
   createDebouncedPersister,
-  resetDocument,
+  putImageAsset,
+  resetDocumentFromTemplate,
   restoreDocument,
 } from "@document-playground/persistence";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ExportAuthorizationRequiredError, requestExport } from "./export";
+import {
+  ExportAuthorizationRequiredError,
+  type ExportRequestAsset,
+  requestExport,
+} from "./export";
 
 type CoreEditor = ReturnType<typeof createCoreEditor>;
 
@@ -86,11 +96,26 @@ function ToolbarButton({ label, mark, onClick }: ToolbarButtonProps) {
 
 type PageEditorProps = {
   page: PaginationPage;
+  header: DocumentSection | null;
+  footer: DocumentSection | null;
+  resolveImageSource: (assetId: string) => string | undefined;
   onChange: (pageNumber: number, content: TiptapNode[]) => void;
+  onSectionChange: (
+    section: "header" | "footer",
+    content: DocumentSection,
+  ) => void;
   onFocus: (editor: CoreEditor) => void;
 };
 
-function PageEditor({ page, onChange, onFocus }: PageEditorProps) {
+function BodyEditor({
+  page,
+  onChange,
+  onFocus,
+  resolveImageSource,
+}: Pick<
+  PageEditorProps,
+  "page" | "onChange" | "onFocus" | "resolveImageSource"
+>) {
   const host = useRef<HTMLDivElement>(null);
   const editorRef = useRef<CoreEditor | null>(null);
   const onFocusRef = useRef(onFocus);
@@ -99,10 +124,14 @@ function PageEditor({ page, onChange, onFocus }: PageEditorProps) {
 
   useEffect(() => {
     if (!host.current) return;
-    const editor = createCoreEditor(host.current, {
-      type: "doc",
-      content: page.content,
-    });
+    const editor = createCoreEditor(
+      host.current,
+      {
+        type: "doc",
+        content: page.content,
+      },
+      { resolveImageSource },
+    );
     editorRef.current = editor;
     const handleFocus = () => onFocusRef.current(editor);
     const handleUpdate = () => {
@@ -117,7 +146,7 @@ function PageEditor({ page, onChange, onFocus }: PageEditorProps) {
       editor.destroy();
       editorRef.current = null;
     };
-  }, [onChange, page.number]);
+  }, [onChange, page.number, resolveImageSource]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -137,9 +166,112 @@ function PageEditor({ page, onChange, onFocus }: PageEditorProps) {
     }
   }, [page.content, serializedContent]);
 
+  return <div ref={host} className="editor" />;
+}
+
+function SectionEditor({
+  section,
+  content,
+  onChange,
+  onFocus,
+}: {
+  section: "header" | "footer";
+  content: DocumentSection;
+  onChange: (content: DocumentSection) => void;
+  onFocus: (editor: CoreEditor) => void;
+}) {
+  const host = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<CoreEditor | null>(null);
+  const onFocusRef = useRef(onFocus);
+  const onChangeRef = useRef(onChange);
+  const serializedContent = JSON.stringify(content);
+  onFocusRef.current = onFocus;
+  onChangeRef.current = onChange;
+
+  useEffect(() => {
+    if (!host.current) return;
+    const editor = createCoreEditor(host.current, content);
+    editorRef.current = editor;
+    const handleFocus = () => onFocusRef.current(editor);
+    const handleUpdate = () =>
+      onChangeRef.current(saveDocument(editor, createBlankDocument()).content);
+    editor.on("focus", handleFocus);
+    editor.on("update", handleUpdate);
+    return () => {
+      editor.off("focus", handleFocus);
+      editor.off("update", handleUpdate);
+      editor.destroy();
+      editorRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (editor && JSON.stringify(editor.getJSON()) !== serializedContent) {
+      editor.commands.setContent(content, { emitUpdate: false });
+    }
+  }, [content, serializedContent]);
+
+  return <div className={`section-editor ${section}-editor`} ref={host} />;
+}
+
+function PageEditor({
+  page,
+  header,
+  footer,
+  resolveImageSource,
+  onChange,
+  onSectionChange,
+  onFocus,
+}: PageEditorProps) {
+  const emptySection = {
+    type: "doc" as const,
+    content: [{ type: "paragraph" as const }],
+  };
   return (
     <article className="page" aria-label={`Page ${page.number}`}>
-      <div ref={host} className="editor" />
+      <section className="page-header" aria-label="Page header">
+        {header ? (
+          <SectionEditor
+            section="header"
+            content={header}
+            onChange={(content) => onSectionChange("header", content)}
+            onFocus={onFocus}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => onSectionChange("header", emptySection)}
+          >
+            Add header
+          </button>
+        )}
+      </section>
+      <section className="page-body-editor" aria-label="Page body">
+        <BodyEditor
+          page={page}
+          onChange={onChange}
+          onFocus={onFocus}
+          resolveImageSource={resolveImageSource}
+        />
+      </section>
+      <section className="page-footer" aria-label="Page footer">
+        {footer ? (
+          <SectionEditor
+            section="footer"
+            content={footer}
+            onChange={(content) => onSectionChange("footer", content)}
+            onFocus={onFocus}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => onSectionChange("footer", emptySection)}
+          >
+            Add footer
+          </button>
+        )}
+      </section>
     </article>
   );
 }
@@ -156,10 +288,20 @@ export function App() {
   >("idle");
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportUrl, setExportUrl] = useState<string | null>(null);
+  const [templateChooserOpen, setTemplateChooserOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] =
+    useState<DocumentTemplateId>("blank");
+  const [assetError, setAssetError] = useState<string | null>(null);
+  const assetUrls = useRef(new Map<string, string>());
   const documentRef = useRef(document);
   const activeEditorRef = useRef<CoreEditor | null>(null);
   const persister = useMemo(
     () => createDebouncedPersister(window.localStorage),
+    [],
+  );
+  const assetStorage = useMemo(() => new BrowserAssetStorage(), []);
+  const resolveImageSource = useCallback(
+    (assetId: string) => assetUrls.current.get(assetId),
     [],
   );
 
@@ -210,15 +352,40 @@ export function App() {
     window.setTimeout(() => setSaveStatus("Saved"), 300);
   }
 
-  function reset() {
-    if (!window.confirm("Start a new blank document?")) return;
+  const updateSection = useCallback(
+    (section: "header" | "footer", content: DocumentSection) => {
+      const nextDocument = { ...documentRef.current, [section]: content };
+      documentRef.current = nextDocument;
+      setDocument(nextDocument);
+      setSaveStatus("Saving…");
+      persister.schedule(nextDocument);
+      window.setTimeout(() => setSaveStatus("Saved"), 300);
+    },
+    [persister],
+  );
+
+  function openTemplateChooser() {
+    setSelectedTemplateId("blank");
+    setTemplateChooserOpen(true);
+  }
+
+  function cancelTemplateChooser() {
+    setTemplateChooserOpen(false);
+  }
+
+  function confirmTemplateSelection() {
     persister.flush();
-    const nextDocument = resetDocument(window.localStorage, true);
+    const nextDocument = resetDocumentFromTemplate(
+      window.localStorage,
+      selectedTemplateId,
+      true,
+    );
     if (!nextDocument) return;
     documentRef.current = nextDocument;
     setDocument(nextDocument);
     setRecoveryRaw(null);
     setSaveStatus("Saved");
+    setTemplateChooserOpen(false);
   }
 
   function insertPageBreak() {
@@ -227,6 +394,36 @@ export function App() {
       .focus()
       .insertContent({ type: "pageBreak" })
       .run();
+  }
+
+  async function insertImage(file: File | undefined) {
+    if (!file || !activeEditorRef.current) return;
+    setAssetError(null);
+    try {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, 468 / (bitmap.width * (72 / 96)));
+      const width = Math.max(1, bitmap.width * (72 / 96) * scale);
+      const height = Math.max(1, bitmap.height * (72 / 96) * scale);
+      const asset = await putImageAsset(assetStorage, file, { width, height });
+      assetUrls.current.set(asset.assetId, URL.createObjectURL(file));
+      activeEditorRef.current
+        .chain()
+        .focus()
+        .insertContent(
+          createImageNode({
+            assetId: asset.assetId,
+            alt: file.name,
+            width,
+            height,
+          }),
+        )
+        .run();
+      bitmap.close();
+    } catch (error) {
+      setAssetError(
+        error instanceof Error ? error.message : "Unable to insert image.",
+      );
+    }
   }
 
   function setLink() {
@@ -245,7 +442,34 @@ export function App() {
     setExportState("loading");
     setExportError(null);
     try {
-      const result = await requestExport(documentRef.current);
+      const assetIds: string[] = [];
+      const collectImageIds = (
+        node: (typeof documentRef.current)["content"],
+      ): void => {
+        if (node.type === "image" && typeof node.attrs?.assetId === "string") {
+          if (!assetIds.includes(node.attrs.assetId))
+            assetIds.push(node.attrs.assetId);
+        }
+        node.content?.forEach(collectImageIds);
+      };
+      collectImageIds(documentRef.current.content);
+      const exportAssets: ExportRequestAsset[] = [];
+      for (const assetId of assetIds) {
+        const asset = await assetStorage.get(assetId);
+        if (!asset)
+          throw new Error(
+            `Image asset ${assetId} is missing. Restore the image and retry export.`,
+          );
+        const bytes = new Uint8Array(await asset.blob.arrayBuffer());
+        let binary = "";
+        for (const byte of bytes) binary += String.fromCharCode(byte);
+        exportAssets.push({
+          assetId,
+          mimeType: asset.mimeType,
+          data: btoa(binary),
+        });
+      }
+      const result = await requestExport(documentRef.current, exportAssets);
       setExportUrl(result.url);
       setExportState("success");
     } catch (error) {
@@ -278,7 +502,11 @@ export function App() {
             <span className="save-dot" aria-hidden="true" />
             {saveStatus}
           </span>
-          <button className="secondary-button" type="button" onClick={reset}>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={openTemplateChooser}
+          >
             New document
           </button>
           <button
@@ -309,6 +537,55 @@ export function App() {
           <a href={exportUrl} target="_blank" rel="noreferrer">
             Open in Google Docs
           </a>
+        </p>
+      )}
+      {templateChooserOpen && (
+        <section
+          className="template-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="template-dialog-title"
+        >
+          <div className="template-dialog-card">
+            <h2 id="template-dialog-title">Choose a template</h2>
+            <p className="template-dialog-warning">
+              Your current document will be replaced when you create the new
+              document.
+            </p>
+            <div className="template-options" role="radiogroup">
+              {listDocumentTemplates().map((template) => (
+                <label
+                  className={`template-option${selectedTemplateId === template.id ? " selected" : ""}`}
+                  key={template.id}
+                >
+                  <input
+                    type="radio"
+                    name="document-template"
+                    value={template.id}
+                    checked={selectedTemplateId === template.id}
+                    onChange={() => setSelectedTemplateId(template.id)}
+                  />
+                  <span>
+                    <strong>{template.name}</strong>
+                    <small>{template.description}</small>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div className="template-dialog-actions">
+              <button type="button" onClick={cancelTemplateChooser}>
+                Cancel
+              </button>
+              <button type="button" onClick={confirmTemplateSelection}>
+                Create document
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+      {assetError && (
+        <p role="alert" className="export-error">
+          {assetError}
         </p>
       )}
       <section className="toolbar" aria-label="Editor toolbar">
@@ -393,6 +670,15 @@ export function App() {
             mark="↧"
             onClick={insertPageBreak}
           />
+          <label className="toolbar-button" title="Insert image">
+            <span aria-hidden="true">▧</span>
+            <input
+              aria-label="Insert image"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={(event) => void insertImage(event.target.files?.[0])}
+            />
+          </label>
         </fieldset>
         <div className="toolbar-spacer" />
         <fieldset className="toolbar-group" aria-label="History">
@@ -417,7 +703,11 @@ export function App() {
           <PageEditor
             key={page.number}
             page={page}
+            resolveImageSource={resolveImageSource}
+            header={document.header}
+            footer={document.footer}
             onChange={updatePageContent}
+            onSectionChange={updateSection}
             onFocus={(editor) => {
               activeEditorRef.current = editor;
             }}

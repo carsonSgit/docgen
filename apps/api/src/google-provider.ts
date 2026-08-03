@@ -1,7 +1,11 @@
-import type { GoogleProviderClient } from "@document-playground/export-service";
+import type {
+  ExportImageAsset,
+  GoogleProviderClient,
+} from "@document-playground/export-service";
 import { z } from "zod";
 
 const CreatedDocumentSchema = z.object({ documentId: z.string().min(1) });
+const DriveFileSchema = z.object({ id: z.string().min(1) });
 
 type FetchLike = (
   input: RequestInfo | URL,
@@ -21,6 +25,11 @@ export function createGoogleProviderClient(options: {
         );
       },
       async batchUpdate() {
+        throw new Error(
+          "Google export is not configured. Set GOOGLE_ACCESS_TOKEN for integration verification.",
+        );
+      },
+      async uploadImage() {
         throw new Error(
           "Google export is not configured. Set GOOGLE_ACCESS_TOKEN for integration verification.",
         );
@@ -62,10 +71,46 @@ export function createGoogleProviderClient(options: {
       return parsed.data;
     },
     async batchUpdate(documentId, requests) {
-      await googleRequest(
+      return googleRequest(
         `https://docs.googleapis.com/v1/documents/${encodeURIComponent(documentId)}:batchUpdate`,
         { method: "POST", body: JSON.stringify({ requests }) },
       );
+    },
+    async uploadImage(asset: ExportImageAsset) {
+      const boundary = "document-playground-image";
+      const metadata = JSON.stringify({
+        name: `document-playground-${asset.assetId}`,
+        mimeType: asset.mimeType,
+      });
+      const bytes = new Uint8Array(
+        await new Response(asset.blob).arrayBuffer(),
+      );
+      const prefix = `--${boundary}\r\ncontent-type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\ncontent-type: ${asset.mimeType}\r\n\r\n`;
+      const suffix = `\r\n--${boundary}--`;
+      const body = new Blob([prefix, bytes, suffix]);
+      const uploaded = await googleRequest(
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
+        {
+          method: "POST",
+          headers: {
+            "content-type": `multipart/related; boundary=${boundary}`,
+          },
+          body,
+        },
+      );
+      const parsed = DriveFileSchema.safeParse(uploaded);
+      if (!parsed.success)
+        throw new Error("Google returned an invalid image response.");
+      await googleRequest(
+        `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(parsed.data.id)}/permissions`,
+        {
+          method: "POST",
+          body: JSON.stringify({ role: "reader", type: "anyone" }),
+        },
+      );
+      return {
+        uri: `https://drive.google.com/uc?export=download&id=${encodeURIComponent(parsed.data.id)}`,
+      };
     },
   };
 }
