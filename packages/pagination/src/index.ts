@@ -22,6 +22,13 @@ export type NodeMeasurement = (node: TiptapNode) => number;
 
 export const PAGE_FRAGMENT_ATTR = "data-page-fragment";
 
+function containsImage(node: TiptapNode): boolean {
+  return (
+    node.type === "image" ||
+    Boolean(node.content?.some((child) => containsImage(child)))
+  );
+}
+
 function defaultMeasure(node: TiptapNode): number {
   if (node.type === "image") {
     const height = node.attrs?.height;
@@ -66,9 +73,17 @@ function defaultMeasure(node: TiptapNode): number {
     );
   };
 
+  const measuredImageHeight = imageHeight(node);
+  // Google lays out inline images inside a paragraph line box. Reserve that
+  // line box separately so near-full-page images reflow like the export.
+  const inlineImageLineBox =
+    measuredImageHeight > 0 && node.type === "paragraph"
+      ? DEFAULT_BLOCK_HEIGHT
+      : 0;
+
   return Math.max(
     DEFAULT_BLOCK_HEIGHT * Math.max(1, lineCount(node)),
-    imageHeight(node),
+    measuredImageHeight + inlineImageLineBox,
   );
 }
 
@@ -226,6 +241,16 @@ export function paginateDocument(
             }
           : null;
     }
+  }
+
+  const finalNode = document.content.content?.at(-1);
+  if (
+    pages.length === 1 &&
+    remainingHeight < 0 &&
+    finalNode?.type === "paragraph" &&
+    containsImage(finalNode)
+  ) {
+    pages.push({ number: 2, content: [], breakBefore: false });
   }
 
   return { pageHeight: CONTENT_HEIGHT, pages };

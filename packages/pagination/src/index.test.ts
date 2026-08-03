@@ -107,6 +107,31 @@ describe("pagination adapter", () => {
     expect(paginateDocument(document).pages).toHaveLength(2);
   });
 
+  it("reserves the paragraph line box around an inline image", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "image",
+              attrs: {
+                assetId: "asset_image",
+                alt: "",
+                width: 468,
+                height: 640,
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(paginateDocument(document).pages).toHaveLength(2);
+  });
+
   it("moves an image nested in a paragraph when it cannot fit", () => {
     const document = createBlankDocument();
     document.content = {
