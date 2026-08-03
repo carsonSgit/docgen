@@ -34,7 +34,7 @@ export function persistDocument(
   document: DocumentEnvelope,
   key = DOCUMENT_STORAGE_KEY,
 ): void {
-  storage.setItem(key, JSON.stringify(document));
+  storage.setItem(key, JSON.stringify(parseDocumentEnvelope(document)));
 }
 
 export function resetDocument(
