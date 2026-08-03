@@ -6,6 +6,7 @@
     "@document-playground/domain": "workspace:*",
     "@document-playground/editor": "workspace:*",
     "@document-playground/pagination": "workspace:*",
-    "@document-playground/persistence": "workspace:*"
+    "@document-playground/persistence": "workspace:*",
+    "zod": "^4.0.0"
   }
 }
