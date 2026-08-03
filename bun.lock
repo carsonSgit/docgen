@@ -33,6 +33,12 @@
     },
     "apps/web": {
       "name": "@document-playground/web",
+      "dependencies": {
+        "@document-playground/domain": "workspace:*",
+        "@document-playground/editor": "workspace:*",
+        "@document-playground/pagination": "workspace:*",
+        "@document-playground/persistence": "workspace:*",
+      },
     },
     "packages/domain": {
       "name": "@document-playground/domain",
