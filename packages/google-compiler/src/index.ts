@@ -24,7 +24,17 @@ export type GoogleDocsRequest =
         fields: string;
       };
     }
-  | { createParagraphBullets: { range: Range; bulletPreset: string } };
+  | { createParagraphBullets: { range: Range; bulletPreset: string } }
+  | {
+      insertInlineImage: {
+        location: Location;
+        uri: string;
+        objectSize: {
+          width: { magnitude: number; unit: "PT" };
+          height: { magnitude: number; unit: "PT" };
+        };
+      };
+    };
 
 export type CompileResult = {
   title: string;
@@ -51,6 +61,7 @@ const supportedNodes = new Set([
   "orderedList",
   "listItem",
   "pageBreak",
+  "image",
 ]);
 
 function assertSupported(node: TiptapNode, path: string): void {
@@ -79,6 +90,7 @@ function compileNode(
   node: TiptapNode,
   requests: GoogleDocsRequest[],
   state: { index: number },
+  imageUris: ReadonlyMap<string, string>,
   listType?: "bullet" | "ordered",
 ): void {
   if (node.type === "hardBreak") {
@@ -91,6 +103,34 @@ function compileNode(
 
   if (node.type === "pageBreak") {
     requests.push({ insertPageBreak: { location: { index: state.index } } });
+    state.index += 1;
+    return;
+  }
+
+  if (node.type === "image") {
+    const assetId = node.attrs?.assetId;
+    const uri =
+      typeof assetId === "string" ? imageUris.get(assetId) : undefined;
+    if (!uri) {
+      throw new Error(
+        `Image asset ${assetId ?? "unknown"} is not available for export`,
+      );
+    }
+    const width = node.attrs?.width;
+    const height = node.attrs?.height;
+    if (typeof width !== "number" || typeof height !== "number") {
+      throw new Error(`Image asset ${assetId} has invalid dimensions`);
+    }
+    requests.push({
+      insertInlineImage: {
+        location: { index: state.index },
+        uri,
+        objectSize: {
+          width: { magnitude: width, unit: "PT" },
+          height: { magnitude: height, unit: "PT" },
+        },
+      },
+    });
     state.index += 1;
     return;
   }
@@ -117,7 +157,7 @@ function compileNode(
 
   if (node.type === "doc") {
     node.content?.forEach((child) => {
-      compileNode(child, requests, state);
+      compileNode(child, requests, state, imageUris);
     });
     return;
   }
@@ -125,14 +165,14 @@ function compileNode(
   if (node.type === "bulletList" || node.type === "orderedList") {
     const nextListType = node.type === "bulletList" ? "bullet" : "ordered";
     node.content?.forEach((child) => {
-      compileNode(child, requests, state, nextListType);
+      compileNode(child, requests, state, imageUris, nextListType);
     });
     return;
   }
 
   const startIndex = state.index;
   node.content?.forEach((child) => {
-    compileNode(child, requests, state, listType);
+    compileNode(child, requests, state, imageUris, listType);
   });
 
   if (
@@ -190,7 +230,10 @@ export function normalizeDocument(input: unknown): DocumentEnvelope {
   return parseDocumentEnvelope(input);
 }
 
-export function compileDocument(input: unknown): CompileResult {
+export function compileDocument(
+  input: unknown,
+  imageUris: ReadonlyMap<string, string> = new Map(),
+): CompileResult {
   // Unsupported content must produce the compiler's actionable error even
   // when its node is malformed; schema validation remains the normal boundary.
   const rawContent =
@@ -213,6 +256,6 @@ export function compileDocument(input: unknown): CompileResult {
   const document = normalizeDocument(input);
   assertSupported(document.content, "content");
   const requests: GoogleDocsRequest[] = [];
-  compileNode(document.content, requests, { index: 1 });
+  compileNode(document.content, requests, { index: 1 }, imageUris);
   return { title: document.title, requests };
 }

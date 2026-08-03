@@ -43,4 +43,38 @@ describe("Google provider client", () => {
       "GOOGLE_ACCESS_TOKEN",
     );
   });
+
+  it("uploads an image and grants Docs a readable URI", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ id: "image-1" }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 200 }));
+    const provider = createGoogleProviderClient({
+      accessToken: "token",
+      fetchImpl,
+    });
+
+    await expect(
+      provider.uploadImage?.({
+        assetId: "asset_fixture",
+        blob: new Blob(["fixture"], { type: "image/png" }),
+        mimeType: "image/png",
+        size: 7,
+      }),
+    ).resolves.toEqual({
+      uri: "https://drive.google.com/uc?export=download&id=image-1",
+    });
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      1,
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      2,
+      "https://www.googleapis.com/drive/v3/files/image-1/permissions",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
 });
