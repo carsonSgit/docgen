@@ -2,6 +2,7 @@ import {
   createBlankDocument,
   createImageNode,
   type DocumentEnvelope,
+  type DocumentSection,
   type DocumentTemplateId,
   listDocumentTemplates,
   type TiptapNode,
@@ -29,17 +30,26 @@ type CoreEditor = ReturnType<typeof createCoreEditor>;
 
 type PageEditorProps = {
   page: PaginationPage;
+  header: DocumentSection | null;
+  footer: DocumentSection | null;
   resolveImageSource: (assetId: string) => string | undefined;
   onChange: (pageNumber: number, content: TiptapNode[]) => void;
+  onSectionChange: (
+    section: "header" | "footer",
+    content: DocumentSection,
+  ) => void;
   onFocus: (editor: CoreEditor) => void;
 };
 
-function PageEditor({
+function BodyEditor({
   page,
   onChange,
   onFocus,
   resolveImageSource,
-}: PageEditorProps) {
+}: Pick<
+  PageEditorProps,
+  "page" | "onChange" | "onFocus" | "resolveImageSource"
+>) {
   const host = useRef<HTMLDivElement>(null);
   const editorRef = useRef<CoreEditor | null>(null);
   const onFocusRef = useRef(onFocus);
@@ -70,7 +80,7 @@ function PageEditor({
       editor.destroy();
       editorRef.current = null;
     };
-  }, [onChange, page.number]);
+  }, [onChange, page.number, resolveImageSource]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -84,9 +94,112 @@ function PageEditor({
     }
   }, [page.content, serializedContent]);
 
+  return <div ref={host} className="editor" />;
+}
+
+function SectionEditor({
+  section,
+  content,
+  onChange,
+  onFocus,
+}: {
+  section: "header" | "footer";
+  content: DocumentSection;
+  onChange: (content: DocumentSection) => void;
+  onFocus: (editor: CoreEditor) => void;
+}) {
+  const host = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<CoreEditor | null>(null);
+  const onFocusRef = useRef(onFocus);
+  const onChangeRef = useRef(onChange);
+  const serializedContent = JSON.stringify(content);
+  onFocusRef.current = onFocus;
+  onChangeRef.current = onChange;
+
+  useEffect(() => {
+    if (!host.current) return;
+    const editor = createCoreEditor(host.current, content);
+    editorRef.current = editor;
+    const handleFocus = () => onFocusRef.current(editor);
+    const handleUpdate = () =>
+      onChangeRef.current(saveDocument(editor, createBlankDocument()).content);
+    editor.on("focus", handleFocus);
+    editor.on("update", handleUpdate);
+    return () => {
+      editor.off("focus", handleFocus);
+      editor.off("update", handleUpdate);
+      editor.destroy();
+      editorRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (editor && JSON.stringify(editor.getJSON()) !== serializedContent) {
+      editor.commands.setContent(content, { emitUpdate: false });
+    }
+  }, [content, serializedContent]);
+
+  return <div className={`section-editor ${section}-editor`} ref={host} />;
+}
+
+function PageEditor({
+  page,
+  header,
+  footer,
+  resolveImageSource,
+  onChange,
+  onSectionChange,
+  onFocus,
+}: PageEditorProps) {
+  const emptySection = {
+    type: "doc" as const,
+    content: [{ type: "paragraph" as const }],
+  };
   return (
     <article className="page" aria-label={`Page ${page.number}`}>
-      <div ref={host} className="editor" />
+      <section className="page-header" aria-label="Page header">
+        {header ? (
+          <SectionEditor
+            section="header"
+            content={header}
+            onChange={(content) => onSectionChange("header", content)}
+            onFocus={onFocus}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => onSectionChange("header", emptySection)}
+          >
+            Add header
+          </button>
+        )}
+      </section>
+      <section className="page-body-editor" aria-label="Page body">
+        <BodyEditor
+          page={page}
+          onChange={onChange}
+          onFocus={onFocus}
+          resolveImageSource={resolveImageSource}
+        />
+      </section>
+      <section className="page-footer" aria-label="Page footer">
+        {footer ? (
+          <SectionEditor
+            section="footer"
+            content={footer}
+            onChange={(content) => onSectionChange("footer", content)}
+            onFocus={onFocus}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => onSectionChange("footer", emptySection)}
+          >
+            Add footer
+          </button>
+        )}
+      </section>
     </article>
   );
 }
@@ -167,6 +280,18 @@ export function App() {
     persister.schedule(nextDocument);
     window.setTimeout(() => setSaveStatus("Saved"), 300);
   }
+
+  const updateSection = useCallback(
+    (section: "header" | "footer", content: DocumentSection) => {
+      const nextDocument = { ...documentRef.current, [section]: content };
+      documentRef.current = nextDocument;
+      setDocument(nextDocument);
+      setSaveStatus("Saving…");
+      persister.schedule(nextDocument);
+      window.setTimeout(() => setSaveStatus("Saved"), 300);
+    },
+    [persister],
+  );
 
   function openTemplateChooser() {
     setSelectedTemplateId("blank");
@@ -490,7 +615,10 @@ export function App() {
             key={page.number}
             page={page}
             resolveImageSource={(assetId) => assetUrls.current.get(assetId)}
+            header={document.header}
+            footer={document.footer}
             onChange={updatePageContent}
+            onSectionChange={updateSection}
             onFocus={(editor) => {
               activeEditorRef.current = editor;
             }}
