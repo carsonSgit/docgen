@@ -35,7 +35,7 @@ test("edits across automatically paginated editor pages", async ({ page }) => {
   await page.goto("/");
   const editor = page.locator(".ProseMirror").first();
   await editor.fill(
-    Array.from({ length: 50 }, (_, index) => `Paragraph ${index + 1}`).join(
+    Array.from({ length: 60 }, (_, index) => `Paragraph ${index + 1}`).join(
       "\n",
     ),
   );
@@ -100,4 +100,71 @@ test("inserts a semantic manual page break from the toolbar", async ({
 
   await expect(page.getByLabel("Page 2")).toBeVisible();
   await expect(page.locator(".ProseMirror")).toHaveCount(2);
+});
+
+test("fits the actual number of body lines before creating a new page", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const editor = page.locator(".ProseMirror").first();
+  await editor.fill(
+    Array.from({ length: 51 }, (_, index) => `Line ${index + 1}`).join("\n"),
+  );
+
+  await expect(page.locator(".ProseMirror")).toHaveCount(1);
+  const metrics = await page
+    .locator(".page")
+    .first()
+    .evaluate((page) => {
+      const editor = page.querySelector<HTMLElement>(".editor");
+      const proseMirror = page.querySelector<HTMLElement>(".ProseMirror");
+      return {
+        editorHeight: editor?.clientHeight ?? 0,
+        contentHeight: proseMirror?.scrollHeight ?? 0,
+      };
+    });
+
+  expect(metrics.contentHeight).toBeLessThanOrEqual(metrics.editorHeight + 1);
+});
+
+test("keeps the cursor near the edited text when pagination reflows", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const firstLine = "a".repeat(90);
+  const editor = page.locator(".ProseMirror").first();
+  await editor.fill(
+    [firstLine, ...Array.from({ length: 50 }, () => "line")].join("\n"),
+  );
+  await editor.click({ position: { x: 8, y: 8 } });
+  await page.keyboard.type("XY");
+
+  await expect(editor.locator("p").first()).toContainText("XY");
+  await expect(editor.locator("p").last()).not.toContainText("XY");
+});
+
+test("moves wrapped lines of one paragraph onto the next page", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const editor = page.locator(".ProseMirror").first();
+  await editor.fill("wrapped line ".repeat(500));
+
+  await expect(page.locator(".ProseMirror")).toHaveCount(2);
+  const pageMetrics = await page.locator(".page").evaluateAll((pages) =>
+    pages.map((page) => {
+      const editor = page.querySelector<HTMLElement>(".editor");
+      const proseMirror = page.querySelector<HTMLElement>(".ProseMirror");
+      return {
+        editorHeight: editor?.clientHeight ?? 0,
+        contentHeight: proseMirror?.scrollHeight ?? 0,
+      };
+    }),
+  );
+
+  expect(
+    pageMetrics.every(
+      ({ contentHeight, editorHeight }) => contentHeight <= editorHeight + 1,
+    ),
+  ).toBe(true);
 });
