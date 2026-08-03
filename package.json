@@ -15,6 +15,7 @@
     "test": "vitest run",
     "lint": "biome check .",
     "format": "biome format --write .",
+    "format:check": "biome format .",
     "knip": "knip",
     "test:e2e": "playwright test"
   },
