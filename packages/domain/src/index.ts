@@ -8,6 +8,20 @@ export type JsonObject = { [key: string]: JsonValue };
 
 export const DOCUMENT_VERSION = 1 as const;
 
+export const MAX_IMAGE_DIMENSION_POINTS = 1440;
+export const IMAGE_ASSET_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{1,127}$/;
+
+const ImageAttributesSchema = z
+  .object({
+    assetId: z.string().regex(IMAGE_ASSET_ID_PATTERN),
+    alt: z.string().trim().max(500),
+    width: z.number().finite().positive().max(MAX_IMAGE_DIMENSION_POINTS),
+    height: z.number().finite().positive().max(MAX_IMAGE_DIMENSION_POINTS),
+  })
+  .strict();
+
+export type ImageAttributes = z.infer<typeof ImageAttributesSchema>;
+
 const TiptapMarkSchema = z.object({
   type: z.string().min(1),
   attrs: z.record(z.string(), z.unknown()).optional(),
@@ -35,7 +49,16 @@ const TiptapNodeSchema: z.ZodType<TiptapNode> = z.lazy(() =>
       marks: z.array(TiptapMarkSchema).optional(),
       content: z.array(TiptapNodeSchema).optional(),
     })
-    .strict(),
+    .strict()
+    .superRefine((node, context) => {
+      if (node.type !== "image") return;
+      const result = ImageAttributesSchema.safeParse(node.attrs);
+      if (!result.success) {
+        for (const issue of result.error.issues) {
+          context.addIssue({ ...issue, path: ["attrs", ...issue.path] });
+        }
+      }
+    }),
 );
 
 const PageLayoutSchema = z
@@ -78,6 +101,15 @@ export function createBlankDocument(): DocumentEnvelope {
     },
     content: { type: "doc", content: [{ type: "paragraph" }] },
   };
+}
+
+export function validateImageDimensions(width: number, height: number): void {
+  ImageAttributesSchema.shape.width.parse(width);
+  ImageAttributesSchema.shape.height.parse(height);
+}
+
+export function createImageNode(attributes: ImageAttributes): TiptapNode {
+  return { type: "image", attrs: ImageAttributesSchema.parse(attributes) };
 }
 
 export function parseDocumentEnvelope(input: unknown): DocumentEnvelope {
