@@ -203,13 +203,13 @@ export function compileDocument(input: unknown): CompileResult {
     if (typeof typed.type === "string" && !supportedNodes.has(typed.type)) {
       throw new UnsupportedContentError(path, typed.type);
     }
-    typed.content?.forEach((child, index) =>
-      rejectUnsupportedRawNode(child, `${path}.content[${index}]`),
-    );
+    typed.content?.forEach((child, index) => {
+      rejectUnsupportedRawNode(child, `${path}.content[${index}]`);
+    });
   };
-  rawContent?.forEach((node, index) =>
-    rejectUnsupportedRawNode(node, `content.content[${index}]`),
-  );
+  rawContent?.forEach((node, index) => {
+    rejectUnsupportedRawNode(node, `content.content[${index}]`);
+  });
   const document = normalizeDocument(input);
   assertSupported(document.content, "content");
   const requests: GoogleDocsRequest[] = [];
