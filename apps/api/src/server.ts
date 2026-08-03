@@ -7,25 +7,19 @@ import {
   type GoogleProviderClient,
 } from "@document-playground/export-service";
 import { z } from "zod";
+import { createGoogleProviderClient } from "./google-provider";
 
 const port = Number(process.env.PORT ?? 3000);
 
 const ExportRequestSchema = z.object({ document: z.unknown() }).strict();
 
-function unavailableProvider(): GoogleProviderClient {
-  return {
-    async createDocument() {
-      throw new Error("Google OAuth is not configured for this local API.");
-    },
-    async batchUpdate() {
-      throw new Error("Google OAuth is not configured for this local API.");
-    },
-  };
-}
+const defaultProvider = createGoogleProviderClient({
+  accessToken: process.env.GOOGLE_ACCESS_TOKEN,
+});
 
 export async function handleRequest(
   request: Request,
-  provider: GoogleProviderClient = unavailableProvider(),
+  provider: GoogleProviderClient = defaultProvider,
 ): Promise<Response> {
   const url = new URL(request.url);
 
