@@ -5,6 +5,7 @@
     { "path": "./apps/web/tsconfig.json" },
     { "path": "./packages/domain/tsconfig.json" },
     { "path": "./packages/editor/tsconfig.json" },
-    { "path": "./packages/pagination/tsconfig.json" }
+    { "path": "./packages/pagination/tsconfig.json" },
+    { "path": "./packages/persistence/tsconfig.json" }
   ]
 }
