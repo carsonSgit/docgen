@@ -23,9 +23,81 @@ describe("document envelope", () => {
         height: 792,
         margins: { top: 72, right: 72, bottom: 72, left: 72 },
       },
+      header: null,
+      footer: null,
       content: { type: "doc", content: [{ type: "paragraph" }] },
     });
     expect(validateDocumentEnvelope(document).success).toBe(true);
+  });
+
+  it("normalizes a v1 document to empty header and footer sections", () => {
+    const v1 = {
+      version: 1,
+      title: "Legacy document",
+      page: createBlankDocument().page,
+      content: createBlankDocument().content,
+    };
+
+    expect(parseDocumentEnvelope(v1)).toEqual({
+      ...v1,
+      version: 2,
+      header: null,
+      footer: null,
+    });
+  });
+
+  it("normalizes omitted v2 sections to empty sections", () => {
+    const {
+      header: _header,
+      footer: _footer,
+      ...withoutSections
+    } = createBlankDocument();
+
+    expect(parseDocumentEnvelope(withoutSections)).toEqual(
+      createBlankDocument(),
+    );
+  });
+
+  it("round-trips structured header and footer content", () => {
+    const document = {
+      ...createBlankDocument(),
+      header: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              { type: "text", text: "Header", marks: [{ type: "bold" }] },
+            ],
+          },
+        ],
+      },
+      footer: {
+        type: "doc",
+        content: [
+          { type: "paragraph", content: [{ type: "text", text: "Footer" }] },
+        ],
+      },
+    };
+
+    expect(parseDocumentEnvelope(JSON.parse(JSON.stringify(document)))).toEqual(
+      document,
+    );
+  });
+
+  it("rejects malformed header and footer sections", () => {
+    expect(
+      validateDocumentEnvelope({
+        ...createBlankDocument(),
+        header: { type: "doc", unexpected: true },
+      }).success,
+    ).toBe(false);
+    expect(
+      validateDocumentEnvelope({
+        ...createBlankDocument(),
+        footer: { type: "doc", content: [{ type: "text", text: 42 }] },
+      }).success,
+    ).toBe(false);
   });
 
   it("parses a valid versioned Tiptap document", () => {
