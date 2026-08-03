@@ -68,7 +68,6 @@ function PageEditor({ page, onChange, onFocus }: PageEditorProps) {
   return (
     <article className="page" aria-label={`Page ${page.number}`}>
       <div ref={host} className="editor" />
-      <footer>Page {page.number}</footer>
     </article>
   );
 }
