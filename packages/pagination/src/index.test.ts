@@ -45,4 +45,26 @@ describe("pagination adapter", () => {
       },
     ]);
   });
+
+  it("flows a paragraph containing hard breaks by its rendered line count", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: Array.from({ length: 50 }, (_, index) => ({
+            type: index === 0 ? "text" : "hardBreak",
+            ...(index === 0 ? { text: "Paragraph 1" } : {}),
+          })),
+        },
+      ],
+    };
+
+    const result = paginateDocument(document);
+
+    expect(result.pages).toHaveLength(2);
+    expect(result.pages[0]?.content[0]?.content).toHaveLength(43);
+    expect(result.pages[1]?.content[0]?.content).toHaveLength(7);
+  });
 });
