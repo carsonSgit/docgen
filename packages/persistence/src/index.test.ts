@@ -3,10 +3,15 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createDebouncedPersister,
   DOCUMENT_STORAGE_KEY,
+  IMAGE_ASSET_LIMITS,
+  ImageAssetError,
+  MemoryAssetStorage,
   persistDocument,
+  putImageAsset,
   resetDocument,
   resetDocumentFromTemplate,
   restoreDocument,
+  restoreImageAsset,
 } from "./index";
 
 function memoryStorage(): Storage {
@@ -24,6 +29,69 @@ function memoryStorage(): Storage {
 }
 
 describe("local document persistence", () => {
+  it("stores supported image files behind an asset boundary", async () => {
+    const storage = new MemoryAssetStorage();
+    const file = new File([new Uint8Array([1, 2, 3])], "diagram.png", {
+      type: "image/png",
+    });
+
+    const asset = await putImageAsset(storage, file, {
+      width: 240,
+      height: 120,
+    });
+
+    expect(asset.assetId).toMatch(/^asset_/);
+    expect(asset.mimeType).toBe("image/png");
+    expect(await storage.get(asset.assetId)).toMatchObject({
+      assetId: asset.assetId,
+      size: 3,
+    });
+  });
+
+  it("rejects unsupported formats and oversized assets", async () => {
+    const storage = new MemoryAssetStorage();
+    await expect(
+      putImageAsset(
+        storage,
+        new File(["text"], "notes.txt", { type: "text/plain" }),
+        { width: 10, height: 10 },
+      ),
+    ).rejects.toBeInstanceOf(ImageAssetError);
+
+    const oversized = new File(
+      [new Uint8Array(IMAGE_ASSET_LIMITS.maxBytes + 1)],
+      "big.png",
+      { type: "image/png" },
+    );
+    await expect(
+      putImageAsset(storage, oversized, { width: 10, height: 10 }),
+    ).rejects.toBeInstanceOf(ImageAssetError);
+  });
+
+  it("reports missing and corrupt assets as explicit recovery states", async () => {
+    const storage = new MemoryAssetStorage();
+    const image = {
+      assetId: "asset_missing",
+      alt: "",
+      width: 10,
+      height: 10,
+    } as const;
+    expect(await restoreImageAsset(storage, image)).toEqual({
+      kind: "missing",
+      assetId: image.assetId,
+    });
+
+    await storage.put({
+      assetId: image.assetId,
+      blob: new Blob(["bad"], { type: "text/plain" }),
+      mimeType: "image/png",
+      size: 3,
+    });
+    expect(await restoreImageAsset(storage, image)).toMatchObject({
+      kind: "corrupt",
+      assetId: image.assetId,
+    });
+  });
   it("restores a blank document when storage is empty", () => {
     const result = restoreDocument(memoryStorage());
 
