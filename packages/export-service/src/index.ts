@@ -23,7 +23,10 @@ export type ExportImageAsset = {
 export type GoogleProviderClient = {
   createDocument(title: string): Promise<{ documentId: string }>;
   uploadImage?(asset: ExportImageAsset): Promise<{ uri: string }>;
-  batchUpdate(documentId: string, requests: GoogleDocsRequest[]): Promise<void>;
+  batchUpdate(
+    documentId: string,
+    requests: GoogleDocsRequest[],
+  ): Promise<unknown>;
 };
 
 export type ExportResult = {
@@ -135,7 +138,105 @@ export async function exportDocument(
 
   try {
     const created = await provider.createDocument(compiled.title);
-    await provider.batchUpdate(created.documentId, compiled.requests);
+    const sections = [
+      ["header", compiled.sections.header] as const,
+      ["footer", compiled.sections.footer] as const,
+    ].filter(([, requests]) => requests !== null);
+    const sectionRequests = sections.map(([kind]) =>
+      kind === "header"
+        ? { createHeader: { type: "DEFAULT" as const } }
+        : { createFooter: { type: "DEFAULT" as const } },
+    );
+    const sectionResponse =
+      sectionRequests.length > 0
+        ? await provider.batchUpdate(created.documentId, sectionRequests)
+        : undefined;
+    const replies =
+      sectionResponse && typeof sectionResponse === "object"
+        ? (sectionResponse as { replies?: unknown[] }).replies
+        : undefined;
+    const sectionIds = new Map<string, string>();
+    sections.forEach(([kind], index) => {
+      const reply = replies?.[index];
+      if (!reply || typeof reply !== "object") {
+        throw new Error(`Google did not return a ${kind} section id.`);
+      }
+      const createKey = kind === "header" ? "createHeader" : "createFooter";
+      const id = (reply as Record<string, unknown>)[createKey];
+      const sectionId =
+        id && typeof id === "object"
+          ? (id as Record<string, unknown>)[`${kind}Id`]
+          : undefined;
+      if (typeof sectionId !== "string") {
+        throw new Error(`Google did not return a ${kind} section id.`);
+      }
+      sectionIds.set(kind, sectionId);
+    });
+    const addSegment = (requests: GoogleDocsRequest[], segmentId: string) =>
+      requests.map((request) => {
+        if ("insertText" in request) {
+          return {
+            ...request,
+            insertText: {
+              ...request.insertText,
+              location: { ...request.insertText.location, segmentId },
+            },
+          };
+        }
+        if ("insertPageBreak" in request) {
+          return {
+            ...request,
+            insertPageBreak: {
+              ...request.insertPageBreak,
+              location: { ...request.insertPageBreak.location, segmentId },
+            },
+          };
+        }
+        if ("insertInlineImage" in request) {
+          return {
+            ...request,
+            insertInlineImage: {
+              ...request.insertInlineImage,
+              location: { ...request.insertInlineImage.location, segmentId },
+            },
+          };
+        }
+        if ("updateTextStyle" in request) {
+          return {
+            ...request,
+            updateTextStyle: {
+              ...request.updateTextStyle,
+              range: { ...request.updateTextStyle.range, segmentId },
+            },
+          };
+        }
+        if ("updateParagraphStyle" in request) {
+          return {
+            ...request,
+            updateParagraphStyle: {
+              ...request.updateParagraphStyle,
+              range: { ...request.updateParagraphStyle.range, segmentId },
+            },
+          };
+        }
+        if ("createParagraphBullets" in request) {
+          return {
+            ...request,
+            createParagraphBullets: {
+              ...request.createParagraphBullets,
+              range: { ...request.createParagraphBullets.range, segmentId },
+            },
+          };
+        }
+        return request;
+      });
+    const sectionContent = sections.flatMap(([kind, requests]) =>
+      addSegment(requests ?? [], sectionIds.get(kind) ?? ""),
+    );
+    await provider.batchUpdate(created.documentId, [
+      ...compiled.requests,
+      ...sectionContent,
+    ]);
     return {
       documentId: created.documentId,
       url: `https://docs.google.com/document/d/${encodeURIComponent(created.documentId)}/edit`,
