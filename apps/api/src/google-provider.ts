@@ -49,9 +49,15 @@ export function createGoogleProviderClient(options: {
         ...init.headers,
       },
     });
-    const body: unknown = await response.json();
+    const body: unknown = await response.json().catch(() => undefined);
     if (!response.ok) {
-      throw new Error(`Google API request failed (${response.status}).`);
+      const detail =
+        body && typeof body === "object" && "error" in body
+          ? (body as { error?: { message?: unknown } }).error?.message
+          : undefined;
+      throw new Error(
+        `Google API request failed (${response.status})${typeof detail === "string" ? `: ${detail}` : "."}`,
+      );
     }
     return body;
   }
@@ -87,7 +93,9 @@ export function createGoogleProviderClient(options: {
       );
       const prefix = `--${boundary}\r\ncontent-type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\ncontent-type: ${asset.mimeType}\r\n\r\n`;
       const suffix = `\r\n--${boundary}--`;
-      const body = new Blob([prefix, bytes, suffix]);
+      const body = new Blob([prefix, bytes, suffix], {
+        type: `multipart/related; boundary=${boundary}`,
+      });
       const uploaded = await googleRequest(
         "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
         {

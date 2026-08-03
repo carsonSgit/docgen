@@ -106,4 +106,38 @@ describe("pagination adapter", () => {
 
     expect(paginateDocument(document).pages).toHaveLength(2);
   });
+
+  it("moves an image nested in a paragraph when it cannot fit", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        ...Array.from({ length: 45 }, () => ({ type: "paragraph" })),
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "image",
+              attrs: {
+                assetId: "asset_image",
+                alt: "",
+                width: 120,
+                height: 120,
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = paginateDocument(document);
+
+    expect(result.pages).toHaveLength(2);
+    expect(result.pages[0]?.content.at(-1)).not.toMatchObject({
+      content: [{ type: "image" }],
+    });
+    expect(result.pages[1]?.content[0]).toMatchObject({
+      content: [{ type: "image", attrs: { height: 120 } }],
+    });
+  });
 });

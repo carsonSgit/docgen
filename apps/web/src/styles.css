@@ -549,6 +549,42 @@ button:disabled {
   text-decoration: underline;
 }
 
+.image-node-view {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  vertical-align: middle;
+}
+
+.image-node-view-image {
+  display: block;
+  max-width: 100%;
+  user-select: none;
+}
+
+.image-node-view.selected {
+  outline: 2px solid #1a73e8;
+  outline-offset: 1px;
+}
+
+.image-resize-handle {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  border: 1px solid white;
+  border-radius: 2px;
+  background: #1a73e8;
+  cursor: nwse-resize;
+  opacity: 0;
+}
+
+.image-node-view:hover .image-resize-handle,
+.image-node-view.selected .image-resize-handle {
+  opacity: 1;
+}
+
 @media (max-width: 900px) {
   .topbar {
     flex-wrap: wrap;
