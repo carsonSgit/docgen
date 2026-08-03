@@ -4,10 +4,12 @@ import {
   type TiptapNode,
 } from "@document-playground/domain";
 
-type Location = { index: number };
-type Range = { startIndex: number; endIndex: number };
+type Location = { index: number; segmentId?: string };
+type Range = { startIndex: number; endIndex: number; segmentId?: string };
 
 export type GoogleDocsRequest =
+  | { createHeader: { type: "DEFAULT" } }
+  | { createFooter: { type: "DEFAULT" } }
   | { insertText: { location: Location; text: string } }
   | { insertPageBreak: { location: Location } }
   | {
@@ -39,6 +41,10 @@ export type GoogleDocsRequest =
 export type CompileResult = {
   title: string;
   requests: GoogleDocsRequest[];
+  sections: {
+    header: GoogleDocsRequest[] | null;
+    footer: GoogleDocsRequest[] | null;
+  };
 };
 
 export class UnsupportedContentError extends Error {
@@ -250,12 +256,37 @@ export function compileDocument(
       rejectUnsupportedRawNode(child, `${path}.content[${index}]`);
     });
   };
+  const rawSections =
+    input && typeof input === "object"
+      ? (input as { header?: unknown; footer?: unknown })
+      : {};
   rawContent?.forEach((node, index) => {
     rejectUnsupportedRawNode(node, `content.content[${index}]`);
   });
+  for (const section of ["header", "footer"] as const) {
+    const raw = rawSections[section];
+    if (raw && typeof raw === "object") {
+      rejectUnsupportedRawNode(raw, section);
+    }
+  }
   const document = normalizeDocument(input);
   assertSupported(document.content, "content");
+  if (document.header) assertSupported(document.header, "header");
+  if (document.footer) assertSupported(document.footer, "footer");
   const requests: GoogleDocsRequest[] = [];
   compileNode(document.content, requests, { index: 1 }, imageUris);
-  return { title: document.title, requests };
+  const compileSection = (section: TiptapNode | null) => {
+    if (!section) return null;
+    const sectionRequests: GoogleDocsRequest[] = [];
+    compileNode(section, sectionRequests, { index: 0 }, imageUris);
+    return sectionRequests;
+  };
+  return {
+    title: document.title,
+    requests,
+    sections: {
+      header: compileSection(document.header),
+      footer: compileSection(document.footer),
+    },
+  };
 }
