@@ -31,7 +31,7 @@ describe("API", () => {
     const response = await handleRequest(
       new Request("http://localhost/api/export", {
         method: "POST",
-        body: JSON.stringify({ document: createBlankDocument() }),
+        body: JSON.stringify({ document: createBlankDocument(), assets: [] }),
         headers: { "content-type": "application/json" },
       }),
       provider,

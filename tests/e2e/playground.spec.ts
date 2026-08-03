@@ -96,6 +96,23 @@ test("focuses the editor when clicking blank page space", async ({ page }) => {
   await expect(editor).toContainText("Text entered from blank page space");
 });
 
+test("moves focus to the next page after a boundary hard break", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const firstEditor = page.locator(".ProseMirror").first();
+  await firstEditor.fill(
+    Array.from({ length: 52 }, (_, index) => `Line ${index + 1}`).join("\n"),
+  );
+  await expect(page.locator(".ProseMirror")).toHaveCount(2);
+
+  await firstEditor.locator("p").last().click();
+  await firstEditor.press("End");
+  await firstEditor.press("Shift+Enter");
+
+  await expect(page.locator(".ProseMirror").nth(1)).toBeFocused();
+});
+
 test("matches the native Docs page and default paragraph metrics", async ({
   page,
 }) => {
