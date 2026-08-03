@@ -49,6 +49,12 @@
         "@document-playground/domain": "workspace:*",
       },
     },
+    "packages/google-compiler": {
+      "name": "@document-playground/google-compiler",
+      "dependencies": {
+        "@document-playground/domain": "workspace:*",
+      },
+    },
     "packages/pagination": {
       "name": "@document-playground/pagination",
       "dependencies": {
@@ -136,6 +142,8 @@
     "@document-playground/domain": ["@document-playground/domain@workspace:packages/domain"],
 
     "@document-playground/editor": ["@document-playground/editor@workspace:packages/editor"],
+
+    "@document-playground/google-compiler": ["@document-playground/google-compiler@workspace:packages/google-compiler"],
 
     "@document-playground/pagination": ["@document-playground/pagination@workspace:packages/pagination"],
 
