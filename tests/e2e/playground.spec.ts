@@ -128,6 +128,32 @@ test("exports inserted image dimensions in document points", async ({
   expect(hasPageBreak(requestBody?.document?.content?.content)).toBe(false);
 });
 
+test("paginates a near-full-page inline image like Google Docs", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "createImageBitmap", {
+      configurable: true,
+      value: async () => ({ width: 1000, height: 1366, close() {} }),
+    });
+  });
+  await page.goto("/");
+  await page.locator(".ProseMirror").first().click();
+  await page.getByLabel("Choose image file").setInputFiles({
+    name: "tall.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("image"),
+  });
+
+  await expect(page.locator(".page")).toHaveCount(2);
+  await expect(
+    page.locator(".page").first().locator(".image-node-view-image"),
+  ).toBeVisible();
+  await expect(
+    page.locator(".page").nth(1).locator(".image-node-view-image"),
+  ).toHaveCount(0);
+});
+
 test("requires confirmation before reset", async ({ page }) => {
   await page.goto("/");
   await page.getByLabel("Document title").fill("Keep this title");
