@@ -52,4 +52,28 @@ describe("Google Docs compiler", () => {
     expect(() => compileDocument(document)).toThrow(UnsupportedContentError);
     expect(() => compileDocument(document)).toThrow("image");
   });
+
+  it("preserves hard breaks as native inserted line breaks", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "First" },
+            { type: "hardBreak" },
+            { type: "text", text: "Second" },
+          ],
+        },
+      ],
+    };
+
+    expect(compileDocument(document).requests).toEqual([
+      { insertText: { location: { index: 1 }, text: "First" } },
+      { insertText: { location: { index: 6 }, text: "\n" } },
+      { insertText: { location: { index: 7 }, text: "Second" } },
+      { insertText: { location: { index: 13 }, text: "\n" } },
+    ]);
+  });
 });
