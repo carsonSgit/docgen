@@ -1,0 +1,11 @@
+{
+  "name": "@document-playground/google-compiler",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@document-playground/domain": "workspace:*"
+  }
+}
