@@ -173,6 +173,21 @@ export function paginateDocument(
       continue;
     }
 
+    const nextNode = document.content.content?.[nodeIndex + 1];
+    const keepsNextTogether =
+      node.type === "heading" &&
+      nextNode &&
+      Boolean(pages.at(-1)?.content.length) &&
+      measureNode(node) + measureNode(nextNode) > remainingHeight;
+    if (keepsNextTogether) {
+      pages.push({
+        number: pages.length + 1,
+        content: [],
+        breakBefore: false,
+      });
+      remainingHeight = CONTENT_HEIGHT;
+    }
+
     let remainingNode: TiptapNode | null = node;
     while (remainingNode) {
       const textFragments = splitTextNode(

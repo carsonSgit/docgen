@@ -192,6 +192,30 @@ test("matches the native Docs page and default paragraph metrics", async ({
   expect(metrics.paragraphMarginBottom).toBe("0px");
 });
 
+test("uses the native header and footer distances around the body", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const firstPage = page.getByLabel("Page 1");
+  await firstPage.getByRole("button", { name: "Add header" }).click();
+  await firstPage.getByRole("button", { name: "Add footer" }).click();
+
+  const distances = await firstPage.evaluate((page) => {
+    const pageRect = page.getBoundingClientRect();
+    const header = page.querySelector<HTMLElement>(".page-header");
+    const footer = page.querySelector<HTMLElement>(".page-footer");
+    const headerRect = header?.getBoundingClientRect();
+    const footerRect = footer?.getBoundingClientRect();
+    return {
+      headerTop: (headerRect?.top ?? 0) - pageRect.top,
+      footerBottom: pageRect.bottom - (footerRect?.bottom ?? pageRect.bottom),
+    };
+  });
+
+  expect(distances.headerTop).toBeCloseTo(48, 0);
+  expect(distances.footerBottom).toBeCloseTo(48, 0);
+});
+
 test("matches native Docs heading and list spacing in the meeting template", async ({
   page,
 }) => {
