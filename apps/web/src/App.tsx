@@ -228,6 +228,10 @@ export function App() {
     [],
   );
   const assetStorage = useMemo(() => new BrowserAssetStorage(), []);
+  const resolveImageSource = useCallback(
+    (assetId: string) => assetUrls.current.get(assetId),
+    [],
+  );
 
   useEffect(() => {
     const result = restoreDocument(window.localStorage);
@@ -614,7 +618,7 @@ export function App() {
           <PageEditor
             key={page.number}
             page={page}
-            resolveImageSource={(assetId) => assetUrls.current.get(assetId)}
+            resolveImageSource={resolveImageSource}
             header={document.header}
             footer={document.footer}
             onChange={updatePageContent}
