@@ -45,18 +45,24 @@ const TiptapMarkSchema = z.object({
   attrs: z.record(z.string(), z.unknown()).optional(),
 });
 
-export type TiptapNode = {
+export type DocumentNode = {
   type: string;
   attrs?: Record<string, unknown>;
   text?: string;
-  marks?: TiptapMark[];
-  content?: TiptapNode[];
+  marks?: DocumentMark[];
+  content?: DocumentNode[];
 };
 
-export type TiptapMark = {
+export type DocumentMark = {
   type: string;
   attrs?: Record<string, unknown>;
 };
+
+/** @deprecated Use DocumentNode; this alias remains for the existing editor adapter. */
+export type TiptapNode = DocumentNode;
+
+/** @deprecated Use DocumentMark; this alias remains for the existing editor adapter. */
+export type TiptapMark = DocumentMark;
 
 const TiptapNodeSchema: z.ZodType<TiptapNode> = z.lazy(() =>
   z
