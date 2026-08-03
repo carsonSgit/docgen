@@ -12,6 +12,21 @@ export const TEMPLATE_VERSION = 1 as const;
 export const MAX_IMAGE_DIMENSION_POINTS = 1440;
 export const IMAGE_ASSET_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{1,127}$/;
 
+/** Fixed-layout metrics shared by the browser renderer and Google compiler. */
+export const DOCUMENT_TYPOGRAPHY = {
+  fontFamily: "Arial",
+  bodyFontSizePoints: 11,
+  lineSpacingPercent: 115,
+  headings: {
+    1: { fontSizePoints: 20, spaceAbovePoints: 0, spaceBelowPoints: 6 },
+    2: { fontSizePoints: 16, spaceAbovePoints: 12, spaceBelowPoints: 4 },
+    3: { fontSizePoints: 14, spaceAbovePoints: 10, spaceBelowPoints: 2 },
+    4: { fontSizePoints: 12, spaceAbovePoints: 8, spaceBelowPoints: 2 },
+    5: { fontSizePoints: 11, spaceAbovePoints: 6, spaceBelowPoints: 2 },
+    6: { fontSizePoints: 10, spaceAbovePoints: 4, spaceBelowPoints: 2 },
+  },
+} as const;
+
 const ImageAttributesSchema = z
   .object({
     assetId: z.string().regex(IMAGE_ASSET_ID_PATTERN),

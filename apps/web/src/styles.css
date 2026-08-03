@@ -480,6 +480,7 @@ button:disabled {
 .section-editor > .ProseMirror p,
 .section-editor > .ProseMirror li p {
   margin: 0;
+  line-height: 1.15;
 }
 
 .editor > .ProseMirror h1,
@@ -495,23 +496,50 @@ button:disabled {
 .section-editor > .ProseMirror h5,
 .section-editor > .ProseMirror h6 {
   margin: 0;
+  font-weight: 700;
   line-height: 1.15;
 }
 
-.editor > .ProseMirror h1 {
+.editor > .ProseMirror h1,
+.section-editor > .ProseMirror h1 {
+  margin: 0 0 6pt;
   font-size: 20pt;
 }
 
-.editor > .ProseMirror h2 {
+.editor > .ProseMirror h2,
+.section-editor > .ProseMirror h2 {
+  margin: 12pt 0 4pt;
   font-size: 16pt;
 }
 
-.editor > .ProseMirror h3 {
+.editor > .ProseMirror h3,
+.section-editor > .ProseMirror h3 {
+  margin: 10pt 0 2pt;
   font-size: 14pt;
 }
 
+.editor > .ProseMirror h4,
+.section-editor > .ProseMirror h4 {
+  margin: 8pt 0 2pt;
+  font-size: 12pt;
+}
+
+.editor > .ProseMirror h5,
+.section-editor > .ProseMirror h5 {
+  margin: 6pt 0 2pt;
+  font-size: 11pt;
+}
+
+.editor > .ProseMirror h6,
+.section-editor > .ProseMirror h6 {
+  margin: 4pt 0 2pt;
+  font-size: 10pt;
+}
+
 .editor > .ProseMirror ul,
-.editor > .ProseMirror ol {
+.editor > .ProseMirror ol,
+.section-editor > .ProseMirror ul,
+.section-editor > .ProseMirror ol {
   margin: 0;
   padding-left: 36px;
 }
