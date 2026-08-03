@@ -312,6 +312,7 @@ export function App() {
     useState<DocumentTemplateId>("blank");
   const [assetError, setAssetError] = useState<string | null>(null);
   const assetUrls = useRef(new Map<string, string>());
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const documentRef = useRef(document);
   const activeEditorRef = useRef<CoreEditor | null>(null);
   const pageEditorsRef = useRef(new Map<number, CoreEditor>());
@@ -710,15 +711,24 @@ export function App() {
             mark="↧"
             onClick={insertPageBreak}
           />
-          <label className="toolbar-button" title="Insert image">
+          <button
+            type="button"
+            className="toolbar-button image-upload-button"
+            aria-label="Insert image"
+            title="Insert image"
+            onClick={() => imageInputRef.current?.click()}
+          >
             <span aria-hidden="true">▧</span>
-            <input
-              aria-label="Insert image"
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              onChange={(event) => void insertImage(event.target.files?.[0])}
-            />
-          </label>
+            <span>Insert image</span>
+          </button>
+          <input
+            ref={imageInputRef}
+            className="image-file-input"
+            aria-label="Choose image file"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={(event) => void insertImage(event.target.files?.[0])}
+          />
         </fieldset>
         <div className="toolbar-spacer" />
         <fieldset className="toolbar-group" aria-label="History">
