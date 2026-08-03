@@ -2,6 +2,8 @@ import {
   createBlankDocument,
   createImageNode,
   type DocumentEnvelope,
+  type DocumentTemplateId,
+  listDocumentTemplates,
   type TiptapNode,
 } from "@document-playground/domain";
 import { createCoreEditor, saveDocument } from "@document-playground/editor";
@@ -13,7 +15,7 @@ import {
   BrowserAssetStorage,
   createDebouncedPersister,
   putImageAsset,
-  resetDocument,
+  resetDocumentFromTemplate,
   restoreDocument,
 } from "@document-playground/persistence";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -97,6 +99,9 @@ export function App() {
   >("idle");
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportUrl, setExportUrl] = useState<string | null>(null);
+  const [templateChooserOpen, setTemplateChooserOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] =
+    useState<DocumentTemplateId>("blank");
   const [assetError, setAssetError] = useState<string | null>(null);
   const assetUrls = useRef(new Map<string, string>());
   const documentRef = useRef(document);
@@ -159,15 +164,28 @@ export function App() {
     window.setTimeout(() => setSaveStatus("Saved"), 300);
   }
 
-  function reset() {
-    if (!window.confirm("Start a new blank document?")) return;
+  function openTemplateChooser() {
+    setSelectedTemplateId("blank");
+    setTemplateChooserOpen(true);
+  }
+
+  function cancelTemplateChooser() {
+    setTemplateChooserOpen(false);
+  }
+
+  function confirmTemplateSelection() {
     persister.flush();
-    const nextDocument = resetDocument(window.localStorage, true);
+    const nextDocument = resetDocumentFromTemplate(
+      window.localStorage,
+      selectedTemplateId,
+      true,
+    );
     if (!nextDocument) return;
     documentRef.current = nextDocument;
     setDocument(nextDocument);
     setRecoveryRaw(null);
     setSaveStatus("Saved");
+    setTemplateChooserOpen(false);
   }
 
   function insertPageBreak() {
@@ -247,7 +265,7 @@ export function App() {
           onChange={(event) => updateTitle(event.target.value)}
         />
         <span aria-live="polite">{saveStatus}</span>
-        <button type="button" onClick={reset}>
+        <button type="button" onClick={openTemplateChooser}>
           New document
         </button>
         <button
@@ -277,6 +295,50 @@ export function App() {
             Open in Google Docs
           </a>
         </p>
+      )}
+      {templateChooserOpen && (
+        <section
+          className="template-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="template-dialog-title"
+        >
+          <div className="template-dialog-card">
+            <h2 id="template-dialog-title">Choose a template</h2>
+            <p className="template-dialog-warning">
+              Your current document will be replaced when you create the new
+              document.
+            </p>
+            <div className="template-options" role="radiogroup">
+              {listDocumentTemplates().map((template) => (
+                <label
+                  className={`template-option${selectedTemplateId === template.id ? " selected" : ""}`}
+                  key={template.id}
+                >
+                  <input
+                    type="radio"
+                    name="document-template"
+                    value={template.id}
+                    checked={selectedTemplateId === template.id}
+                    onChange={() => setSelectedTemplateId(template.id)}
+                  />
+                  <span>
+                    <strong>{template.name}</strong>
+                    <small>{template.description}</small>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div className="template-dialog-actions">
+              <button type="button" onClick={cancelTemplateChooser}>
+                Cancel
+              </button>
+              <button type="button" onClick={confirmTemplateSelection}>
+                Create document
+              </button>
+            </div>
+          </div>
+        </section>
       )}
       {assetError && (
         <p role="alert" className="export-error">
@@ -362,6 +424,14 @@ export function App() {
         <button type="button" onClick={insertPageBreak}>
           Page break
         </button>
+        <label>
+          Insert image
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={(event) => void insertImage(event.target.files?.[0])}
+          />
+        </label>
         <label>
           Insert image
           <input

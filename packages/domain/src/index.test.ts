@@ -158,10 +158,30 @@ describe("document envelope", () => {
 
   it("provides validated, versioned built-in templates", () => {
     expect(listDocumentTemplates()).toEqual([
-      { id: "blank", name: "Blank", version: 1 },
-      { id: "resume", name: "Resume", version: 1 },
-      { id: "meeting-notes", name: "Meeting notes", version: 1 },
-      { id: "letter", name: "Letter", version: 1 },
+      {
+        id: "blank",
+        name: "Blank",
+        description: "Start with an empty document.",
+        version: 1,
+      },
+      {
+        id: "resume",
+        name: "Resume",
+        description: "A polished starting point for your experience.",
+        version: 1,
+      },
+      {
+        id: "meeting-notes",
+        name: "Meeting notes",
+        description: "Capture an agenda, notes, and action items.",
+        version: 1,
+      },
+      {
+        id: "letter",
+        name: "Letter",
+        description: "A simple structure for writing a letter.",
+        version: 1,
+      },
     ]);
 
     for (const template of BUILT_IN_TEMPLATES) {
