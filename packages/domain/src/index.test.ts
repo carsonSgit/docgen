@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   BUILT_IN_TEMPLATES,
   createBlankDocument,
-  createImageNode,
   createDocumentFromTemplate,
+  createImageNode,
   DOCUMENT_VERSION,
   listDocumentTemplates,
   parseDocumentEnvelope,
