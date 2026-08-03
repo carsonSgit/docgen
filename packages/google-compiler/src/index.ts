@@ -81,6 +81,14 @@ function compileNode(
   state: { index: number },
   listType?: "bullet" | "ordered",
 ): void {
+  if (node.type === "hardBreak") {
+    requests.push({
+      insertText: { location: { index: state.index }, text: "\n" },
+    });
+    state.index += 1;
+    return;
+  }
+
   if (node.type === "pageBreak") {
     requests.push({ insertPageBreak: { location: { index: state.index } } });
     state.index += 1;

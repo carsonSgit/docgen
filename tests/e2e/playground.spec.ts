@@ -30,3 +30,32 @@ test("requires confirmation before reset", async ({ page }) => {
     "Keep this title",
   );
 });
+
+test("edits across automatically paginated editor pages", async ({ page }) => {
+  await page.goto("/");
+  const editor = page.locator(".ProseMirror").first();
+  await editor.fill(
+    Array.from({ length: 30 }, (_, index) => `Paragraph ${index + 1}`).join(
+      "\n",
+    ),
+  );
+
+  await expect(page.getByLabel("Page 2")).toBeVisible();
+  await expect(page.locator(".ProseMirror")).toHaveCount(2);
+
+  await page.locator(".ProseMirror").nth(1).fill("Edited on page two");
+  await expect(page.locator(".ProseMirror").nth(1)).toContainText(
+    "Edited on page two",
+  );
+});
+
+test("inserts a semantic manual page break from the toolbar", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.locator(".ProseMirror").first().click();
+  await page.getByRole("button", { name: "Page break" }).click();
+
+  await expect(page.getByLabel("Page 2")).toBeVisible();
+  await expect(page.locator(".ProseMirror")).toHaveCount(2);
+});

@@ -1,16 +1,77 @@
 import {
   createBlankDocument,
   type DocumentEnvelope,
+  type TiptapNode,
 } from "@document-playground/domain";
 import { createCoreEditor, saveDocument } from "@document-playground/editor";
-import { paginateDocument } from "@document-playground/pagination";
+import {
+  type PaginationPage,
+  paginateDocument,
+} from "@document-playground/pagination";
 import {
   createDebouncedPersister,
   resetDocument,
   restoreDocument,
 } from "@document-playground/persistence";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ExportAuthorizationRequiredError, requestExport } from "./export";
+
+type CoreEditor = ReturnType<typeof createCoreEditor>;
+
+type PageEditorProps = {
+  page: PaginationPage;
+  onChange: (pageNumber: number, content: TiptapNode[]) => void;
+  onFocus: (editor: CoreEditor) => void;
+};
+
+function PageEditor({ page, onChange, onFocus }: PageEditorProps) {
+  const host = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<CoreEditor | null>(null);
+  const onFocusRef = useRef(onFocus);
+  const serializedContent = JSON.stringify(page.content);
+  onFocusRef.current = onFocus;
+
+  useEffect(() => {
+    if (!host.current) return;
+    const editor = createCoreEditor(host.current, {
+      type: "doc",
+      content: page.content,
+    });
+    editorRef.current = editor;
+    const handleFocus = () => onFocusRef.current(editor);
+    const handleUpdate = () => {
+      const saved = saveDocument(editor, createBlankDocument());
+      onChange(page.number, saved.content.content ?? []);
+    };
+    editor.on("focus", handleFocus);
+    editor.on("update", handleUpdate);
+    return () => {
+      editor.off("focus", handleFocus);
+      editor.off("update", handleUpdate);
+      editor.destroy();
+      editorRef.current = null;
+    };
+  }, [onChange, page.number]);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const current = JSON.stringify(editor.getJSON().content ?? []);
+    if (current !== serializedContent) {
+      editor.commands.setContent(
+        { type: "doc", content: page.content },
+        { emitUpdate: false },
+      );
+    }
+  }, [page.content, serializedContent]);
+
+  return (
+    <article className="page" aria-label={`Page ${page.number}`}>
+      <div ref={host} className="editor" />
+      <footer>Page {page.number}</footer>
+    </article>
+  );
+}
 
 export function App() {
   const [document, setDocument] = useState<DocumentEnvelope>(() => {
@@ -25,8 +86,7 @@ export function App() {
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportUrl, setExportUrl] = useState<string | null>(null);
   const documentRef = useRef(document);
-  const editorHost = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<ReturnType<typeof createCoreEditor> | null>(null);
+  const activeEditorRef = useRef<CoreEditor | null>(null);
   const persister = useMemo(
     () => createDebouncedPersister(window.localStorage),
     [],
@@ -40,32 +100,40 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (!editorHost.current) return;
-    const editor = createCoreEditor(editorHost.current, document.content);
-    editorRef.current = editor;
-    const handleUpdate = () => {
-      const nextDocument = saveDocument(editor, documentRef.current);
+    const flushPendingDocument = () => persister.flush();
+    window.addEventListener("pagehide", flushPendingDocument);
+    return () => {
+      window.removeEventListener("pagehide", flushPendingDocument);
+      persister.flush();
+    };
+  }, [persister]);
+
+  const pages = paginateDocument(document).pages;
+
+  const updatePageContent = useCallback(
+    (pageNumber: number, content: TiptapNode[]) => {
+      const currentPages = paginateDocument(documentRef.current).pages;
+      const nextContent = currentPages.flatMap((page) => {
+        const pageContent = page.number === pageNumber ? content : page.content;
+        return [
+          ...(page.number > 1 && page.breakBefore
+            ? [{ type: "pageBreak" as const }]
+            : []),
+          ...pageContent,
+        ];
+      });
+      const nextDocument = {
+        ...documentRef.current,
+        content: { type: "doc" as const, content: nextContent },
+      };
       documentRef.current = nextDocument;
       setDocument(nextDocument);
       setSaveStatus("Saving…");
       persister.schedule(nextDocument);
       window.setTimeout(() => setSaveStatus("Saved"), 300);
-    };
-    editor.on("update", handleUpdate);
-    return () => {
-      editor.off("update", handleUpdate);
-      editor.destroy();
-      persister.flush();
-    };
-  }, []);
-
-  useEffect(() => {
-    const flushPendingDocument = () => persister.flush();
-    window.addEventListener("pagehide", flushPendingDocument);
-    return () => window.removeEventListener("pagehide", flushPendingDocument);
-  }, [persister]);
-
-  const pages = paginateDocument(document).pages;
+    },
+    [persister],
+  );
 
   function updateTitle(title: string) {
     const nextDocument = { ...documentRef.current, title };
@@ -81,11 +149,30 @@ export function App() {
     persister.flush();
     const nextDocument = resetDocument(window.localStorage, true);
     if (!nextDocument) return;
-    editorRef.current?.commands.setContent(nextDocument.content);
     documentRef.current = nextDocument;
     setDocument(nextDocument);
     setRecoveryRaw(null);
     setSaveStatus("Saved");
+  }
+
+  function insertPageBreak() {
+    activeEditorRef.current
+      ?.chain()
+      .focus()
+      .insertContent({ type: "pageBreak" })
+      .run();
+  }
+
+  function setLink() {
+    const editor = activeEditorRef.current;
+    if (!editor) return;
+    const href = window.prompt("Link URL");
+    if (href === null) return;
+    if (href.trim() === "") {
+      editor.chain().focus().unsetLink().run();
+      return;
+    }
+    editor.chain().focus().setLink({ href: href.trim() }).run();
   }
 
   async function exportCurrentDocument() {
@@ -149,38 +236,105 @@ export function App() {
       <section className="toolbar" aria-label="Editor toolbar">
         <button
           type="button"
-          onClick={() => editorRef.current?.chain().focus().toggleBold().run()}
+          onClick={() =>
+            activeEditorRef.current?.chain().focus().toggleBold().run()
+          }
         >
           Bold
         </button>
         <button
           type="button"
           onClick={() =>
-            editorRef.current?.chain().focus().toggleItalic().run()
+            activeEditorRef.current?.chain().focus().toggleItalic().run()
           }
         >
           Italic
         </button>
         <button
           type="button"
-          onClick={() => editorRef.current?.chain().focus().undo().run()}
+          onClick={() =>
+            activeEditorRef.current?.chain().focus().toggleUnderline().run()
+          }
+        >
+          Underline
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            activeEditorRef.current
+              ?.chain()
+              .focus()
+              .toggleHeading({ level: 2 })
+              .run()
+          }
+        >
+          Heading
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            activeEditorRef.current?.chain().focus().toggleBulletList().run()
+          }
+        >
+          Bulleted list
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            activeEditorRef.current?.chain().focus().toggleOrderedList().run()
+          }
+        >
+          Numbered list
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            activeEditorRef.current?.chain().focus().setTextAlign("left").run()
+          }
+        >
+          Align left
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            activeEditorRef.current
+              ?.chain()
+              .focus()
+              .setTextAlign("center")
+              .run()
+          }
+        >
+          Align center
+        </button>
+        <button type="button" onClick={setLink}>
+          Link
+        </button>
+        <button type="button" onClick={insertPageBreak}>
+          Page break
+        </button>
+        <button
+          type="button"
+          onClick={() => activeEditorRef.current?.chain().focus().undo().run()}
         >
           Undo
         </button>
         <button
           type="button"
-          onClick={() => editorRef.current?.chain().focus().redo().run()}
+          onClick={() => activeEditorRef.current?.chain().focus().redo().run()}
         >
           Redo
         </button>
       </section>
       <section className="pages" aria-label="Document pages">
         {pages.map((page) => (
-          <article className="page" key={page.number}>
-            {page.number === 1 && <div ref={editorHost} className="editor" />}
-            {page.number !== 1 && <p>Page {page.number}</p>}
-            <footer>Page {page.number}</footer>
-          </article>
+          <PageEditor
+            key={page.number}
+            page={page}
+            onChange={updatePageContent}
+            onFocus={(editor) => {
+              activeEditorRef.current = editor;
+            }}
+          />
         ))}
       </section>
     </main>

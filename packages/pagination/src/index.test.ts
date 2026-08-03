@@ -16,6 +16,7 @@ describe("pagination adapter", () => {
     expect(result.pages).toHaveLength(2);
     expect(result.pages[0]?.number).toBe(1);
     expect(result.pages[1]?.content).toHaveLength(1);
+    expect(result.pages[1]?.breakBefore).toBe(false);
   });
 
   it("starts a new page at a semantic manual page break", () => {
@@ -32,8 +33,16 @@ describe("pagination adapter", () => {
     const result = paginateDocument(document);
 
     expect(result.pages).toEqual([
-      { number: 1, content: [{ type: "paragraph" }] },
-      { number: 2, content: [{ type: "paragraph" }] },
+      {
+        number: 1,
+        content: [{ type: "paragraph" }],
+        breakBefore: false,
+      },
+      {
+        number: 2,
+        content: [{ type: "paragraph" }],
+        breakBefore: true,
+      },
     ]);
   });
 });
