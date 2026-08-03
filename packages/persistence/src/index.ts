@@ -1,6 +1,8 @@
 import {
   createBlankDocument,
+  createDocumentFromTemplate,
   type DocumentEnvelope,
+  type DocumentTemplateId,
   type ImageAttributes,
   parseDocumentEnvelope,
   validateImageDimensions,
@@ -213,6 +215,18 @@ export function resetDocument(
   }
 
   const document = createBlankDocument();
+  persistDocument(storage, document, key);
+  return document;
+}
+
+export function resetDocumentFromTemplate(
+  storage: StorageLike,
+  templateId: DocumentTemplateId,
+  confirmed: boolean,
+  key = DOCUMENT_STORAGE_KEY,
+): DocumentEnvelope | null {
+  if (!confirmed) return null;
+  const document = createDocumentFromTemplate(templateId);
   persistDocument(storage, document, key);
   return document;
 }

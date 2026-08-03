@@ -6,8 +6,10 @@ import {
   IMAGE_ASSET_LIMITS,
   ImageAssetError,
   MemoryAssetStorage,
+  persistDocument,
   putImageAsset,
   resetDocument,
+  resetDocumentFromTemplate,
   restoreDocument,
   restoreImageAsset,
 } from "./index";
@@ -176,5 +178,25 @@ describe("local document persistence", () => {
     expect(
       JSON.parse(storage.getItem(DOCUMENT_STORAGE_KEY) ?? "{}").title,
     ).toBe("Immediate draft");
+  });
+
+  it("persists an independent template instance only after confirmation", () => {
+    const storage = memoryStorage();
+    const current = createBlankDocument();
+    current.title = "Current draft";
+    persistDocument(storage, current);
+
+    expect(resetDocumentFromTemplate(storage, "resume", false)).toBeNull();
+    expect(restoreDocument(storage)).toMatchObject({
+      kind: "loaded",
+      document: { title: "Current draft" },
+    });
+
+    const next = resetDocumentFromTemplate(storage, "resume", true);
+    expect(next?.title).toBe("Resume");
+    expect(restoreDocument(storage)).toMatchObject({
+      kind: "loaded",
+      document: { title: "Resume" },
+    });
   });
 });
