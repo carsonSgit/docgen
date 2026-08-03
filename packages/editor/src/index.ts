@@ -10,6 +10,18 @@ import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import StarterKit from "@tiptap/starter-kit";
 
+export type {
+  LexicalSerializedDocument,
+  LexicalSerializedNode,
+} from "./lexical-mapping";
+export {
+  fromLexicalDocument,
+  fromLexicalSection,
+  toLexicalDocument,
+  toLexicalSection,
+  UnsupportedLexicalNodeError,
+} from "./lexical-mapping";
+
 const PageBreak = Node.create({
   name: "pageBreak",
   group: "block",

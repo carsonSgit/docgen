@@ -2,12 +2,178 @@ import { createBlankDocument } from "@document-playground/domain";
 import { describe, expect, it } from "vitest";
 import {
   createCoreEditor,
+  fromLexicalDocument,
+  fromLexicalSection,
   removeImage,
   replaceImage,
   saveDocument,
+  toLexicalDocument,
+  toLexicalSection,
 } from "./index";
 
 describe("core editor adapter", () => {
+  it("maps supported Lexical nodes and marks to canonical document content", () => {
+    const lexical = {
+      root: {
+        type: "root",
+        version: 1,
+        children: [
+          {
+            type: "heading",
+            tag: "h2",
+            children: [
+              {
+                type: "text",
+                text: "Title",
+                format: 3,
+                style: "",
+              },
+            ],
+          },
+          {
+            type: "paragraph",
+            children: [
+              {
+                type: "link",
+                url: "https://example.test",
+                children: [{ type: "text", text: "Read more", format: 0 }],
+              },
+              { type: "linebreak" },
+            ],
+          },
+          {
+            type: "list",
+            listType: "bullet",
+            start: 1,
+            children: [
+              {
+                type: "listitem",
+                value: 1,
+                children: [{ type: "paragraph", children: [] }],
+              },
+            ],
+          },
+          {
+            type: "image",
+            assetId: "asset_01",
+            altText: "Diagram",
+            width: 240,
+            height: 120,
+          },
+          { type: "pageBreak" },
+        ],
+      },
+    };
+
+    expect(fromLexicalDocument(lexical)).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 2 },
+          content: [
+            {
+              type: "text",
+              text: "Title",
+              marks: [{ type: "bold" }, { type: "italic" }],
+            },
+          ],
+        },
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: "Read more",
+              marks: [
+                {
+                  type: "link",
+                  attrs: { href: "https://example.test" },
+                },
+              ],
+            },
+            { type: "hardBreak" },
+          ],
+        },
+        {
+          type: "bulletList",
+          content: [{ type: "listItem", content: [{ type: "paragraph" }] }],
+        },
+        {
+          type: "image",
+          attrs: {
+            assetId: "asset_01",
+            alt: "Diagram",
+            width: 240,
+            height: 120,
+          },
+        },
+        { type: "pageBreak" },
+      ],
+    });
+  });
+
+  it("rejects tables and unknown Lexical nodes at the adapter boundary", () => {
+    expect(() =>
+      fromLexicalDocument({
+        root: {
+          type: "root",
+          version: 1,
+          children: [{ type: "table", children: [] }],
+        },
+      }),
+    ).toThrow("Unsupported Lexical node 'table' at root.children[0]");
+  });
+
+  it("round-trips canonical content through a Lexical-neutral shape", () => {
+    const canonical = {
+      type: "doc" as const,
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: "Hello",
+              marks: [{ type: "bold" }],
+            },
+          ],
+        },
+        { type: "pageBreak" },
+      ],
+    };
+
+    expect(fromLexicalDocument(toLexicalDocument(canonical))).toEqual(
+      canonical,
+    );
+  });
+
+  it("uses the same mapping contract for document-level headers and footers", () => {
+    const header = {
+      root: {
+        type: "root",
+        version: 1,
+        children: [
+          { type: "paragraph", children: [{ type: "text", text: "Header" }] },
+        ],
+      },
+    };
+    const footer = {
+      type: "doc" as const,
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Footer" }] },
+      ],
+    };
+
+    expect(fromLexicalSection(header)).toEqual({
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Header" }] },
+      ],
+    });
+    expect(fromLexicalSection(toLexicalSection(footer))).toEqual(footer);
+  });
+
   it("round-trips structured content through the document envelope", () => {
     const host = document.createElement("div");
     const envelope = createBlankDocument();
