@@ -1,8 +1,19 @@
 import { createBlankDocument } from "@document-playground/domain";
 import { describe, expect, it } from "vitest";
-import { paginateDocument } from "./index";
+import { paginateDocument, UnsupportedPaginationContentError } from "./index";
 
 describe("pagination adapter", () => {
+  it("rejects tables at the canonical extension boundary", () => {
+    const document = createBlankDocument();
+    document.content = { type: "doc", content: [{ type: "table" }] };
+
+    expect(() => paginateDocument(document)).toThrow(
+      UnsupportedPaginationContentError,
+    );
+    expect(() => paginateDocument(document)).toThrow(
+      "Unsupported document content at content.content[0]: table",
+    );
+  });
   it("flows long content onto another fixed-layout page", () => {
     const document = createBlankDocument();
     document.content = {

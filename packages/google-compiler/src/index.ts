@@ -2,7 +2,9 @@ import {
   DOCUMENT_TYPOGRAPHY,
   type DocumentEnvelope,
   FOOTER_DISTANCE_POINTS,
+  findUnsupportedDocumentNode,
   HEADER_DISTANCE_POINTS,
+  isCoreDocumentNodeType,
   parseDocumentEnvelope,
   type TiptapNode,
 } from "@document-playground/domain";
@@ -125,26 +127,11 @@ export class UnsupportedContentError extends Error {
   }
 }
 
-const supportedNodes = new Set([
-  "doc",
-  "paragraph",
-  "heading",
-  "text",
-  "hardBreak",
-  "bulletList",
-  "orderedList",
-  "listItem",
-  "pageBreak",
-  "image",
-]);
-
 function assertSupported(node: TiptapNode, path: string): void {
-  if (!supportedNodes.has(node.type)) {
-    throw new UnsupportedContentError(path, node.type);
+  const unsupported = findUnsupportedDocumentNode(node, path);
+  if (unsupported) {
+    throw new UnsupportedContentError(unsupported.path, unsupported.nodeType);
   }
-  node.content?.forEach((child, index) => {
-    assertSupported(child, `${path}.content[${index}]`);
-  });
 }
 
 function removeFinalBodyParagraphBreak(
@@ -331,7 +318,7 @@ export function compileDocument(
   const rejectUnsupportedRawNode = (node: unknown, path: string): void => {
     if (!node || typeof node !== "object") return;
     const typed = node as { type?: unknown; content?: unknown[] };
-    if (typeof typed.type === "string" && !supportedNodes.has(typed.type)) {
+    if (typeof typed.type === "string" && !isCoreDocumentNodeType(typed.type)) {
       throw new UnsupportedContentError(path, typed.type);
     }
     typed.content?.forEach((child, index) => {
