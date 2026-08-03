@@ -1,0 +1,12 @@
+{
+  "name": "@document-playground/export-service",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@document-playground/domain": "workspace:*",
+    "@document-playground/google-compiler": "workspace:*"
+  }
+}
