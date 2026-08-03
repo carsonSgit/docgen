@@ -29,6 +29,10 @@ import {
 
 type CoreEditor = ReturnType<typeof createCoreEditor>;
 
+type BodyEditorChange = {
+  cursorAtEnd: boolean;
+};
+
 function flattenPages(pages: PaginationPage[]): TiptapNode[] {
   const content: TiptapNode[] = [];
 
@@ -99,7 +103,12 @@ type PageEditorProps = {
   header: DocumentSection | null;
   footer: DocumentSection | null;
   resolveImageSource: (assetId: string) => string | undefined;
-  onChange: (pageNumber: number, content: TiptapNode[]) => void;
+  onChange: (
+    pageNumber: number,
+    content: TiptapNode[],
+    change?: BodyEditorChange,
+  ) => void;
+  onEditorReady: (pageNumber: number, editor: CoreEditor) => void;
   onSectionChange: (
     section: "header" | "footer",
     content: DocumentSection,
@@ -110,11 +119,12 @@ type PageEditorProps = {
 function BodyEditor({
   page,
   onChange,
+  onEditorReady,
   onFocus,
   resolveImageSource,
 }: Pick<
   PageEditorProps,
-  "page" | "onChange" | "onFocus" | "resolveImageSource"
+  "page" | "onChange" | "onEditorReady" | "onFocus" | "resolveImageSource"
 >) {
   const host = useRef<HTMLDivElement>(null);
   const editorRef = useRef<CoreEditor | null>(null);
@@ -133,10 +143,17 @@ function BodyEditor({
       { resolveImageSource },
     );
     editorRef.current = editor;
+    onEditorReady(page.number, editor);
     const handleFocus = () => onFocusRef.current(editor);
     const handleUpdate = () => {
       const saved = saveDocument(editor, createBlankDocument());
-      onChange(page.number, saved.content.content ?? []);
+      const selection = editor.state.selection;
+      const change: BodyEditorChange = {
+        cursorAtEnd:
+          selection.empty &&
+          selection.anchor >= editor.state.doc.content.size - 1,
+      };
+      onChange(page.number, saved.content.content ?? [], change);
     };
     editor.on("focus", handleFocus);
     editor.on("update", handleUpdate);
@@ -223,6 +240,7 @@ function PageEditor({
   onChange,
   onSectionChange,
   onFocus,
+  onEditorReady,
 }: PageEditorProps) {
   const emptySection = {
     type: "doc" as const,
@@ -251,6 +269,7 @@ function PageEditor({
         <BodyEditor
           page={page}
           onChange={onChange}
+          onEditorReady={onEditorReady}
           onFocus={onFocus}
           resolveImageSource={resolveImageSource}
         />
@@ -295,6 +314,8 @@ export function App() {
   const assetUrls = useRef(new Map<string, string>());
   const documentRef = useRef(document);
   const activeEditorRef = useRef<CoreEditor | null>(null);
+  const pageEditorsRef = useRef(new Map<number, CoreEditor>());
+  const pendingPageFocusRef = useRef<number | null>(null);
   const persister = useMemo(
     () => createDebouncedPersister(window.localStorage),
     [],
@@ -323,8 +344,20 @@ export function App() {
 
   const pages = paginateDocument(document).pages;
 
+  useEffect(() => {
+    const pageNumber = pendingPageFocusRef.current;
+    if (pageNumber === null) return;
+    const editor = pageEditorsRef.current.get(pageNumber);
+    if (!editor) return;
+    requestAnimationFrame(() => {
+      editor.commands.focus("start");
+      activeEditorRef.current = editor;
+      pendingPageFocusRef.current = null;
+    });
+  }, [pages]);
+
   const updatePageContent = useCallback(
-    (pageNumber: number, content: TiptapNode[]) => {
+    (pageNumber: number, content: TiptapNode[], change?: BodyEditorChange) => {
       const currentPages = paginateDocument(documentRef.current).pages;
       const nextPages = currentPages.map((page) =>
         page.number === pageNumber ? { ...page, content } : page,
@@ -334,6 +367,13 @@ export function App() {
         ...documentRef.current,
         content: { type: "doc" as const, content: nextContent },
       };
+      const reflowedPages = paginateDocument(nextDocument).pages;
+      if (
+        change?.cursorAtEnd &&
+        reflowedPages.some((page) => page.number === pageNumber + 1)
+      ) {
+        pendingPageFocusRef.current = pageNumber + 1;
+      }
       documentRef.current = nextDocument;
       setDocument(nextDocument);
       setSaveStatus("Saving…");
@@ -710,6 +750,9 @@ export function App() {
             onSectionChange={updateSection}
             onFocus={(editor) => {
               activeEditorRef.current = editor;
+            }}
+            onEditorReady={(pageNumber, editor) => {
+              pageEditorsRef.current.set(pageNumber, editor);
             }}
           />
         ))}
