@@ -26,7 +26,7 @@ type GoogleOAuthOptions = {
 
 export class GoogleOAuthService {
   private accessToken: string | undefined;
-  private readonly pendingStates = new Set<string>();
+  private readonly pendingStates = new Map<string, number>();
   private readonly fetchImpl: FetchLike;
   private readonly stateFactory: () => string;
 
@@ -48,7 +48,7 @@ export class GoogleOAuthService {
       throw new Error("Google OAuth is not configured on the API server.");
     }
     const state = this.stateFactory();
-    this.pendingStates.add(state);
+    this.pendingStates.set(state, Date.now() + 10 * 60 * 1000);
     const params = new URLSearchParams({
       client_id: this.options.clientId,
       redirect_uri: this.options.redirectUri,
@@ -65,7 +65,9 @@ export class GoogleOAuthService {
     if (!this.options.clientId || !this.options.clientSecret) {
       throw new Error("Google OAuth is not configured on the API server.");
     }
-    if (!this.pendingStates.delete(state)) {
+    const expiresAt = this.pendingStates.get(state);
+    this.pendingStates.delete(state);
+    if (!expiresAt || expiresAt < Date.now()) {
       throw new Error("Google OAuth state is invalid or expired.");
     }
     const response = await this.fetchImpl(GOOGLE_TOKEN_ENDPOINT, {
