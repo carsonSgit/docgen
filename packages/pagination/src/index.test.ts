@@ -7,7 +7,7 @@ describe("pagination adapter", () => {
     const document = createBlankDocument();
     document.content = {
       type: "doc",
-      content: Array.from({ length: 44 }, () => ({ type: "paragraph" })),
+      content: Array.from({ length: 52 }, () => ({ type: "paragraph" })),
     };
 
     const result = paginateDocument(document);
@@ -46,7 +46,31 @@ describe("pagination adapter", () => {
     ]);
   });
 
-  it("flows a paragraph containing hard breaks by its rendered line count", () => {
+  it("splits an oversized paragraph across pages", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "wrapped line ".repeat(500) }],
+        },
+      ],
+    };
+
+    const result = paginateDocument(document);
+
+    expect(result.pages.length).toBeGreaterThan(1);
+    expect(
+      result.pages.every((page) =>
+        page.content.every(
+          (node) => (node.content?.[0]?.text?.length ?? 0) < 5000,
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps measured hard-break lines on the current page", () => {
     const document = createBlankDocument();
     document.content = {
       type: "doc",
@@ -63,9 +87,8 @@ describe("pagination adapter", () => {
 
     const result = paginateDocument(document);
 
-    expect(result.pages).toHaveLength(2);
-    expect(result.pages[0]?.content[0]?.content).toHaveLength(43);
-    expect(result.pages[1]?.content[0]?.content).toHaveLength(7);
+    expect(result.pages).toHaveLength(1);
+    expect(result.pages[0]?.content[0]?.content).toHaveLength(50);
   });
 
   it("uses persisted image height in points for deterministic pagination", () => {
