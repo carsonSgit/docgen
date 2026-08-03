@@ -45,6 +45,7 @@ jspm_packages/
 /.agents/
 /skills-lock.json
 /docs/agents/
+/docs/research/
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
