@@ -18,6 +18,12 @@ export type PaginatedDocument = {
 export type NodeMeasurement = (node: TiptapNode) => number;
 
 function defaultMeasure(node: TiptapNode): number {
+  if (node.type === "image") {
+    const height = node.attrs?.height;
+    return typeof height === "number" && Number.isFinite(height)
+      ? Math.max(1, height)
+      : DEFAULT_BLOCK_HEIGHT;
+  }
   if (node.type === "heading") {
     return HEADING_HEIGHT;
   }

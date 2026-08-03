@@ -1,5 +1,6 @@
 import {
   createBlankDocument,
+  createImageNode,
   type DocumentEnvelope,
   type TiptapNode,
 } from "@document-playground/domain";
@@ -9,7 +10,9 @@ import {
   paginateDocument,
 } from "@document-playground/pagination";
 import {
+  BrowserAssetStorage,
   createDebouncedPersister,
+  putImageAsset,
   resetDocument,
   restoreDocument,
 } from "@document-playground/persistence";
@@ -20,11 +23,17 @@ type CoreEditor = ReturnType<typeof createCoreEditor>;
 
 type PageEditorProps = {
   page: PaginationPage;
+  resolveImageSource: (assetId: string) => string | undefined;
   onChange: (pageNumber: number, content: TiptapNode[]) => void;
   onFocus: (editor: CoreEditor) => void;
 };
 
-function PageEditor({ page, onChange, onFocus }: PageEditorProps) {
+function PageEditor({
+  page,
+  onChange,
+  onFocus,
+  resolveImageSource,
+}: PageEditorProps) {
   const host = useRef<HTMLDivElement>(null);
   const editorRef = useRef<CoreEditor | null>(null);
   const onFocusRef = useRef(onFocus);
@@ -33,10 +42,14 @@ function PageEditor({ page, onChange, onFocus }: PageEditorProps) {
 
   useEffect(() => {
     if (!host.current) return;
-    const editor = createCoreEditor(host.current, {
-      type: "doc",
-      content: page.content,
-    });
+    const editor = createCoreEditor(
+      host.current,
+      {
+        type: "doc",
+        content: page.content,
+      },
+      { resolveImageSource },
+    );
     editorRef.current = editor;
     const handleFocus = () => onFocusRef.current(editor);
     const handleUpdate = () => {
@@ -84,12 +97,15 @@ export function App() {
   >("idle");
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportUrl, setExportUrl] = useState<string | null>(null);
+  const [assetError, setAssetError] = useState<string | null>(null);
+  const assetUrls = useRef(new Map<string, string>());
   const documentRef = useRef(document);
   const activeEditorRef = useRef<CoreEditor | null>(null);
   const persister = useMemo(
     () => createDebouncedPersister(window.localStorage),
     [],
   );
+  const assetStorage = useMemo(() => new BrowserAssetStorage(), []);
 
   useEffect(() => {
     const result = restoreDocument(window.localStorage);
@@ -162,6 +178,36 @@ export function App() {
       .run();
   }
 
+  async function insertImage(file: File | undefined) {
+    if (!file || !activeEditorRef.current) return;
+    setAssetError(null);
+    try {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, 468 / (bitmap.width * (72 / 96)));
+      const width = Math.max(1, bitmap.width * (72 / 96) * scale);
+      const height = Math.max(1, bitmap.height * (72 / 96) * scale);
+      const asset = await putImageAsset(assetStorage, file, { width, height });
+      assetUrls.current.set(asset.assetId, URL.createObjectURL(file));
+      activeEditorRef.current
+        .chain()
+        .focus()
+        .insertContent(
+          createImageNode({
+            assetId: asset.assetId,
+            alt: file.name,
+            width,
+            height,
+          }),
+        )
+        .run();
+      bitmap.close();
+    } catch (error) {
+      setAssetError(
+        error instanceof Error ? error.message : "Unable to insert image.",
+      );
+    }
+  }
+
   function setLink() {
     const editor = activeEditorRef.current;
     if (!editor) return;
@@ -230,6 +276,11 @@ export function App() {
           <a href={exportUrl} target="_blank" rel="noreferrer">
             Open in Google Docs
           </a>
+        </p>
+      )}
+      {assetError && (
+        <p role="alert" className="export-error">
+          {assetError}
         </p>
       )}
       <section className="toolbar" aria-label="Editor toolbar">
@@ -311,6 +362,14 @@ export function App() {
         <button type="button" onClick={insertPageBreak}>
           Page break
         </button>
+        <label>
+          Insert image
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={(event) => void insertImage(event.target.files?.[0])}
+          />
+        </label>
         <button
           type="button"
           onClick={() => activeEditorRef.current?.chain().focus().undo().run()}
@@ -329,6 +388,7 @@ export function App() {
           <PageEditor
             key={page.number}
             page={page}
+            resolveImageSource={(assetId) => assetUrls.current.get(assetId)}
             onChange={updatePageContent}
             onFocus={(editor) => {
               activeEditorRef.current = editor;

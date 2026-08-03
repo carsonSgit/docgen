@@ -1,4 +1,8 @@
-import type { DocumentEnvelope, TiptapNode } from "@document-playground/domain";
+import type {
+  DocumentEnvelope,
+  ImageAttributes,
+  TiptapNode,
+} from "@document-playground/domain";
 import { Editor, Node } from "@tiptap/core";
 import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
@@ -20,13 +24,54 @@ const PageBreak = Node.create({
   },
 });
 
-function createCoreExtensions() {
+export type ImageSourceResolver = (assetId: string) => string | undefined;
+
+function createImageExtension(resolveSource?: ImageSourceResolver) {
+  return Node.create({
+    name: "image",
+    inline: true,
+    group: "inline",
+    atom: true,
+    draggable: true,
+    selectable: true,
+
+    addAttributes() {
+      return {
+        assetId: { default: null },
+        alt: { default: "" },
+        width: { default: 1 },
+        height: { default: 1 },
+      };
+    },
+
+    parseHTML() {
+      return [{ tag: "img[data-asset-id]" }];
+    },
+
+    renderHTML({ node }) {
+      const attrs = node.attrs as ImageAttributes;
+      return [
+        "img",
+        {
+          "data-asset-id": attrs.assetId,
+          src: resolveSource?.(attrs.assetId) ?? "",
+          alt: attrs.alt,
+          width: attrs.width * (96 / 72),
+          height: attrs.height * (96 / 72),
+        },
+      ];
+    },
+  });
+}
+
+function createCoreExtensions(resolveSource?: ImageSourceResolver) {
   return [
     StarterKit.configure({ link: false, underline: false }),
     Underline,
     Link.configure({ openOnClick: false }),
     TextAlign.configure({ types: ["heading", "paragraph"] }),
     PageBreak,
+    createImageExtension(resolveSource),
   ];
 }
 
@@ -63,12 +108,47 @@ function normalizeNode(node: TiptapNode): TiptapNode {
 export function createCoreEditor(
   element: Element,
   content: TiptapNode,
+  options: { resolveImageSource?: ImageSourceResolver } = {},
 ): Editor {
   return new Editor({
     element,
-    extensions: createCoreExtensions(),
+    extensions: createCoreExtensions(options.resolveImageSource),
     content,
   });
+}
+
+function selectImage(editor: Editor): boolean {
+  let imagePosition: number | undefined;
+  editor.state.doc.descendants((node, position) => {
+    if (imagePosition === undefined && node.type.name === "image") {
+      imagePosition = position;
+    }
+  });
+  return (
+    imagePosition !== undefined &&
+    editor.commands.setNodeSelection(imagePosition)
+  );
+}
+
+export function replaceImage(
+  editor: Editor,
+  assetId: string,
+  alt: string,
+  width: number,
+  height: number,
+): boolean {
+  if (!selectImage(editor)) return false;
+  return editor.commands.updateAttributes("image", {
+    assetId,
+    alt,
+    width,
+    height,
+  });
+}
+
+export function removeImage(editor: Editor): boolean {
+  if (!selectImage(editor)) return false;
+  return editor.commands.deleteSelection();
 }
 
 export function loadDocument(editor: Editor, document: DocumentEnvelope): void {
