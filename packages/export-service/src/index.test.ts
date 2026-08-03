@@ -151,4 +151,91 @@ describe("export service", () => {
     expect(provider.uploadImage).not.toHaveBeenCalled();
     expect(provider.createDocument).not.toHaveBeenCalled();
   });
+
+  it("creates header then footer and writes content with returned segment ids", async () => {
+    const provider: GoogleProviderClient = {
+      createDocument: vi.fn(async () => ({ documentId: "section-doc" })),
+      batchUpdate: vi
+        .fn()
+        .mockResolvedValueOnce({
+          replies: [
+            { createHeader: { headerId: "header-1" } },
+            { createFooter: { footerId: "footer-1" } },
+          ],
+        })
+        .mockResolvedValueOnce(undefined),
+    };
+    const document = createBlankDocument();
+    document.header = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          attrs: { textAlign: "center" },
+          content: [{ type: "text", text: "H", marks: [{ type: "bold" }] }],
+        },
+      ],
+    };
+    document.footer = {
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "F" }] }],
+    };
+
+    await exportDocument(document, provider);
+
+    expect(provider.batchUpdate).toHaveBeenNthCalledWith(1, "section-doc", [
+      { createHeader: { type: "DEFAULT" } },
+      { createFooter: { type: "DEFAULT" } },
+    ]);
+    expect(provider.batchUpdate).toHaveBeenNthCalledWith(2, "section-doc", [
+      { insertText: { location: { index: 1 }, text: "\n" } },
+      {
+        insertText: {
+          location: { index: 0, segmentId: "header-1" },
+          text: "H",
+        },
+      },
+      expect.objectContaining({
+        updateTextStyle: expect.objectContaining({
+          range: { startIndex: 0, endIndex: 1, segmentId: "header-1" },
+        }),
+      }),
+      {
+        insertText: {
+          location: { index: 1, segmentId: "header-1" },
+          text: "\n",
+        },
+      },
+      expect.objectContaining({
+        updateParagraphStyle: expect.objectContaining({
+          range: { startIndex: 0, endIndex: 2, segmentId: "header-1" },
+        }),
+      }),
+      {
+        insertText: {
+          location: { index: 0, segmentId: "footer-1" },
+          text: "F",
+        },
+      },
+      {
+        insertText: {
+          location: { index: 1, segmentId: "footer-1" },
+          text: "\n",
+        },
+      },
+    ]);
+  });
+
+  it("rejects unsupported footer content before creating a Google document", async () => {
+    const provider: GoogleProviderClient = {
+      createDocument: vi.fn(async () => ({ documentId: "never" })),
+      batchUpdate: vi.fn(async () => undefined),
+    };
+    const document = createBlankDocument();
+    document.footer = { type: "doc", content: [{ type: "table" }] };
+
+    await expect(exportDocument(document, provider)).rejects.toThrow("table");
+    expect(provider.createDocument).not.toHaveBeenCalled();
+    expect(provider.batchUpdate).not.toHaveBeenCalled();
+  });
 });

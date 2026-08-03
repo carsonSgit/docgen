@@ -71,7 +71,7 @@ export function createGoogleProviderClient(options: {
       return parsed.data;
     },
     async batchUpdate(documentId, requests) {
-      await googleRequest(
+      return googleRequest(
         `https://docs.googleapis.com/v1/documents/${encodeURIComponent(documentId)}:batchUpdate`,
         { method: "POST", body: JSON.stringify({ requests }) },
       );
