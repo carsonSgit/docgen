@@ -5,6 +5,7 @@ import {
   createDocumentFromTemplate,
   createImageNode,
   DOCUMENT_VERSION,
+  findUnsupportedDocumentNode,
   listDocumentTemplates,
   parseDocumentEnvelope,
   parseDocumentTemplate,
@@ -13,6 +14,14 @@ import {
 } from "./index";
 
 describe("document envelope", () => {
+  it("reserves tables and other future nodes outside the core vocabulary", () => {
+    expect(
+      findUnsupportedDocumentNode(
+        { type: "doc", content: [{ type: "table" }] },
+        "content",
+      ),
+    ).toEqual({ path: "content.content[0]", nodeType: "table" });
+  });
   it("creates a valid blank document with the fixed letter layout", () => {
     const document = createBlankDocument();
 
