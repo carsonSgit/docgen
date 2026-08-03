@@ -17,6 +17,7 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "knip": "knip",
+    "verify:google": "bun run scripts/verify-google-export.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
