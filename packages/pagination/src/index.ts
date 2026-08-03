@@ -7,6 +7,7 @@ const HEADING_HEIGHT = 32;
 export type PaginationPage = {
   number: number;
   content: TiptapNode[];
+  breakBefore: boolean;
 };
 
 export type PaginatedDocument = {
@@ -34,19 +35,21 @@ export function paginateDocument(
   document: DocumentEnvelope,
   measureNode: NodeMeasurement = defaultMeasure,
 ): PaginatedDocument {
-  const pages: PaginationPage[] = [{ number: 1, content: [] }];
+  const pages: PaginationPage[] = [
+    { number: 1, content: [], breakBefore: false },
+  ];
   let remainingHeight = CONTENT_HEIGHT;
 
   for (const node of document.content.content ?? []) {
     if (node.type === "pageBreak") {
-      pages.push({ number: pages.length + 1, content: [] });
+      pages.push({ number: pages.length + 1, content: [], breakBefore: true });
       remainingHeight = CONTENT_HEIGHT;
       continue;
     }
 
     const height = Math.max(1, measureNode(node));
     if (pages.at(-1)?.content.length && height > remainingHeight) {
-      pages.push({ number: pages.length + 1, content: [] });
+      pages.push({ number: pages.length + 1, content: [], breakBefore: false });
       remainingHeight = CONTENT_HEIGHT;
     }
 
