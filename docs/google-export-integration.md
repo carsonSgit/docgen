@@ -43,3 +43,9 @@ Open the playground, create a representative document containing a title, headin
 - the local document remains unchanged after export.
 
 Record the document URL, test date, and any fidelity limitations in the verification report. Never use this workflow for import, sync, overwrite, or broad Drive access.
+
+For a repeatable provider-level check using the committed fixture, run:
+
+```sh
+bun run verify:google
+```
