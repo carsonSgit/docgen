@@ -5,6 +5,7 @@ import {
 } from "@document-playground/domain";
 import { createCoreEditor, saveDocument } from "@document-playground/editor";
 import {
+  PAGE_FRAGMENT_ATTR,
   type PaginationPage,
   paginateDocument,
 } from "@document-playground/pagination";
@@ -17,6 +18,71 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ExportAuthorizationRequiredError, requestExport } from "./export";
 
 type CoreEditor = ReturnType<typeof createCoreEditor>;
+
+function flattenPages(pages: PaginationPage[]): TiptapNode[] {
+  const content: TiptapNode[] = [];
+
+  for (const [pageIndex, page] of pages.entries()) {
+    if (page.number > 1 && page.breakBefore) {
+      content.push({ type: "pageBreak" });
+    }
+
+    for (const [nodeIndex, node] of page.content.entries()) {
+      const fragmentId = node.attrs?.[PAGE_FRAGMENT_ATTR];
+      const previous = content.at(-1);
+      const previousFragmentId = previous?.attrs?.[PAGE_FRAGMENT_ATTR];
+      const previousPage = pages[pageIndex - 1];
+      const previousPageLastNode = previousPage?.content.at(-1);
+      const crossesPageBoundary =
+        pageIndex > 0 &&
+        nodeIndex === 0 &&
+        (Boolean(fragmentId) ||
+          Boolean(previousPageLastNode?.attrs?.[PAGE_FRAGMENT_ATTR]));
+
+      if (
+        (crossesPageBoundary ||
+          (fragmentId && fragmentId === previousFragmentId)) &&
+        previous?.type === node.type
+      ) {
+        previous.content = [
+          ...(previous.content ?? []),
+          ...(node.content ?? []),
+        ];
+      } else {
+        content.push({ ...node });
+      }
+    }
+  }
+
+  return content.map((node) => {
+    if (!node.attrs?.[PAGE_FRAGMENT_ATTR]) return node;
+    const { [PAGE_FRAGMENT_ATTR]: _fragmentId, ...attrs } = node.attrs;
+    return {
+      ...node,
+      ...(Object.keys(attrs).length ? { attrs } : { attrs: undefined }),
+    };
+  });
+}
+
+type ToolbarButtonProps = {
+  label: string;
+  mark: string;
+  onClick: () => void;
+};
+
+function ToolbarButton({ label, mark, onClick }: ToolbarButtonProps) {
+  return (
+    <button
+      type="button"
+      className="toolbar-button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+    >
+      <span aria-hidden="true">{mark}</span>
+    </button>
+  );
+}
 
 type PageEditorProps = {
   page: PaginationPage;
@@ -58,10 +124,16 @@ function PageEditor({ page, onChange, onFocus }: PageEditorProps) {
     if (!editor) return;
     const current = JSON.stringify(editor.getJSON().content ?? []);
     if (current !== serializedContent) {
+      const { anchor, head } = editor.state.selection;
       editor.commands.setContent(
         { type: "doc", content: page.content },
         { emitUpdate: false },
       );
+      const maxPosition = editor.state.doc.content.size;
+      editor.commands.setTextSelection({
+        from: Math.min(anchor, maxPosition),
+        to: Math.min(head, maxPosition),
+      });
     }
   }, [page.content, serializedContent]);
 
@@ -112,15 +184,10 @@ export function App() {
   const updatePageContent = useCallback(
     (pageNumber: number, content: TiptapNode[]) => {
       const currentPages = paginateDocument(documentRef.current).pages;
-      const nextContent = currentPages.flatMap((page) => {
-        const pageContent = page.number === pageNumber ? content : page.content;
-        return [
-          ...(page.number > 1 && page.breakBefore
-            ? [{ type: "pageBreak" as const }]
-            : []),
-          ...pageContent,
-        ];
-      });
+      const nextPages = currentPages.map((page) =>
+        page.number === pageNumber ? { ...page, content } : page,
+      );
+      const nextContent = flattenPages(nextPages);
       const nextDocument = {
         ...documentRef.current,
         content: { type: "doc" as const, content: nextContent },
@@ -194,23 +261,35 @@ export function App() {
   return (
     <main className="playground">
       <header className="topbar">
+        <div className="topbar-leading">
+          <div className="app-mark" aria-hidden="true">
+            D
+          </div>
+          <span className="app-name">Document Playground</span>
+        </div>
         <input
           aria-label="Document title"
           className="title-input"
           value={document.title}
           onChange={(event) => updateTitle(event.target.value)}
         />
-        <span aria-live="polite">{saveStatus}</span>
-        <button type="button" onClick={reset}>
-          New document
-        </button>
-        <button
-          type="button"
-          onClick={exportCurrentDocument}
-          disabled={exportState === "loading"}
-        >
-          {exportState === "loading" ? "Exporting…" : "Export"}
-        </button>
+        <div className="topbar-actions">
+          <span className="save-status" aria-live="polite">
+            <span className="save-dot" aria-hidden="true" />
+            {saveStatus}
+          </span>
+          <button className="secondary-button" type="button" onClick={reset}>
+            New document
+          </button>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={exportCurrentDocument}
+            disabled={exportState === "loading"}
+          >
+            {exportState === "loading" ? "Exporting…" : "Export to Google Docs"}
+          </button>
+        </div>
       </header>
       {recoveryRaw && (
         <aside className="recovery" role="alert">
@@ -233,96 +312,105 @@ export function App() {
         </p>
       )}
       <section className="toolbar" aria-label="Editor toolbar">
-        <button
-          type="button"
-          onClick={() =>
-            activeEditorRef.current?.chain().focus().toggleBold().run()
-          }
-        >
-          Bold
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            activeEditorRef.current?.chain().focus().toggleItalic().run()
-          }
-        >
-          Italic
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            activeEditorRef.current?.chain().focus().toggleUnderline().run()
-          }
-        >
-          Underline
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            activeEditorRef.current
-              ?.chain()
-              .focus()
-              .toggleHeading({ level: 2 })
-              .run()
-          }
-        >
-          Heading
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            activeEditorRef.current?.chain().focus().toggleBulletList().run()
-          }
-        >
-          Bulleted list
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            activeEditorRef.current?.chain().focus().toggleOrderedList().run()
-          }
-        >
-          Numbered list
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            activeEditorRef.current?.chain().focus().setTextAlign("left").run()
-          }
-        >
-          Align left
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            activeEditorRef.current
-              ?.chain()
-              .focus()
-              .setTextAlign("center")
-              .run()
-          }
-        >
-          Align center
-        </button>
-        <button type="button" onClick={setLink}>
-          Link
-        </button>
-        <button type="button" onClick={insertPageBreak}>
-          Page break
-        </button>
-        <button
-          type="button"
-          onClick={() => activeEditorRef.current?.chain().focus().undo().run()}
-        >
-          Undo
-        </button>
-        <button
-          type="button"
-          onClick={() => activeEditorRef.current?.chain().focus().redo().run()}
-        >
-          Redo
-        </button>
+        <fieldset className="toolbar-group" aria-label="Text formatting">
+          <ToolbarButton
+            label="Bold"
+            mark="B"
+            onClick={() =>
+              activeEditorRef.current?.chain().focus().toggleBold().run()
+            }
+          />
+          <ToolbarButton
+            label="Italic"
+            mark="I"
+            onClick={() =>
+              activeEditorRef.current?.chain().focus().toggleItalic().run()
+            }
+          />
+          <ToolbarButton
+            label="Underline"
+            mark="U"
+            onClick={() =>
+              activeEditorRef.current?.chain().focus().toggleUnderline().run()
+            }
+          />
+          <ToolbarButton
+            label="Heading"
+            mark="H2"
+            onClick={() =>
+              activeEditorRef.current
+                ?.chain()
+                .focus()
+                .toggleHeading({ level: 2 })
+                .run()
+            }
+          />
+        </fieldset>
+        <div className="toolbar-divider" aria-hidden="true" />
+        <fieldset className="toolbar-group" aria-label="Lists">
+          <ToolbarButton
+            label="Bulleted list"
+            mark="•"
+            onClick={() =>
+              activeEditorRef.current?.chain().focus().toggleBulletList().run()
+            }
+          />
+          <ToolbarButton
+            label="Numbered list"
+            mark="1."
+            onClick={() =>
+              activeEditorRef.current?.chain().focus().toggleOrderedList().run()
+            }
+          />
+        </fieldset>
+        <div className="toolbar-divider" aria-hidden="true" />
+        <fieldset className="toolbar-group" aria-label="Paragraph layout">
+          <ToolbarButton
+            label="Align left"
+            mark="≡"
+            onClick={() =>
+              activeEditorRef.current
+                ?.chain()
+                .focus()
+                .setTextAlign("left")
+                .run()
+            }
+          />
+          <ToolbarButton
+            label="Align center"
+            mark="≣"
+            onClick={() =>
+              activeEditorRef.current
+                ?.chain()
+                .focus()
+                .setTextAlign("center")
+                .run()
+            }
+          />
+          <ToolbarButton label="Link" mark="↗" onClick={setLink} />
+          <ToolbarButton
+            label="Page break"
+            mark="↧"
+            onClick={insertPageBreak}
+          />
+        </fieldset>
+        <div className="toolbar-spacer" />
+        <fieldset className="toolbar-group" aria-label="History">
+          <ToolbarButton
+            label="Undo"
+            mark="↶"
+            onClick={() =>
+              activeEditorRef.current?.chain().focus().undo().run()
+            }
+          />
+          <ToolbarButton
+            label="Redo"
+            mark="↷"
+            onClick={() =>
+              activeEditorRef.current?.chain().focus().redo().run()
+            }
+          />
+        </fieldset>
       </section>
       <section className="pages" aria-label="Document pages">
         {pages.map((page) => (
@@ -336,6 +424,13 @@ export function App() {
           />
         ))}
       </section>
+      <footer className="document-context">
+        <span>Google Docs-compatible layout</span>
+        <span className="context-divider" aria-hidden="true" />
+        <span className="page-count">
+          {pages.length} {pages.length === 1 ? "page" : "pages"}
+        </span>
+      </footer>
     </main>
   );
 }

@@ -7,7 +7,7 @@ describe("pagination adapter", () => {
     const document = createBlankDocument();
     document.content = {
       type: "doc",
-      content: Array.from({ length: 44 }, () => ({ type: "paragraph" })),
+      content: Array.from({ length: 52 }, () => ({ type: "paragraph" })),
     };
 
     const result = paginateDocument(document);
@@ -44,5 +44,29 @@ describe("pagination adapter", () => {
         breakBefore: true,
       },
     ]);
+  });
+
+  it("splits an oversized paragraph across pages", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "wrapped line ".repeat(500) }],
+        },
+      ],
+    };
+
+    const result = paginateDocument(document);
+
+    expect(result.pages.length).toBeGreaterThan(1);
+    expect(
+      result.pages.every((page) =>
+        page.content.every(
+          (node) => (node.content?.[0]?.text?.length ?? 0) < 5000,
+        ),
+      ),
+    ).toBe(true);
   });
 });
