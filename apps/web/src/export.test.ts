@@ -1,6 +1,6 @@
 import { createBlankDocument } from "@document-playground/domain";
 import { describe, expect, it } from "vitest";
-import { requestExport } from "./export";
+import { ExportAuthorizationRequiredError, requestExport } from "./export";
 
 describe("web export client", () => {
   it("returns a validated export link", async () => {
@@ -28,5 +28,20 @@ describe("web export client", () => {
     await expect(
       requestExport(createBlankDocument(), async () => response),
     ).rejects.toThrow("Google export failed");
+  });
+
+  it("exposes the server authorization handoff", async () => {
+    const response = new Response(
+      JSON.stringify({
+        error: "Google authorization required",
+        authorizationUrl:
+          "https://accounts.google.com/o/oauth2/v2/auth?state=state",
+      }),
+      { status: 401 },
+    );
+
+    await expect(
+      requestExport(createBlankDocument(), async () => response),
+    ).rejects.toBeInstanceOf(ExportAuthorizationRequiredError);
   });
 });
