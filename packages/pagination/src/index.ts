@@ -22,13 +22,41 @@ function defaultMeasure(node: TiptapNode): number {
     return HEADING_HEIGHT;
   }
 
-  const textLength =
-    node.content?.reduce(
-      (length, child) => length + (child.text?.length ?? 0),
-      0,
-    ) ?? 0;
+  const lineCount = (current: TiptapNode): number => {
+    if (current.type === "hardBreak") return 1;
+    if (current.text) return Math.max(1, Math.ceil(current.text.length / 90));
+    return (
+      current.content?.reduce((lines, child) => lines + lineCount(child), 0) ??
+      0
+    );
+  };
 
-  return DEFAULT_BLOCK_HEIGHT * Math.max(1, Math.ceil(textLength / 90));
+  return DEFAULT_BLOCK_HEIGHT * Math.max(1, lineCount(node));
+}
+
+function splitNodeToFit(node: TiptapNode, maxHeight: number): TiptapNode[] {
+  if (node.type !== "paragraph" || !node.content?.length) return [node];
+
+  const maxLines = Math.floor(maxHeight / DEFAULT_BLOCK_HEIGHT);
+  if (maxLines < 1) return [node];
+
+  const fragments: TiptapNode[] = [];
+  let content: TiptapNode[] = [];
+  let lines = 0;
+  for (const child of node.content) {
+    const childLines = Math.max(1, Math.ceil((child.text?.length ?? 0) / 90));
+    const nextLines =
+      child.type === "hardBreak" ? lines + 1 : lines + childLines;
+    if (content.length > 0 && nextLines > maxLines) {
+      fragments.push({ ...node, content });
+      content = [];
+      lines = 0;
+    }
+    content.push(child);
+    lines += child.type === "hardBreak" ? 1 : childLines;
+  }
+  if (content.length > 0) fragments.push({ ...node, content });
+  return fragments.length > 0 ? fragments : [node];
 }
 
 export function paginateDocument(
@@ -47,14 +75,23 @@ export function paginateDocument(
       continue;
     }
 
-    const height = Math.max(1, measureNode(node));
-    if (pages.at(-1)?.content.length && height > remainingHeight) {
-      pages.push({ number: pages.length + 1, content: [], breakBefore: false });
-      remainingHeight = CONTENT_HEIGHT;
+    const fragments =
+      measureNode(node) > remainingHeight
+        ? splitNodeToFit(node, remainingHeight)
+        : [node];
+    for (const fragment of fragments) {
+      const height = Math.max(1, measureNode(fragment));
+      if (pages.at(-1)?.content.length && height > remainingHeight) {
+        pages.push({
+          number: pages.length + 1,
+          content: [],
+          breakBefore: false,
+        });
+        remainingHeight = CONTENT_HEIGHT;
+      }
+      pages.at(-1)?.content.push(fragment);
+      remainingHeight -= height;
     }
-
-    pages.at(-1)?.content.push(node);
-    remainingHeight -= height;
   }
 
   return { pageHeight: CONTENT_HEIGHT, pages };
