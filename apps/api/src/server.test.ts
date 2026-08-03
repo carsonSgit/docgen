@@ -44,6 +44,28 @@ describe("API", () => {
     });
   });
 
+  it("returns the provider error detail when Google rejects an export", async () => {
+    const provider: GoogleProviderClient = {
+      createDocument: async () => {
+        throw new Error("Google API request failed (400): invalid request");
+      },
+      batchUpdate: async () => undefined,
+    };
+    const response = await handleRequest(
+      new Request("http://localhost/api/export", {
+        method: "POST",
+        body: JSON.stringify({ document: createBlankDocument(), assets: [] }),
+        headers: { "content-type": "application/json" },
+      }),
+      provider,
+    );
+
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("invalid request"),
+    });
+  });
+
   it("starts OAuth only when an export needs authorization", async () => {
     const oauth = new GoogleOAuthService({
       clientId: "client",
