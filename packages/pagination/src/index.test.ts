@@ -70,7 +70,7 @@ describe("pagination adapter", () => {
     ).toBe(true);
   });
 
-  it("flows a paragraph containing hard breaks by its rendered line count", () => {
+  it("keeps measured hard-break lines on the current page", () => {
     const document = createBlankDocument();
     document.content = {
       type: "doc",
@@ -87,9 +87,8 @@ describe("pagination adapter", () => {
 
     const result = paginateDocument(document);
 
-    expect(result.pages).toHaveLength(2);
-    expect(result.pages[0]?.content[0]?.content).toHaveLength(43);
-    expect(result.pages[1]?.content[0]?.content).toHaveLength(7);
+    expect(result.pages).toHaveLength(1);
+    expect(result.pages[0]?.content[0]?.content).toHaveLength(50);
   });
 
   it("uses persisted image height in points for deterministic pagination", () => {

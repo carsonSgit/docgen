@@ -205,6 +205,8 @@ test("moves wrapped lines of one paragraph onto the next page", async ({
       ({ contentHeight, editorHeight }) => contentHeight <= editorHeight + 1,
     ),
   ).toBe(true);
+});
+
 test("edits a shared header and footer on page one", async ({ page }) => {
   await page.goto("/");
   const firstPage = page.getByLabel("Page 1");
@@ -232,7 +234,7 @@ test("renders shared header and footer on later pages without changing body pagi
     .locator(".ProseMirror")
     .first()
     .fill(
-      Array.from({ length: 50 }, (_, index) => `Paragraph ${index + 1}`).join(
+      Array.from({ length: 60 }, (_, index) => `Paragraph ${index + 1}`).join(
         "\n",
       ),
     );

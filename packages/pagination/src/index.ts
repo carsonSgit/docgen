@@ -150,7 +150,7 @@ export function paginateDocument(
         remainingHeight,
         String(nodeIndex),
       );
-      const fragments =
+      const fragments: TiptapNode[] =
         textFragments.length === 1 &&
         measureNode(textFragments[0] ?? remainingNode) > remainingHeight
           ? splitNodeToFit(remainingNode, remainingHeight)
@@ -175,7 +175,9 @@ export function paginateDocument(
         fragments.length > 1
           ? {
               ...remainingNode,
-              content: fragments.slice(1).flatMap((item) => item.content ?? []),
+              content: fragments
+                .slice(1)
+                .flatMap((item: TiptapNode) => item.content ?? []),
             }
           : null;
     }
