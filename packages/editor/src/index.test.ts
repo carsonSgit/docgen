@@ -1,4 +1,8 @@
-import { createBlankDocument } from "@document-playground/domain";
+import {
+  createBlankDocument,
+  type DocumentNode,
+} from "@document-playground/domain";
+import { $getRoot, $isElementNode, $isTextNode } from "lexical";
 import { describe, expect, it } from "vitest";
 import {
   createCoreEditor,
@@ -57,6 +61,116 @@ describe("Lexical editor adapter", () => {
       ],
     });
     unsubscribe();
+    editor.destroy();
+  });
+
+  it("propagates a user edit through the canonical boundary", async () => {
+    const host = document.createElement("div");
+    const editor = createLexicalEditor(host, {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Draft" }] },
+      ],
+    });
+    const changes: DocumentNode[] = [];
+    editor.onChange((nextDocument) => changes.push(nextDocument));
+
+    editor.lexical.update(() => {
+      const text = $getRoot().getFirstDescendant();
+      if ($isTextNode(text)) text.setTextContent("Edited");
+    });
+    await new Promise((resolve) => queueMicrotask(resolve));
+
+    expect(changes.at(-1)).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Edited" }],
+        },
+      ],
+    });
+    editor.destroy();
+  });
+
+  it("ignores malformed image resize events at the adapter boundary", async () => {
+    const host = document.createElement("div");
+    const editor = createLexicalEditor(host, {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "image",
+              attrs: {
+                assetId: "asset_photo",
+                alt: "Photo",
+                width: 120,
+                height: 60,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const imageKey = editor.lexical.getEditorState().read(() => {
+      const paragraph = $getRoot().getFirstChild();
+      return $isElementNode(paragraph)
+        ? paragraph.getFirstChild()?.getKey()
+        : undefined;
+    });
+    expect(imageKey).toEqual(expect.any(String));
+
+    host.dispatchEvent(
+      new CustomEvent("document-playground-resize-image", {
+        bubbles: true,
+        detail: { key: imageKey, width: 240, height: 120 },
+      }),
+    );
+    await new Promise((resolve) => queueMicrotask(resolve));
+    expect(editor.getDocument()).toMatchObject({
+      content: [
+        {
+          content: [{ type: "image", attrs: { width: 240, height: 120 } }],
+        },
+      ],
+    });
+
+    host.dispatchEvent(
+      new CustomEvent("document-playground-resize-image", {
+        bubbles: true,
+        detail: { key: imageKey, width: Number.NaN, height: 120 },
+      }),
+    );
+    host.dispatchEvent(
+      new CustomEvent("document-playground-resize-image", {
+        bubbles: true,
+        detail: { key: imageKey, width: 240, height: 1441 },
+      }),
+    );
+    await new Promise((resolve) => queueMicrotask(resolve));
+
+    expect(editor.getDocument()).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "image",
+              attrs: {
+                assetId: "asset_photo",
+                alt: "Photo",
+                width: 240,
+                height: 120,
+              },
+            },
+          ],
+        },
+      ],
+    });
     editor.destroy();
   });
 });
@@ -173,6 +287,90 @@ describe("core editor adapter", () => {
         },
       }),
     ).toThrow("Unsupported Lexical node 'table' at root.children[0]");
+  });
+
+  it("preserves heading alignment at the canonical editor boundary", () => {
+    const lexical = {
+      root: {
+        type: "root",
+        children: [
+          {
+            type: "heading",
+            tag: "h2",
+            format: "right",
+            children: [{ type: "text", text: "Aligned heading", format: 0 }],
+          },
+        ],
+      },
+    };
+
+    const canonical = fromLexicalDocument(lexical);
+    expect(canonical).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 2, textAlign: "right" },
+          content: [{ type: "text", text: "Aligned heading" }],
+        },
+      ],
+    });
+    expect(fromLexicalDocument(toLexicalDocument(canonical))).toEqual(
+      canonical,
+    );
+  });
+
+  it("preserves justified paragraph alignment at the canonical editor boundary", async () => {
+    const host = document.createElement("div");
+    const editor = createLexicalEditor(host, {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Aligned" }] },
+      ],
+    });
+
+    editor.focus("end");
+    editor.setAlignment("justify");
+    await new Promise((resolve) => queueMicrotask(resolve));
+
+    expect(editor.getDocument()).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          attrs: { textAlign: "justify" },
+          content: [{ type: "text", text: "Aligned" }],
+        },
+      ],
+    });
+    editor.destroy();
+  });
+
+  it("preserves paragraph alignment when changing the block to a heading", async () => {
+    const host = document.createElement("div");
+    const editor = createLexicalEditor(host, {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Aligned" }] },
+      ],
+    });
+
+    editor.focus("end");
+    editor.setAlignment("right");
+    editor.setHeading(2);
+    await new Promise((resolve) => queueMicrotask(resolve));
+
+    expect(editor.getDocument()).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 2, textAlign: "right" },
+          content: [{ type: "text", text: "Aligned" }],
+        },
+      ],
+    });
+    editor.destroy();
   });
 
   it("round-trips canonical content through a Lexical-neutral shape", () => {

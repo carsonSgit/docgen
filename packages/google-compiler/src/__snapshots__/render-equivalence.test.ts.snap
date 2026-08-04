@@ -1,0 +1,1512 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Core Editor Slice render-equivalence fixture > compiles the canonical envelope deterministically 1`] = `
+{
+  "requests": [
+    {
+      "updateDocumentStyle": {
+        "documentStyle": {
+          "marginBottom": {
+            "magnitude": 72,
+            "unit": "PT",
+          },
+          "marginFooter": {
+            "magnitude": 36,
+            "unit": "PT",
+          },
+          "marginHeader": {
+            "magnitude": 36,
+            "unit": "PT",
+          },
+          "marginLeft": {
+            "magnitude": 72,
+            "unit": "PT",
+          },
+          "marginRight": {
+            "magnitude": 72,
+            "unit": "PT",
+          },
+          "marginTop": {
+            "magnitude": 72,
+            "unit": "PT",
+          },
+          "pageSize": {
+            "height": {
+              "magnitude": 792,
+              "unit": "PT",
+            },
+            "width": {
+              "magnitude": 612,
+              "unit": "PT",
+            },
+          },
+        },
+        "fields": "pageSize,marginTop,marginBottom,marginLeft,marginRight,marginHeader,marginFooter",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 1,
+        },
+        "text": "Core Editor Slice",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 18,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "namedStyleType,lineSpacing,spaceAbove,spaceBelow,keepWithNext,keepLinesTogether",
+        "paragraphStyle": {
+          "keepLinesTogether": true,
+          "keepWithNext": true,
+          "lineSpacing": 115,
+          "namedStyleType": "HEADING_1",
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 6,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 19,
+          "startIndex": 1,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize,bold",
+        "range": {
+          "endIndex": 19,
+          "startIndex": 1,
+        },
+        "textStyle": {
+          "bold": true,
+          "fontSize": {
+            "magnitude": 20,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 19,
+        },
+        "text": "Structured content",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 37,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "namedStyleType,lineSpacing,spaceAbove,spaceBelow,keepWithNext,keepLinesTogether",
+        "paragraphStyle": {
+          "keepLinesTogether": true,
+          "keepWithNext": true,
+          "lineSpacing": 115,
+          "namedStyleType": "HEADING_2",
+          "spaceAbove": {
+            "magnitude": 12,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 6,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 38,
+          "startIndex": 19,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize,bold",
+        "range": {
+          "endIndex": 38,
+          "startIndex": 19,
+        },
+        "textStyle": {
+          "bold": true,
+          "fontSize": {
+            "magnitude": 16,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 38,
+        },
+        "text": "Bold",
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "bold",
+        "range": {
+          "endIndex": 42,
+          "startIndex": 38,
+        },
+        "textStyle": {
+          "bold": true,
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 42,
+        },
+        "text": " italic",
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "italic",
+        "range": {
+          "endIndex": 49,
+          "startIndex": 42,
+        },
+        "textStyle": {
+          "italic": true,
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 49,
+        },
+        "text": " underlined",
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "underline",
+        "range": {
+          "endIndex": 60,
+          "startIndex": 49,
+        },
+        "textStyle": {
+          "underline": true,
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 60,
+        },
+        "text": " and linked",
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "link,foregroundColor,underline",
+        "range": {
+          "endIndex": 71,
+          "startIndex": 60,
+        },
+        "textStyle": {
+          "foregroundColor": {
+            "color": {
+              "rgbColor": {
+                "blue": 0.8,
+                "green": 0.3333333333333333,
+                "red": 0.06666666666666667,
+              },
+            },
+          },
+          "link": {
+            "url": "https://example.test/core",
+          },
+          "underline": true,
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 71,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 72,
+          "startIndex": 38,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 72,
+          "startIndex": 38,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 72,
+        },
+        "text": "A deterministic paragraph with enough stable text to wrap across lines without relying on network-loaded fonts, dates, random identifiers, animations, or remote content. This sentence deliberately continues so automatic pagination can be observed in the same fixture.",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 339,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 340,
+          "startIndex": 72,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 340,
+          "startIndex": 72,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 340,
+        },
+        "text": "Bullet item",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 351,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 352,
+          "startIndex": 340,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 352,
+          "startIndex": 340,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow,spacingMode,indentStart,indentFirstLine",
+        "paragraphStyle": {
+          "indentFirstLine": {
+            "magnitude": -18,
+            "unit": "PT",
+          },
+          "indentStart": {
+            "magnitude": 27,
+            "unit": "PT",
+          },
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spacingMode": "COLLAPSE_LISTS",
+        },
+        "range": {
+          "endIndex": 352,
+          "startIndex": 340,
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 352,
+        },
+        "text": "Second bullet item",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 370,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 371,
+          "startIndex": 352,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 371,
+          "startIndex": 352,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow,spacingMode,indentStart,indentFirstLine",
+        "paragraphStyle": {
+          "indentFirstLine": {
+            "magnitude": -18,
+            "unit": "PT",
+          },
+          "indentStart": {
+            "magnitude": 27,
+            "unit": "PT",
+          },
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spacingMode": "COLLAPSE_LISTS",
+        },
+        "range": {
+          "endIndex": 371,
+          "startIndex": 352,
+        },
+      },
+    },
+    {
+      "createParagraphBullets": {
+        "bulletPreset": "BULLET_DISC_CIRCLE_SQUARE",
+        "range": {
+          "endIndex": 371,
+          "startIndex": 340,
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 371,
+        },
+        "text": "Ordered item",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 383,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 384,
+          "startIndex": 371,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 384,
+          "startIndex": 371,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow,spacingMode,indentStart,indentFirstLine",
+        "paragraphStyle": {
+          "indentFirstLine": {
+            "magnitude": -18,
+            "unit": "PT",
+          },
+          "indentStart": {
+            "magnitude": 27,
+            "unit": "PT",
+          },
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spacingMode": "COLLAPSE_LISTS",
+        },
+        "range": {
+          "endIndex": 384,
+          "startIndex": 371,
+        },
+      },
+    },
+    {
+      "createParagraphBullets": {
+        "bulletPreset": "NUMBERED_DECIMAL_ALPHA_ROMAN",
+        "range": {
+          "endIndex": 384,
+          "startIndex": 371,
+        },
+      },
+    },
+    {
+      "insertInlineImage": {
+        "location": {
+          "index": 384,
+        },
+        "objectSize": {
+          "height": {
+            "magnitude": 120,
+            "unit": "PT",
+          },
+          "width": {
+            "magnitude": 240,
+            "unit": "PT",
+          },
+        },
+        "uri": "https://fixture.invalid/hero.svg",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 385,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 386,
+          "startIndex": 384,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 386,
+          "startIndex": 384,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertPageBreak": {
+        "location": {
+          "index": 386,
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 387,
+        },
+        "text": "After the explicit manual page break. ",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 425,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 426,
+        },
+        "text": "The following stable paragraph forces an automatic break after this page has accumulated enough measured content. ",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 540,
+        },
+        "text": "Measured pagination remains deterministic and observable across repeated captures. ",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 623,
+        },
+        "text": "Measured pagination remains deterministic and observable across repeated captures. ",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 706,
+        },
+        "text": "Measured pagination remains deterministic and observable across repeated captures.",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 788,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 789,
+          "startIndex": 387,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 789,
+          "startIndex": 387,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 789,
+        },
+        "text": "Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content.",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 1373,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 1374,
+          "startIndex": 789,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 1374,
+          "startIndex": 789,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 1374,
+        },
+        "text": "Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content.",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 1988,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 1989,
+          "startIndex": 1374,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 1989,
+          "startIndex": 1374,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 1989,
+        },
+        "text": "Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content.",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 2528,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 2529,
+          "startIndex": 1989,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 2529,
+          "startIndex": 1989,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 2529,
+        },
+        "text": "Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content.",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 2993,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 2994,
+          "startIndex": 2529,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 2994,
+          "startIndex": 2529,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 2994,
+        },
+        "text": "Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content.",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 3458,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 3459,
+          "startIndex": 2994,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 3459,
+          "startIndex": 2994,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 3459,
+        },
+        "text": "Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content.",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 3923,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 3924,
+          "startIndex": 3459,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 3924,
+          "startIndex": 3459,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 3924,
+        },
+        "text": "Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout.",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 4451,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 4452,
+          "startIndex": 3924,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 4452,
+          "startIndex": 3924,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 4452,
+        },
+        "text": "Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout.",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 4979,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 4980,
+          "startIndex": 4452,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 4980,
+          "startIndex": 4452,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 4980,
+        },
+        "text": "Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout.",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 5507,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 5508,
+          "startIndex": 4980,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 5508,
+          "startIndex": 4980,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 5508,
+        },
+        "text": "Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout.",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 6035,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 6036,
+          "startIndex": 5508,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 6036,
+          "startIndex": 5508,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 6036,
+        },
+        "text": "Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout.",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 6564,
+          "startIndex": 6036,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 6564,
+          "startIndex": 6036,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+  ],
+  "sections": {
+    "footer": [
+      {
+        "insertText": {
+          "location": {
+            "index": 0,
+          },
+          "text": "Core Slice Footer",
+        },
+      },
+      {
+        "insertText": {
+          "location": {
+            "index": 17,
+          },
+          "text": "
+",
+        },
+      },
+      {
+        "updateParagraphStyle": {
+          "fields": "lineSpacing,spaceAbove,spaceBelow",
+          "paragraphStyle": {
+            "lineSpacing": 115,
+            "spaceAbove": {
+              "magnitude": 0,
+              "unit": "PT",
+            },
+            "spaceBelow": {
+              "magnitude": 0,
+              "unit": "PT",
+            },
+          },
+          "range": {
+            "endIndex": 18,
+            "startIndex": 0,
+          },
+        },
+      },
+      {
+        "updateTextStyle": {
+          "fields": "weightedFontFamily,fontSize",
+          "range": {
+            "endIndex": 18,
+            "startIndex": 0,
+          },
+          "textStyle": {
+            "fontSize": {
+              "magnitude": 11,
+              "unit": "PT",
+            },
+            "weightedFontFamily": {
+              "fontFamily": "Arial",
+            },
+          },
+        },
+      },
+    ],
+    "header": [
+      {
+        "insertText": {
+          "location": {
+            "index": 0,
+          },
+          "text": "Core Slice Header",
+        },
+      },
+      {
+        "insertText": {
+          "location": {
+            "index": 17,
+          },
+          "text": "
+",
+        },
+      },
+      {
+        "updateParagraphStyle": {
+          "fields": "lineSpacing,spaceAbove,spaceBelow",
+          "paragraphStyle": {
+            "lineSpacing": 115,
+            "spaceAbove": {
+              "magnitude": 0,
+              "unit": "PT",
+            },
+            "spaceBelow": {
+              "magnitude": 0,
+              "unit": "PT",
+            },
+          },
+          "range": {
+            "endIndex": 18,
+            "startIndex": 0,
+          },
+        },
+      },
+      {
+        "updateTextStyle": {
+          "fields": "weightedFontFamily,fontSize",
+          "range": {
+            "endIndex": 18,
+            "startIndex": 0,
+          },
+          "textStyle": {
+            "fontSize": {
+              "magnitude": 11,
+              "unit": "PT",
+            },
+            "weightedFontFamily": {
+              "fontFamily": "Arial",
+            },
+          },
+        },
+      },
+    ],
+  },
+  "title": "Core render equivalence fixture",
+}
+`;
