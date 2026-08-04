@@ -670,4 +670,60 @@ describe("native list render metrics", () => {
       insertText: { location: { index: 14 }, text: "\n" },
     });
   });
+
+  it("scopes native bullets to each list item's own paragraph", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Parent" }],
+                },
+                {
+                  type: "orderedList",
+                  content: [
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [{ type: "text", text: "Child" }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const bulletRequests = compileDocument(document).requests.filter(
+      (request) => "createParagraphBullets" in request,
+    );
+
+    expect(bulletRequests).toEqual([
+      {
+        createParagraphBullets: {
+          range: { startIndex: 9, endIndex: 15 },
+          bulletPreset: "NUMBERED_DECIMAL_ALPHA_ROMAN",
+        },
+      },
+      {
+        createParagraphBullets: {
+          range: { startIndex: 1, endIndex: 8 },
+          bulletPreset: "BULLET_DISC_CIRCLE_SQUARE",
+        },
+      },
+    ]);
+  });
 });
