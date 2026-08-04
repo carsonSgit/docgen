@@ -91,3 +91,7 @@ _Avoid_: Google calls from UI components
 **Recovery State**:
 The explicit user-visible state shown when persisted browser data cannot be validated or migrated safely.
 _Avoid_: Silent reset, corrupted document
+
+**Document Node Extension Boundary**:
+The shared Core Editor Slice vocabulary that pagination and native export must validate before interpreting document content; future nodes such as tables remain rejected until every boundary supports them.
+_Avoid_: Unknown nodes rendered as ordinary blocks
