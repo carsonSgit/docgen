@@ -41,6 +41,8 @@ export type NodeMeasurement = (node: TiptapNode) => number;
 
 export const PAGE_FRAGMENT_ATTR = "data-page-fragment";
 export const PAGE_VISUAL_FRAGMENT_ATTR = "data-page-visual-fragment";
+export const PAGE_LIST_ITEM_CONTINUATION_ATTR =
+  "data-page-list-item-continuation";
 
 function headingLineMetrics(node: TiptapNode) {
   const rawLevel = node.attrs?.level;
@@ -421,6 +423,14 @@ function splitListToFit(
           content: [
             {
               ...item,
+              ...(fragmentIndex > 0 || trailingIndex > 0
+                ? {
+                    attrs: {
+                      ...item.attrs,
+                      [PAGE_LIST_ITEM_CONTINUATION_ATTR]: true,
+                    },
+                  }
+                : {}),
               content: [parentParagraph, ...trailing],
             },
           ],

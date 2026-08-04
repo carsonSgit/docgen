@@ -1,6 +1,7 @@
 import type { DocumentNode } from "@document-playground/domain";
 import {
   PAGE_FRAGMENT_ATTR,
+  PAGE_LIST_ITEM_CONTINUATION_ATTR,
   PAGE_VISUAL_FRAGMENT_ATTR,
   type PaginationPage,
 } from "@document-playground/pagination";
@@ -11,6 +12,27 @@ function mergeListItemContinuation(
 ): DocumentNode {
   const previousContent = previous.content ?? [];
   const currentContent = current.content ?? [];
+  const previousParagraph = previousContent[0];
+  const currentParagraph = currentContent[0];
+  if (
+    previousParagraph?.type === "paragraph" &&
+    currentParagraph?.type === "paragraph" &&
+    currentParagraph.content?.length
+  ) {
+    return {
+      ...previous,
+      content: [
+        {
+          ...previousParagraph,
+          content: [
+            ...(previousParagraph.content ?? []),
+            ...currentParagraph.content,
+          ],
+        },
+        ...currentContent.slice(1),
+      ],
+    };
+  }
   const previousNested = previousContent.at(-1);
   const currentNested = currentContent.at(-1);
   if (
@@ -52,8 +74,9 @@ function mergeFragmentNodes(
     if (
       lastPrevious?.type === "listItem" &&
       firstCurrent?.type === "listItem" &&
-      firstCurrent.content?.[0]?.type === "paragraph" &&
-      firstCurrent.content[0].content?.length === 0
+      (firstCurrent.attrs?.[PAGE_LIST_ITEM_CONTINUATION_ATTR] === true ||
+        (firstCurrent.content?.[0]?.type === "paragraph" &&
+          firstCurrent.content[0].content?.length === 0))
     ) {
       return {
         ...previous,
@@ -100,16 +123,26 @@ export function flattenPages(pages: PaginationPage[]): DocumentNode[] {
     }
   }
 
-  return content.map((node) => {
-    if (!node.attrs?.[PAGE_FRAGMENT_ATTR]) return node;
-    const {
-      [PAGE_FRAGMENT_ATTR]: _fragmentId,
-      [PAGE_VISUAL_FRAGMENT_ATTR]: _visualFragment,
-      ...attrs
-    } = node.attrs;
+  const stripFragmentAttrs = (node: DocumentNode): DocumentNode => {
+    const attrs = node.attrs
+      ? Object.fromEntries(
+          Object.entries(node.attrs).filter(
+            ([key]) =>
+              key !== PAGE_FRAGMENT_ATTR &&
+              key !== PAGE_VISUAL_FRAGMENT_ATTR &&
+              key !== PAGE_LIST_ITEM_CONTINUATION_ATTR,
+          ),
+        )
+      : {};
+    const { content: childContent, ...nodeWithoutContent } = node;
     return {
-      ...node,
-      ...(Object.keys(attrs).length ? { attrs } : { attrs: undefined }),
+      ...nodeWithoutContent,
+      ...(Object.keys(attrs).length ? { attrs } : {}),
+      ...(childContent
+        ? { content: childContent.map(stripFragmentAttrs) }
+        : {}),
     };
-  });
+  };
+
+  return content.map(stripFragmentAttrs);
 }
