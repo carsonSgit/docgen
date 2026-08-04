@@ -482,6 +482,127 @@ describe("Google Docs compiler", () => {
 });
 
 describe("native list render metrics", () => {
+  it("keeps enclosing list-item ranges aligned after nested marker tab removal", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Parent" }],
+                },
+                {
+                  type: "orderedList",
+                  content: [
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "bulletList",
+                          content: [
+                            {
+                              type: "listItem",
+                              content: [
+                                {
+                                  type: "paragraph",
+                                  content: [
+                                    {
+                                      type: "text",
+                                      text: "Deep",
+                                      marks: [
+                                        {
+                                          type: "link",
+                                          attrs: {
+                                            href: "https://example.test",
+                                          },
+                                        },
+                                      ],
+                                    },
+                                  ],
+                                },
+                              ],
+                            },
+                          ],
+                        },
+                        {
+                          type: "paragraph",
+                          content: [
+                            {
+                              type: "text",
+                              text: "Child",
+                              marks: [
+                                {
+                                  type: "link",
+                                  attrs: { href: "https://child.test" },
+                                },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Sibling" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const requests = compileDocument(document).requests;
+    const nestedItemStyle = requests.find(
+      (request) =>
+        "updateParagraphStyle" in request &&
+        request.updateParagraphStyle.paragraphStyle.spacingMode ===
+          "COLLAPSE_LISTS" &&
+        request.updateParagraphStyle.range.startIndex === 9,
+    );
+    expect(nestedItemStyle).toEqual(
+      expect.objectContaining({
+        updateParagraphStyle: expect.objectContaining({
+          range: { startIndex: 9, endIndex: 20 },
+        }),
+      }),
+    );
+    expect(requests).toContainEqual({
+      createParagraphBullets: {
+        range: { startIndex: 9, endIndex: 20 },
+        bulletPreset: "NUMBERED_DECIMAL_ALPHA_ROMAN",
+      },
+    });
+    expect(requests).toContainEqual({
+      updateTextStyle: {
+        range: { startIndex: 14, endIndex: 19 },
+        textStyle: {
+          link: { url: "https://child.test" },
+          foregroundColor: {
+            color: {
+              rgbColor: { red: 17 / 255, green: 85 / 255, blue: 204 / 255 },
+            },
+          },
+          underline: true,
+        },
+        fields: "link,foregroundColor,underline",
+      },
+    });
+  });
+
   it("rebases a deeper nested sibling marker after the prior marker removes tabs", () => {
     const document = createBlankDocument();
     document.content = {
