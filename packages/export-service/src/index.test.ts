@@ -155,6 +155,58 @@ describe("export service", () => {
     expect(provider.createDocument).not.toHaveBeenCalled();
   });
 
+  it("uploads images used by repeated header sections", async () => {
+    const provider: GoogleProviderClient = {
+      createDocument: vi.fn(async () => ({ documentId: "section-image-doc" })),
+      uploadImage: vi.fn(async (asset) => ({
+        uri: `https://images.test/${asset.assetId}`,
+      })),
+      batchUpdate: vi
+        .fn()
+        .mockResolvedValueOnce({
+          replies: [{ createHeader: { headerId: "header-1" } }],
+        })
+        .mockResolvedValueOnce(undefined),
+    };
+    const document = createBlankDocument();
+    document.header = {
+      type: "doc",
+      content: [
+        {
+          type: "image",
+          attrs: {
+            assetId: "asset_header",
+            alt: "Header logo",
+            width: 120,
+            height: 40,
+          },
+        },
+      ],
+    };
+    const asset = {
+      assetId: "asset_header",
+      blob: new Blob(["header"], { type: "image/png" }),
+      mimeType: "image/png" as const,
+      size: 6,
+    };
+
+    await exportDocument(document, provider, new Map([[asset.assetId, asset]]));
+
+    expect(provider.uploadImage).toHaveBeenCalledWith(asset);
+    expect(provider.batchUpdate).toHaveBeenNthCalledWith(
+      2,
+      "section-image-doc",
+      expect.arrayContaining([
+        expect.objectContaining({
+          insertInlineImage: expect.objectContaining({
+            location: { index: 0, segmentId: "header-1" },
+            uri: "https://images.test/asset_header",
+          }),
+        }),
+      ]),
+    );
+  });
+
   it("creates header then footer and writes content with returned segment ids", async () => {
     const provider: GoogleProviderClient = {
       createDocument: vi.fn(async () => ({ documentId: "section-doc" })),
