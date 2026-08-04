@@ -383,9 +383,19 @@ function splitListToFit(
     const itemContent = item.content ?? [];
     const paragraph = itemContent[0];
     if (!paragraph) return [node];
+    const precedingItemCount = node.content
+      .slice(0, itemIndex)
+      .filter(
+        (candidate) =>
+          candidate.attrs?.[PAGE_LIST_ITEM_CONTINUATION_ATTR] !== true,
+      ).length;
+    const continuesPreviousItem =
+      item.attrs?.[PAGE_LIST_ITEM_CONTINUATION_ATTR] !== true &&
+      node.content[0]?.attrs?.[PAGE_LIST_ITEM_CONTINUATION_ATTR] === true;
     const listItemStart =
       (typeof node.attrs?.start === "number" ? node.attrs.start : 1) +
-      itemIndex;
+      precedingItemCount +
+      (continuesPreviousItem ? 1 : 0);
     const paragraphFragments = splitTextNode(
       paragraph,
       maxHeight,
@@ -541,7 +551,27 @@ export function paginateDocument(
         continue;
       }
 
-      pages.at(-1)?.content.push(fragment);
+      const firstItem = fragment.content?.[0];
+      const startsWithContinuation =
+        fragment.type === "orderedList" &&
+        firstItem?.attrs?.[PAGE_LIST_ITEM_CONTINUATION_ATTR] === true;
+      const containsNewItem = fragment.content?.some(
+        (item) => item.attrs?.[PAGE_LIST_ITEM_CONTINUATION_ATTR] !== true,
+      );
+      const renderedFragment =
+        startsWithContinuation && containsNewItem
+          ? {
+              ...fragment,
+              attrs: {
+                ...fragment.attrs,
+                start:
+                  (typeof fragment.attrs?.start === "number"
+                    ? fragment.attrs.start
+                    : 1) + 1,
+              },
+            }
+          : fragment;
+      pages.at(-1)?.content.push(renderedFragment);
       remainingHeight -= height;
       remainingNode =
         fragments.length > 1

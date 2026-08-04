@@ -531,4 +531,58 @@ describe("pagination adapter", () => {
     expect(result.pages.length).toBeGreaterThan(1);
     expect(parentCount).toBe(1);
   });
+
+  it("continues nested ordered-list numbering after a page split", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "orderedList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Parent" }],
+                },
+                {
+                  type: "orderedList",
+                  attrs: { start: 3 },
+                  content: [
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [
+                            { type: "text", text: "Nested item ".repeat(900) },
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [{ type: "text", text: "Nested second" }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const lists = paginateDocument(document).pages.flatMap(
+      (page) => page.content,
+    );
+    expect(lists.map((list) => list.attrs?.start)).toEqual([1, 1, 1]);
+  });
 });
