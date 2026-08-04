@@ -393,6 +393,28 @@ describe("Google Docs compiler", () => {
     });
   });
 
+  it("uses the native Google Docs enum for justified paragraphs", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          attrs: { textAlign: "justify" },
+          content: [{ type: "text", text: "Justified" }],
+        },
+      ],
+    };
+
+    expect(compileDocument(document).requests).toContainEqual({
+      updateParagraphStyle: {
+        range: { startIndex: 1, endIndex: 11 },
+        paragraphStyle: { alignment: "JUSTIFIED" },
+        fields: "alignment",
+      },
+    });
+  });
+
   it("rejects unsupported header content before section compilation", () => {
     const document = createBlankDocument();
     document.header = { type: "doc", content: [{ type: "table" }] };
