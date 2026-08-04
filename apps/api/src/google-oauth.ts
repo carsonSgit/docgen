@@ -1,5 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname } from "node:path";
 import type { GoogleProviderClient } from "@document-playground/export-service";
 import { z } from "zod";
@@ -37,6 +43,7 @@ type GoogleOAuthOptions = {
 type OAuthTokenStore = {
   load: () => OAuthTokens | undefined;
   save: (tokens: OAuthTokens) => void;
+  clear?: () => void;
 };
 
 type OAuthTokens = { accessToken: string; refreshToken?: string };
@@ -84,11 +91,29 @@ export class FileOAuthTokenStore implements OAuthTokenStore {
     });
     chmodSync(this.path, 0o600);
   }
+
+  clear(): void {
+    try {
+      unlinkSync(this.path);
+    } catch (error) {
+      if (
+        !error ||
+        typeof error !== "object" ||
+        !("code" in error) ||
+        error.code !== "ENOENT"
+      ) {
+        throw new Error(`Could not clear OAuth token file '${this.path}'.`, {
+          cause: error,
+        });
+      }
+    }
+  }
 }
 
 export class GoogleOAuthService {
   private tokens: OAuthTokens | undefined;
   private readonly pendingStates = new Map<string, number>();
+  private refreshInFlight: Promise<string | undefined> | undefined;
   private readonly fetchImpl: FetchLike;
   private readonly stateFactory: () => string;
 
@@ -130,7 +155,7 @@ export class GoogleOAuthService {
     }
     const expiresAt = this.pendingStates.get(state);
     this.pendingStates.delete(state);
-    if (!expiresAt || expiresAt < Date.now()) {
+    if (!expiresAt || expiresAt <= Date.now()) {
       throw new Error("Google OAuth state is invalid or expired.");
     }
     const response = await this.fetchImpl(GOOGLE_TOKEN_ENDPOINT, {
@@ -156,7 +181,27 @@ export class GoogleOAuthService {
     this.options.tokenStore?.save(this.tokens);
   }
 
-  async refreshAccessToken(): Promise<string | undefined> {
+  async refreshAccessToken(
+    expectedAccessToken?: string,
+  ): Promise<string | undefined> {
+    if (
+      expectedAccessToken &&
+      this.tokens?.accessToken &&
+      this.tokens.accessToken !== expectedAccessToken
+    ) {
+      return this.tokens.accessToken;
+    }
+    if (this.refreshInFlight) return this.refreshInFlight;
+    const refresh = this.refreshAccessTokenOnce();
+    this.refreshInFlight = refresh;
+    try {
+      return await refresh;
+    } finally {
+      if (this.refreshInFlight === refresh) this.refreshInFlight = undefined;
+    }
+  }
+
+  private async refreshAccessTokenOnce(): Promise<string | undefined> {
     const refreshToken = this.tokens?.refreshToken;
     if (!refreshToken || !this.options.clientId || !this.options.clientSecret) {
       return undefined;
@@ -172,6 +217,18 @@ export class GoogleOAuthService {
       }),
     });
     const body: unknown = await response.json();
+    if (
+      !response.ok &&
+      response.status === 400 &&
+      body &&
+      typeof body === "object" &&
+      "error" in body &&
+      (body as { error?: unknown }).error === "invalid_grant"
+    ) {
+      this.tokens = undefined;
+      this.options.tokenStore?.clear?.();
+      return undefined;
+    }
     if (!response.ok) throw new Error("Google OAuth token refresh failed.");
     const parsed = TokenResponseSchema.safeParse(body);
     if (!parsed.success)
@@ -184,10 +241,16 @@ export class GoogleOAuthService {
     return this.tokens.accessToken;
   }
 
+  clearAuthorization(): void {
+    this.tokens = undefined;
+    this.options.tokenStore?.clear?.();
+  }
+
   provider(): GoogleProviderClient {
     return createGoogleProviderClient({
       accessToken: this.tokens?.accessToken,
-      refreshAccessToken: () => this.refreshAccessToken(),
+      refreshAccessToken: (expectedAccessToken) =>
+        this.refreshAccessToken(expectedAccessToken),
       fetchImpl: this.fetchImpl,
     });
   }

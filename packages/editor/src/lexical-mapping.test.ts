@@ -27,3 +27,29 @@ describe("Lexical list mapping", () => {
     expect(fromLexicalDocument(toLexicalDocument(document))).toEqual(document);
   });
 });
+
+describe("Lexical document boundary validation", () => {
+  it("rejects a serialized document whose root is not a root node", () => {
+    expect(() =>
+      fromLexicalDocument({
+        root: { type: "paragraph", children: [] },
+      }),
+    ).toThrow("Lexical serialized document root must have type 'root'");
+  });
+
+  it("rejects unsupported text-format bits instead of dropping them", () => {
+    expect(() =>
+      fromLexicalDocument({
+        root: {
+          type: "root",
+          children: [
+            {
+              type: "paragraph",
+              children: [{ type: "text", text: "x", format: 128 }],
+            },
+          ],
+        },
+      }),
+    ).toThrow("Unsupported Lexical text format bit 128");
+  });
+});

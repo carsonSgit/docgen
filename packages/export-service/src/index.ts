@@ -51,6 +51,35 @@ export class ExportServiceError extends Error {
   }
 }
 
+function validateImageAsset(
+  assetId: string,
+  asset: ExportImageAsset | undefined,
+): asserts asset is ExportImageAsset {
+  if (!asset) {
+    throw new ExportServiceError(
+      `Image asset ${assetId} is missing. Restore the image locally and retry export.`,
+    );
+  }
+  if (asset.assetId !== assetId) {
+    throw new ExportServiceError(
+      `Image asset ${assetId} has mismatched asset identity; restore the image locally and retry export.`,
+    );
+  }
+  if (
+    !EXPORT_IMAGE_MIME_TYPES.includes(asset.mimeType) ||
+    asset.blob.type !== asset.mimeType
+  ) {
+    throw new ExportServiceError(
+      `Image asset ${assetId} has an unsupported image format (${asset.mimeType}).`,
+    );
+  }
+  if (asset.size !== asset.blob.size || asset.size > EXPORT_IMAGE_MAX_BYTES) {
+    throw new ExportServiceError(
+      `Image asset ${assetId} is invalid or exceeds the 10 MB size limit.`,
+    );
+  }
+}
+
 function collectImageIds(document: DocumentEnvelope): string[] {
   const imageIds: string[] = [];
   const collectImages = (node: DocumentEnvelope["content"]): void => {
@@ -68,6 +97,35 @@ function collectImageIds(document: DocumentEnvelope): string[] {
   return imageIds;
 }
 
+function validateImageAsset(
+  assetId: string,
+  asset: ExportImageAsset | undefined,
+): asserts asset is ExportImageAsset {
+  if (!asset) {
+    throw new ExportServiceError(
+      `Image asset ${assetId} is missing. Restore the image locally and retry export.`,
+    );
+  }
+  if (asset.assetId !== assetId) {
+    throw new ExportServiceError(
+      `Image asset ${assetId} has mismatched asset identity; restore the image locally and retry export.`,
+    );
+  }
+  if (
+    !EXPORT_IMAGE_MIME_TYPES.includes(asset.mimeType) ||
+    asset.blob.type !== asset.mimeType
+  ) {
+    throw new ExportServiceError(
+      `Image asset ${assetId} has an unsupported image format (${asset.mimeType}).`,
+    );
+  }
+  if (asset.size !== asset.blob.size || asset.size > EXPORT_IMAGE_MAX_BYTES) {
+    throw new ExportServiceError(
+      `Image asset ${assetId} is invalid or exceeds the 10 MB size limit.`,
+    );
+  }
+}
+
 /** Validate content and local assets before authorization or provider writes. */
 export function preflightExport(
   document: DocumentEnvelope,
@@ -75,25 +133,7 @@ export function preflightExport(
 ): void {
   const imageIds = collectImageIds(document);
   for (const assetId of imageIds) {
-    const asset = assets.get(assetId);
-    if (!asset) {
-      throw new ExportServiceError(
-        `Image asset ${assetId} is missing. Restore the image locally and retry export.`,
-      );
-    }
-    if (
-      !EXPORT_IMAGE_MIME_TYPES.includes(asset.mimeType) ||
-      asset.blob.type !== asset.mimeType
-    ) {
-      throw new ExportServiceError(
-        `Image asset ${assetId} has an unsupported image format (${asset.mimeType}).`,
-      );
-    }
-    if (asset.size !== asset.blob.size || asset.size > EXPORT_IMAGE_MAX_BYTES) {
-      throw new ExportServiceError(
-        `Image asset ${assetId} is invalid or exceeds the 10 MB size limit.`,
-      );
-    }
+    validateImageAsset(assetId, assets.get(assetId));
   }
 
   try {
@@ -121,25 +161,7 @@ export async function exportDocument(
   const imageIds = collectImageIds(document);
 
   for (const assetId of imageIds) {
-    const asset = assets.get(assetId);
-    if (!asset) {
-      throw new ExportServiceError(
-        `Image asset ${assetId} is missing. Restore the image locally and retry export.`,
-      );
-    }
-    if (
-      !EXPORT_IMAGE_MIME_TYPES.includes(asset.mimeType) ||
-      asset.blob.type !== asset.mimeType
-    ) {
-      throw new ExportServiceError(
-        `Image asset ${assetId} has an unsupported image format (${asset.mimeType}).`,
-      );
-    }
-    if (asset.size !== asset.blob.size || asset.size > EXPORT_IMAGE_MAX_BYTES) {
-      throw new ExportServiceError(
-        `Image asset ${assetId} is invalid or exceeds the 10 MB size limit.`,
-      );
-    }
+    validateImageAsset(assetId, assets.get(assetId));
     if (!provider.uploadImage) {
       throw new ExportServiceError(
         "Google image upload is not configured; the document was not changed.",
