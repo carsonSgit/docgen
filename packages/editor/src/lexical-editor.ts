@@ -459,6 +459,7 @@ export function createLexicalEditor(
           )
             continue;
           const heading = $createHeadingNode(tag);
+          heading.setFormat(block.getFormatType());
           heading.append(...block.getChildren());
           block.replace(heading);
           replaced.add(block.getKey());
