@@ -192,6 +192,43 @@ describe("Google Docs compiler", () => {
     ]);
   });
 
+  it("applies the calibrated link appearance in native Docs", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: "Read more",
+              marks: [
+                { type: "link", attrs: { href: "https://example.test" } },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(compileDocument(document).requests).toContainEqual({
+      updateTextStyle: {
+        range: { startIndex: 1, endIndex: 10 },
+        textStyle: {
+          link: { url: "https://example.test" },
+          foregroundColor: {
+            color: {
+              rgbColor: { red: 17 / 255, green: 85 / 255, blue: 204 / 255 },
+            },
+          },
+          underline: true,
+        },
+        fields: "link,foregroundColor,underline",
+      },
+    });
+  });
+
   it("compiles images with point sizing at their document position", () => {
     const document = createBlankDocument();
     document.content = {
