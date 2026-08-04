@@ -6,6 +6,8 @@ import { z } from "zod";
 
 const CreatedDocumentSchema = z.object({ documentId: z.string().min(1) });
 const DriveFileSchema = z.object({ id: z.string().min(1) });
+const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
+const MAX_RETRIES = 2;
 
 type FetchLike = (
   input: RequestInfo | URL,
@@ -14,9 +16,12 @@ type FetchLike = (
 
 export function createGoogleProviderClient(options: {
   accessToken: string | undefined;
+  refreshAccessToken?: () => Promise<string | undefined>;
   fetchImpl?: FetchLike;
+  retryDelayMs?: number;
 }): GoogleProviderClient {
   const fetchImpl = options.fetchImpl ?? fetch;
+  const retryDelayMs = options.retryDelayMs ?? 100;
   if (!options.accessToken) {
     return {
       async createDocument() {
@@ -41,16 +46,34 @@ export function createGoogleProviderClient(options: {
     input: RequestInfo | URL,
     init: RequestInit,
   ): Promise<unknown> {
-    const response = await fetchImpl(input, {
-      ...init,
-      headers: {
-        authorization: `Bearer ${options.accessToken}`,
-        "content-type": "application/json",
-        ...init.headers,
-      },
-    });
-    const body: unknown = await response.json().catch(() => undefined);
-    if (!response.ok) {
+    let accessToken = options.accessToken;
+    let refreshed = false;
+    for (let attempt = 0; ; attempt += 1) {
+      const response = await fetchImpl(input, {
+        ...init,
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          "content-type": "application/json",
+          ...init.headers,
+        },
+      });
+      const body: unknown = await response.json().catch(() => undefined);
+      if (response.ok) return body;
+      if (response.status === 401 && !refreshed && options.refreshAccessToken) {
+        refreshed = true;
+        const nextToken = await options.refreshAccessToken();
+        if (nextToken) {
+          accessToken = nextToken;
+          continue;
+        }
+      }
+      if (RETRYABLE_STATUS.has(response.status) && attempt < MAX_RETRIES) {
+        const delay = Math.min(retryDelayMs * 2 ** attempt, 1_000);
+        if (delay > 0) {
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+        continue;
+      }
       const detail =
         body && typeof body === "object" && "error" in body
           ? (body as { error?: { message?: unknown } }).error?.message
@@ -59,7 +82,6 @@ export function createGoogleProviderClient(options: {
         `Google API request failed (${response.status})${typeof detail === "string" ? `: ${detail}` : "."}`,
       );
     }
-    return body;
   }
 
   return {

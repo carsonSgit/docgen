@@ -1,0 +1,37 @@
+{
+  "fixtureId": "core-editor-slice",
+  "schemaVersion": 2,
+  "templateVersion": 1,
+  "assets": [
+    {
+      "filename": "assets/hero.svg",
+      "assetId": "asset_core_slice_hero",
+      "sha256": "039da23c6e26545e38047381e168a74462162c5c0340b91976f497990d162b5a"
+    }
+  ],
+  "expected": {
+    "pageCount": 3,
+    "manualBreaks": [1],
+    "automaticBreaks": [2],
+    "page": {
+      "widthPoints": 612,
+      "heightPoints": 792,
+      "marginsPoints": { "top": 72, "right": 72, "bottom": 72, "left": 72 }
+    },
+    "headerFooter": {
+      "header": "Core Slice Header",
+      "footer": "Core Slice Footer",
+      "headerDistancePoints": 36,
+      "footerDistancePoints": 36
+    },
+    "typography": { "fontFamily": "Arial", "bodyFontSizePoints": 11 }
+  },
+  "compilerSnapshot": "packages/google-compiler/src/__snapshots__/render-equivalence.test.ts.snap",
+  "capture": {
+    "viewport": { "width": 1280, "height": 900 },
+    "deviceScaleFactor": 1,
+    "locale": "en-US",
+    "timezone": "UTC",
+    "maxDiffPixels": 0
+  }
+}

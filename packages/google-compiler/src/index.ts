@@ -5,6 +5,8 @@ import {
   findUnsupportedDocumentNode,
   HEADER_DISTANCE_POINTS,
   isCoreDocumentNodeType,
+  LIST_INDENT_POINTS,
+  LIST_MARKER_HANGING_POINTS,
   parseDocumentEnvelope,
   type TiptapNode,
 } from "@document-playground/domain";
@@ -27,15 +29,36 @@ function headingMetrics(node: TiptapNode) {
   };
 }
 
-function paragraphStyle(node: TiptapNode) {
+function paragraphStyle(
+  node: TiptapNode,
+  listType?: "bullet" | "ordered",
+  listDepth = 0,
+) {
   if (node.type !== "heading") {
+    const spacingMode =
+      node.type === "listItem" && listType ? "COLLAPSE_LISTS" : undefined;
     return {
       paragraphStyle: {
         lineSpacing: DOCUMENT_TYPOGRAPHY.lineSpacingPercent,
         spaceAbove: { magnitude: 0, unit: "PT" },
         spaceBelow: { magnitude: 0, unit: "PT" },
+        ...(spacingMode ? { spacingMode } : {}),
+        ...(spacingMode
+          ? {
+              indentStart: {
+                magnitude: LIST_INDENT_POINTS * (listDepth + 1),
+                unit: "PT",
+              },
+              indentFirstLine: {
+                magnitude: -LIST_MARKER_HANGING_POINTS,
+                unit: "PT",
+              },
+            }
+          : {}),
       },
-      fields: "lineSpacing,spaceAbove,spaceBelow",
+      fields: spacingMode
+        ? "lineSpacing,spaceAbove,spaceBelow,spacingMode,indentStart,indentFirstLine"
+        : "lineSpacing,spaceAbove,spaceBelow",
     };
   }
   const { level, metrics } = headingMetrics(node);
@@ -132,6 +155,24 @@ function assertSupported(node: TiptapNode, path: string): void {
   if (unsupported) {
     throw new UnsupportedContentError(unsupported.path, unsupported.nodeType);
   }
+  if (
+    (node.type === "paragraph" || node.type === "heading") &&
+    node.attrs?.textAlign !== undefined
+  ) {
+    const alignment = node.attrs.textAlign;
+    if (
+      typeof alignment !== "string" ||
+      !["left", "center", "right", "justify"].includes(alignment)
+    ) {
+      throw new UnsupportedContentError(
+        `${path}.attrs.textAlign`,
+        String(alignment),
+      );
+    }
+  }
+  node.content?.forEach((child, index) => {
+    assertSupported(child, `${path}.content[${index}]`);
+  });
 }
 
 function removeFinalBodyParagraphBreak(
@@ -163,9 +204,55 @@ function markStyle(mark: {
   if (mark.type === "italic") return { italic: true };
   if (mark.type === "underline") return { underline: true };
   if (mark.type === "link" && typeof mark.attrs?.href === "string") {
-    return { link: { url: mark.attrs.href } };
+    return {
+      link: { url: mark.attrs.href },
+      foregroundColor: {
+        color: {
+          rgbColor: { red: 17 / 255, green: 85 / 255, blue: 204 / 255 },
+        },
+      },
+      underline: true,
+    };
   }
   throw new UnsupportedContentError("mark", mark.type);
+}
+
+function appendListMarkerRequests(
+  requests: GoogleDocsRequest[],
+  ranges: Range[],
+  bulletPreset: string,
+): void {
+  let range = ranges[0];
+  if (!range) return;
+  for (const next of ranges.slice(1)) {
+    if (range.endIndex === next.startIndex) {
+      range = { ...range, endIndex: next.endIndex };
+      continue;
+    }
+    requests.push({ createParagraphBullets: { range, bulletPreset } });
+    range = next;
+  }
+  requests.push({ createParagraphBullets: { range, bulletPreset } });
+}
+
+function markerRebase(
+  range: Range,
+  removedTabs: ReadonlyArray<{ position: number; count: number }>,
+): Range {
+  const rebaseIndex = (index: number) =>
+    index -
+    removedTabs
+      .filter(({ position }) => position < index)
+      .reduce((total, { count }) => total + count, 0);
+  const startIndex = rebaseIndex(range.startIndex);
+  const endIndex = rebaseIndex(range.endIndex);
+  return startIndex === range.startIndex && endIndex === range.endIndex
+    ? range
+    : {
+        ...range,
+        startIndex,
+        endIndex,
+      };
 }
 
 function compileNode(
@@ -174,6 +261,9 @@ function compileNode(
   state: { index: number },
   imageUris: ReadonlyMap<string, string>,
   listType?: "bullet" | "ordered",
+  listDepth = 0,
+  listItemRanges?: Range[],
+  removedTabs: Array<{ position: number; count: number }> = [],
 ): void {
   if (node.type === "hardBreak") {
     requests.push({
@@ -239,22 +329,73 @@ function compileNode(
 
   if (node.type === "doc") {
     node.content?.forEach((child) => {
-      compileNode(child, requests, state, imageUris);
+      compileNode(child, requests, state, imageUris, undefined, 0);
     });
     return;
   }
 
   if (node.type === "bulletList" || node.type === "orderedList") {
     const nextListType = node.type === "bulletList" ? "bullet" : "ordered";
+    // Nested list markers remove the leading tab used to establish their
+    // nesting level. Keep those requests adjacent to each item so the next
+    // item's location is rebased against the document produced so far.
+    const ranges = listDepth === 0 ? [] : undefined;
     node.content?.forEach((child) => {
-      compileNode(child, requests, state, imageUris, nextListType);
+      compileNode(
+        child,
+        requests,
+        state,
+        imageUris,
+        nextListType,
+        listDepth,
+        ranges,
+        removedTabs,
+      );
     });
+    if (ranges) {
+      appendListMarkerRequests(
+        requests,
+        ranges,
+        nextListType === "bullet"
+          ? "BULLET_DISC_CIRCLE_SQUARE"
+          : "NUMBERED_DECIMAL_ALPHA_ROMAN",
+      );
+    }
     return;
   }
 
-  const startIndex = state.index;
+  let startIndex = state.index;
+  if (node.type === "listItem" && listDepth > 0) {
+    const indentation = "\t".repeat(listDepth);
+    requests.push({
+      insertText: { location: { index: state.index }, text: indentation },
+    });
+    state.index += indentation.length;
+    startIndex = state.index;
+  }
+  let listItemContentEndIndex: number | undefined;
   node.content?.forEach((child) => {
-    compileNode(child, requests, state, imageUris, listType);
+    compileNode(
+      child,
+      requests,
+      state,
+      imageUris,
+      listType,
+      node.type === "listItem" &&
+        (child.type === "bulletList" || child.type === "orderedList")
+        ? listDepth + 1
+        : listDepth,
+      listItemRanges,
+      removedTabs,
+    );
+    if (
+      node.type === "listItem" &&
+      listItemContentEndIndex === undefined &&
+      child.type !== "bulletList" &&
+      child.type !== "orderedList"
+    ) {
+      listItemContentEndIndex = state.index;
+    }
   });
 
   if (
@@ -262,13 +403,26 @@ function compileNode(
     node.type === "heading" ||
     node.type === "listItem"
   ) {
-    requests.push({
-      insertText: { location: { index: state.index }, text: "\n" },
-    });
-    state.index += 1;
-    const range = { startIndex, endIndex: state.index };
+    if (node.type !== "listItem") {
+      requests.push({
+        insertText: { location: { index: state.index }, text: "\n" },
+      });
+      state.index += 1;
+    }
+    const range = {
+      startIndex,
+      endIndex:
+        node.type === "listItem"
+          ? (listItemContentEndIndex ?? state.index)
+          : state.index,
+    };
 
-    requests.push({ updateParagraphStyle: { range, ...paragraphStyle(node) } });
+    requests.push({
+      updateParagraphStyle: {
+        range,
+        ...paragraphStyle(node, listType, listDepth),
+      },
+    });
     if (node.type !== "listItem") {
       requests.push({ updateTextStyle: { range, ...textStyle(node) } });
     }
@@ -278,25 +432,44 @@ function compileNode(
       typeof alignment === "string" &&
       ["left", "center", "right", "justify"].includes(alignment)
     ) {
+      const googleAlignment =
+        alignment === "justify" ? "JUSTIFIED" : alignment.toUpperCase();
       requests.push({
         updateParagraphStyle: {
           range,
-          paragraphStyle: { alignment: alignment.toUpperCase() },
+          paragraphStyle: { alignment: googleAlignment },
           fields: "alignment",
         },
       });
     }
 
     if (listType && node.type === "listItem") {
-      requests.push({
-        createParagraphBullets: {
-          range,
-          bulletPreset:
-            listType === "bullet"
-              ? "BULLET_DISC_CIRCLE_SQUARE"
-              : "NUMBERED_DECIMAL_ALPHA_ROMAN",
-        },
-      });
+      const range = {
+        startIndex,
+        endIndex: listItemContentEndIndex ?? state.index,
+      };
+      if (listItemRanges) {
+        listItemRanges.push(range);
+      } else {
+        requests.push({
+          createParagraphBullets: {
+            range: listDepth > 1 ? markerRebase(range, removedTabs) : range,
+            bulletPreset:
+              listType === "bullet"
+                ? "BULLET_DISC_CIRCLE_SQUARE"
+                : "NUMBERED_DECIMAL_ALPHA_ROMAN",
+          },
+        });
+      }
+      if (!listItemRanges && listDepth > 1) {
+        removedTabs.push({
+          position: range.startIndex - listDepth,
+          count: listDepth,
+        });
+      }
+      // Google removes the leading tabs used to derive nesting. Keep later
+      // request indexes aligned with the post-batch document state.
+      state.index -= listDepth;
     }
   }
 }
