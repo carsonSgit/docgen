@@ -336,6 +336,70 @@ test("matches the native Docs page and default paragraph metrics", async ({
   expect(metrics.paragraphMarginBottom).toBe("0px");
 });
 
+test("uses the native list indent for nested lists", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "document-playground:document",
+      JSON.stringify({
+        version: 2,
+        title: "Nested list fixture",
+        page: {
+          size: "letter",
+          width: 612,
+          height: 792,
+          margins: { top: 72, right: 72, bottom: 72, left: 72 },
+        },
+        content: {
+          type: "doc",
+          content: [
+            {
+              type: "bulletList",
+              content: [
+                {
+                  type: "listItem",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [{ type: "text", text: "Parent" }],
+                    },
+                    {
+                      type: "orderedList",
+                      content: [
+                        {
+                          type: "listItem",
+                          content: [
+                            {
+                              type: "paragraph",
+                              content: [{ type: "text", text: "Child" }],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        header: null,
+        footer: null,
+      }),
+    );
+  });
+  await page.goto("/");
+
+  await expect(page.locator(".ProseMirror ul")).toHaveCount(1);
+  await expect(page.locator(".ProseMirror ol")).toHaveCount(1);
+  const listPadding = await page
+    .locator(".ProseMirror ul, .ProseMirror ol")
+    .evaluateAll((lists) =>
+      lists.map((list) => getComputedStyle(list).paddingLeft),
+    );
+
+  expect(listPadding).toEqual(["36px", "36px"]);
+});
+
 test("uses the native header and footer distances around the body", async ({
   page,
 }) => {
