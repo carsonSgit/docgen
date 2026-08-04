@@ -165,6 +165,21 @@ function assertSupported(node: TiptapNode, path: string): void {
   if (!supportedNodes.has(node.type)) {
     throw new UnsupportedContentError(path, node.type);
   }
+  if (
+    (node.type === "paragraph" || node.type === "heading") &&
+    node.attrs?.textAlign !== undefined
+  ) {
+    const alignment = node.attrs.textAlign;
+    if (
+      typeof alignment !== "string" ||
+      !["left", "center", "right", "justify"].includes(alignment)
+    ) {
+      throw new UnsupportedContentError(
+        `${path}.attrs.textAlign`,
+        String(alignment),
+      );
+    }
+  }
   node.content?.forEach((child, index) => {
     assertSupported(child, `${path}.content[${index}]`);
   });
