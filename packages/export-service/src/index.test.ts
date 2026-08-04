@@ -38,6 +38,27 @@ describe("export service", () => {
     ).rejects.toThrow("Google export failed. unauthorized");
   });
 
+  it("reports a partial export when content writing fails after document creation", async () => {
+    const provider: GoogleProviderClient = {
+      createDocument: vi.fn(async () => ({ documentId: "partial-doc" })),
+      batchUpdate: vi.fn(async () => {
+        throw new Error("content write failed");
+      }),
+    };
+
+    await expect(
+      exportDocument(createBlankDocument(), provider),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining(
+        "Google export partially failed after creating remote document https://docs.google.com/document/d/partial-doc/edit",
+      ),
+      remoteDocumentId: "partial-doc",
+      remoteDocumentUrl: "https://docs.google.com/document/d/partial-doc/edit",
+    });
+    expect(provider.createDocument).toHaveBeenCalledOnce();
+    expect(provider.batchUpdate).toHaveBeenCalledOnce();
+  });
+
   it("rejects unsupported content before the provider is called", async () => {
     const provider: GoogleProviderClient = {
       createDocument: vi.fn(async () => ({ documentId: "never" })),

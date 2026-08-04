@@ -66,6 +66,31 @@ describe("API", () => {
     });
   });
 
+  it("describes the remote document when a native export fails after creation", async () => {
+    const provider: GoogleProviderClient = {
+      createDocument: async () => ({ documentId: "partial-doc" }),
+      batchUpdate: async () => {
+        throw new Error("content write failed");
+      },
+    };
+    const response = await handleRequest(
+      new Request("http://localhost/api/export", {
+        method: "POST",
+        body: JSON.stringify({ document: createBlankDocument(), assets: [] }),
+        headers: { "content-type": "application/json" },
+      }),
+      provider,
+    );
+
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({
+      error: expect.stringContaining("do not retry blindly"),
+      documentId: "partial-doc",
+      url: "https://docs.google.com/document/d/partial-doc/edit",
+      partial: true,
+    });
+  });
+
   it("starts OAuth only when an export needs authorization", async () => {
     const oauth = new GoogleOAuthService({
       clientId: "client",

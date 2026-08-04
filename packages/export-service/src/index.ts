@@ -35,9 +35,19 @@ export type ExportResult = {
 };
 
 export class ExportServiceError extends Error {
-  constructor(message: string, options?: { cause?: unknown }) {
+  readonly remoteDocumentId?: string;
+  readonly remoteDocumentUrl?: string;
+
+  constructor(
+    message: string,
+    options?: { cause?: unknown; remoteDocumentId?: string },
+  ) {
     super(message, options);
     this.name = "ExportServiceError";
+    this.remoteDocumentId = options?.remoteDocumentId;
+    this.remoteDocumentUrl = options?.remoteDocumentId
+      ? `https://docs.google.com/document/d/${encodeURIComponent(options.remoteDocumentId)}/edit`
+      : undefined;
   }
 }
 
@@ -175,8 +185,10 @@ export async function exportDocument(
     );
   }
 
+  let createdDocumentId: string | undefined;
   try {
     const created = await provider.createDocument(compiled.title);
+    createdDocumentId = created.documentId;
     const sections = [
       ["header", compiled.sections.header] as const,
       ["footer", compiled.sections.footer] as const,
@@ -282,6 +294,13 @@ export async function exportDocument(
     };
   } catch (error) {
     const detail = error instanceof Error ? ` ${error.message}` : "";
+    if (createdDocumentId) {
+      const remoteDocumentUrl = `https://docs.google.com/document/d/${encodeURIComponent(createdDocumentId)}/edit`;
+      throw new ExportServiceError(
+        `Google export partially failed after creating remote document ${remoteDocumentUrl}.${detail} The remote document may be incomplete; do not retry blindly. Your local document was not changed.`,
+        { cause: error, remoteDocumentId: createdDocumentId },
+      );
+    }
     throw new ExportServiceError(
       `Google export failed.${detail} Your local document was not changed; retry when the provider is available.`,
       { cause: error },

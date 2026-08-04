@@ -4,6 +4,7 @@ import {
 } from "@document-playground/domain";
 import {
   type ExportImageAsset,
+  ExportServiceError,
   exportDocument,
   type GoogleProviderClient,
   preflightExport,
@@ -188,9 +189,17 @@ export async function handleRequest(
           .then((result) => Response.json(result))
           .catch((error: unknown) =>
             Response.json(
-              {
-                error: error instanceof Error ? error.message : "Export failed",
-              },
+              error instanceof ExportServiceError && error.remoteDocumentId
+                ? {
+                    error: error.message,
+                    documentId: error.remoteDocumentId,
+                    url: error.remoteDocumentUrl,
+                    partial: true,
+                  }
+                : {
+                    error:
+                      error instanceof Error ? error.message : "Export failed",
+                  },
               { status: 502 },
             ),
           );
