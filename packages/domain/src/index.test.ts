@@ -8,6 +8,7 @@ import {
   DOCUMENT_VERSION,
   findUnsupportedDocumentNode,
   fitImageToWidth,
+  isEmptyDocumentSection,
   listDocumentTemplates,
   normalizeRenderMetrics,
   parseDocumentEnvelope,
@@ -140,6 +141,22 @@ describe("document envelope", () => {
         ...createBlankDocument(),
         footer: { type: "doc", content: [{ type: "text", text: 42 }] },
       }).success,
+    ).toBe(false);
+  });
+
+  it("treats null, omitted, and structurally empty sections as absent", () => {
+    expect(isEmptyDocumentSection(null)).toBe(true);
+    expect(isEmptyDocumentSection(undefined)).toBe(true);
+    expect(
+      isEmptyDocumentSection({ type: "doc", content: [{ type: "paragraph" }] }),
+    ).toBe(true);
+    expect(
+      isEmptyDocumentSection({
+        type: "doc",
+        content: [
+          { type: "paragraph", content: [{ type: "text", text: "Header" }] },
+        ],
+      }),
     ).toBe(false);
   });
 
