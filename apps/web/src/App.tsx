@@ -548,6 +548,12 @@ export function App() {
         node.content?.forEach(collectImageIds);
       };
       collectImageIds(documentRef.current.content);
+      if (documentRef.current.header) {
+        collectImageIds(documentRef.current.header);
+      }
+      if (documentRef.current.footer) {
+        collectImageIds(documentRef.current.footer);
+      }
       const exportAssets: ExportRequestAsset[] = [];
       for (const assetId of assetIds) {
         const asset = await assetStorage.get(assetId);

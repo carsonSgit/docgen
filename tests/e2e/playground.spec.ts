@@ -113,6 +113,48 @@ test("renders an inserted image in a repeated header", async ({ page }) => {
   await expect(page.locator(".page-header img")).toHaveCount(1);
 });
 
+test("includes repeated-section images in the export assets", async ({
+  page,
+}) => {
+  let requestBody: {
+    document?: { header?: { content?: unknown[] } };
+    assets?: Array<{ assetId: string }>;
+  } | null = null;
+  await page.route("**/api/export", async (route) => {
+    requestBody = route.request().postDataJSON() as typeof requestBody;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        documentId: "header-image-doc",
+        url: "https://docs.google.com/document/d/header-image-doc/edit",
+      }),
+    });
+  });
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "createImageBitmap", {
+      configurable: true,
+      value: async () => ({ width: 100, height: 50, close() {} }),
+    });
+  });
+  await page.goto("/");
+  const firstPage = page.getByLabel("Page 1");
+  await firstPage.getByRole("button", { name: "Add header" }).click();
+  await firstPage.locator(".header-editor .ProseMirror").click();
+  await page.getByLabel("Choose image file").setInputFiles({
+    name: "header.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("image"),
+  });
+
+  await expect(firstPage.locator(".page-header img")).toBeVisible();
+  await page.getByRole("button", { name: "Export to Google Docs" }).click();
+  await expect(page.getByText("Export complete.")).toBeVisible();
+
+  expect(requestBody?.assets).toHaveLength(1);
+  expect(requestBody?.assets?.[0]?.assetId).toMatch(/^asset_/);
+});
+
 test("resizes an inserted image with the document-point aspect ratio", async ({
   page,
 }) => {
