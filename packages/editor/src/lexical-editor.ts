@@ -326,6 +326,23 @@ export function createLexicalEditor(
     }
   };
 
+  const renderOrderedListStarts = (nextDocument: DocumentNode) => {
+    const orderedLists = Array.from(element.querySelectorAll("ol"));
+    let orderedListIndex = 0;
+    const visit = (node: DocumentNode) => {
+      if (node.type === "orderedList") {
+        const list = orderedLists[orderedListIndex];
+        orderedListIndex += 1;
+        const start = node.attrs?.start;
+        if (list && typeof start === "number" && Number.isInteger(start)) {
+          list.start = start;
+        }
+      }
+      node.content?.forEach(visit);
+    };
+    visit(nextDocument);
+  };
+
   const loadDocument = (
     nextDocument: DocumentNode,
     options: { notify?: boolean } = {},
@@ -351,6 +368,7 @@ export function createLexicalEditor(
       state,
       suppressChange ? { tag: "document-playground-load" } : undefined,
     );
+    renderOrderedListStarts(nextDocument);
     if (cursorOffset !== null) {
       lexical.update(
         () => {
