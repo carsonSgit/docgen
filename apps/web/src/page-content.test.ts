@@ -4,6 +4,58 @@ import { describe, expect, it } from "vitest";
 import { flattenPages } from "./page-content";
 
 describe("flattenPages", () => {
+  it("does not merge adjacent ordered lists with distinct starts", () => {
+    const pages = [
+      {
+        number: 1,
+        breakBefore: false,
+        content: [
+          {
+            type: "orderedList" as const,
+            attrs: { "data-page-fragment": "first", start: 3 },
+            content: [
+              {
+                type: "listItem" as const,
+                content: [
+                  {
+                    type: "paragraph" as const,
+                    content: [{ type: "text" as const, text: "First" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        number: 2,
+        breakBefore: false,
+        content: [
+          {
+            type: "orderedList" as const,
+            attrs: { "data-page-fragment": "second", start: 9 },
+            content: [
+              {
+                type: "listItem" as const,
+                content: [
+                  {
+                    type: "paragraph" as const,
+                    content: [{ type: "text" as const, text: "Second" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const lists = flattenPages(pages);
+
+    expect(lists).toHaveLength(2);
+    expect(lists.map((list) => list.attrs?.start)).toEqual([3, 9]);
+  });
+
   it("preserves mixed nested list identity when the nested ordered list splits", () => {
     const document = createBlankDocument();
     document.content = {
