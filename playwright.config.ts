@@ -6,6 +6,11 @@ export default defineConfig({
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:5173",
     trace: "on-first-retry",
+    locale: "en-US",
+    timezoneId: "UTC",
+    colorScheme: "light",
+    deviceScaleFactor: 1,
+    viewport: { width: 1280, height: 900 },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {

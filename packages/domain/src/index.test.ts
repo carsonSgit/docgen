@@ -5,6 +5,7 @@ import {
   createDocumentFromTemplate,
   createImageNode,
   DOCUMENT_VERSION,
+  findUnsupportedDocumentNode,
   fitImageToWidth,
   listDocumentTemplates,
   parseDocumentEnvelope,
