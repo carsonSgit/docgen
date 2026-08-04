@@ -10,12 +10,12 @@ import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import StarterKit from "@tiptap/starter-kit";
 
+export type { LexicalEditorAdapter } from "./lexical-editor";
 export {
   createLexicalEditor,
   ImageNode,
   PageBreakNode,
 } from "./lexical-editor";
-export type { LexicalEditorAdapter } from "./lexical-editor";
 export type {
   LexicalSerializedDocument,
   LexicalSerializedNode,
