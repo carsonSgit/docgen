@@ -167,7 +167,21 @@ function BodyEditor({
     const editor = editorRef.current;
     if (!editor) return;
     const timeout = window.setTimeout(() => {
-      const current = JSON.stringify(editor.getDocument().content ?? []);
+      const currentDocument = editor.getDocument();
+      const current = JSON.stringify(currentDocument.content ?? []);
+      const containsImage = (nodes: DocumentNode[] | undefined): boolean =>
+        (nodes ?? []).some(
+          (node) => node.type === "image" || containsImage(node.content),
+        );
+      // Pagination can briefly render the pre-insertion page while the editor
+      // already contains the newly inserted image. Do not replace that live
+      // node with stale empty-page content during this transient render.
+      if (
+        containsImage(currentDocument.content) &&
+        !containsImage(page.content)
+      ) {
+        return;
+      }
       if (current !== serializedContent) {
         editor.loadDocument(
           {
