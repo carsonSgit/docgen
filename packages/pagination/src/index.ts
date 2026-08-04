@@ -1,6 +1,8 @@
 import {
+  DOCUMENT_CONTENT_WIDTH_POINTS,
   DOCUMENT_TYPOGRAPHY,
   type DocumentEnvelope,
+  LIST_INDENT_POINTS,
   type TiptapNode,
 } from "@document-playground/domain";
 
@@ -9,6 +11,17 @@ const DEFAULT_BLOCK_HEIGHT = 11 * 1.15;
 const HEADING_WRAP_WIDTH_FACTOR = 1.6;
 // Lists lose 27pt of the 468pt content width to their marker indent.
 const LIST_CHARS_PER_LINE = 85;
+
+function listCharsPerLine(depth: number): number {
+  return Math.max(
+    1,
+    Math.floor(
+      (LIST_CHARS_PER_LINE *
+        (DOCUMENT_CONTENT_WIDTH_POINTS - LIST_INDENT_POINTS * (depth - 1))) /
+        DOCUMENT_CONTENT_WIDTH_POINTS,
+    ),
+  );
+}
 
 export type PaginationPage = {
   number: number;
@@ -86,7 +99,11 @@ function defaultMeasure(node: TiptapNode): number {
     );
   }
 
-  const lineCount = (current: TiptapNode, charsPerLine = 90): number => {
+  const lineCount = (
+    current: TiptapNode,
+    charsPerLine = 90,
+    listDepth = 0,
+  ): number => {
     if (current.type === "hardBreak") return 1;
     if (current.text) {
       return current.text
@@ -98,14 +115,17 @@ function defaultMeasure(node: TiptapNode): number {
         );
     }
     const childCharsPerLine =
-      current.type === "bulletList" ||
-      current.type === "orderedList" ||
-      current.type === "listItem"
-        ? LIST_CHARS_PER_LINE
+      current.type === "bulletList" || current.type === "orderedList"
+        ? listCharsPerLine(listDepth + 1)
         : charsPerLine;
+    const childListDepth =
+      current.type === "bulletList" || current.type === "orderedList"
+        ? listDepth + 1
+        : listDepth;
     return (
       current.content?.reduce(
-        (lines, child) => lines + lineCount(child, childCharsPerLine),
+        (lines, child) =>
+          lines + lineCount(child, childCharsPerLine, childListDepth),
         0,
       ) ?? 0
     );
