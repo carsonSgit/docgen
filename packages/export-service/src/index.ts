@@ -57,6 +57,8 @@ export async function exportDocument(
     node.content?.forEach(collectImages);
   };
   collectImages(document.content);
+  if (document.header) collectImages(document.header);
+  if (document.footer) collectImages(document.footer);
 
   for (const assetId of imageIds) {
     const asset = assets.get(assetId);
