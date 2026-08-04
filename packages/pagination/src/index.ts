@@ -4,6 +4,18 @@ import {
   findUnsupportedDocumentNode,
   type TiptapNode,
 } from "@document-playground/domain";
+import { type CursorPageRange, createCursorPageRanges } from "./cursor";
+
+export {
+  type CanonicalCursor,
+  type CursorPageRange,
+  createCursorPageRanges,
+  cursorAtEnd,
+  cursorAtStart,
+  documentLength,
+  type ResolvedCursor,
+  resolveCursor,
+} from "./cursor";
 
 const CONTENT_HEIGHT = 648;
 const DEFAULT_BLOCK_HEIGHT = 11 * 1.15;
@@ -17,6 +29,7 @@ export type PaginationPage = {
 export type PaginatedDocument = {
   pageHeight: typeof CONTENT_HEIGHT;
   pages: PaginationPage[];
+  cursorRanges: CursorPageRange[];
 };
 
 export type NodeMeasurement = (node: TiptapNode) => number;
@@ -271,5 +284,9 @@ export function paginateDocument(
     pages.push({ number: 2, content: [], breakBefore: false });
   }
 
-  return { pageHeight: CONTENT_HEIGHT, pages };
+  const result: Omit<PaginatedDocument, "cursorRanges"> = {
+    pageHeight: CONTENT_HEIGHT,
+    pages,
+  };
+  return { ...result, cursorRanges: createCursorPageRanges(document, result) };
 }
