@@ -7,6 +7,8 @@ import {
 const CONTENT_HEIGHT = 648;
 const DEFAULT_BLOCK_HEIGHT = 11 * 1.15;
 const HEADING_WRAP_WIDTH_FACTOR = 1.6;
+// Lists lose 27pt of the 468pt content width to their marker indent.
+const LIST_CHARS_PER_LINE = 85;
 
 export type PaginationPage = {
   number: number;
@@ -84,19 +86,28 @@ function defaultMeasure(node: TiptapNode): number {
     );
   }
 
-  const lineCount = (current: TiptapNode): number => {
+  const lineCount = (current: TiptapNode, charsPerLine = 90): number => {
     if (current.type === "hardBreak") return 1;
     if (current.text) {
       return current.text
         .split("\n")
         .reduce(
-          (lines, line) => lines + Math.max(1, Math.ceil(line.length / 90)),
+          (lines, line) =>
+            lines + Math.max(1, Math.ceil(line.length / charsPerLine)),
           0,
         );
     }
+    const childCharsPerLine =
+      current.type === "bulletList" ||
+      current.type === "orderedList" ||
+      current.type === "listItem"
+        ? LIST_CHARS_PER_LINE
+        : charsPerLine;
     return (
-      current.content?.reduce((lines, child) => lines + lineCount(child), 0) ??
-      0
+      current.content?.reduce(
+        (lines, child) => lines + lineCount(child, childCharsPerLine),
+        0,
+      ) ?? 0
     );
   };
 
