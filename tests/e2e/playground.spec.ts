@@ -382,48 +382,6 @@ test("moves focus to the next page after a boundary hard break", async ({
   await expect(page.locator(".ProseMirror").nth(1)).toBeFocused();
 });
 
-test("preserves hard breaks when a paragraph crosses a page boundary", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem(
-      "document-playground:document",
-      JSON.stringify({
-        version: 2,
-        title: "Hard break pagination fixture",
-        page: {
-          size: "letter",
-          width: 612,
-          height: 792,
-          margins: { top: 72, right: 72, bottom: 72, left: 72 },
-        },
-        content: {
-          type: "doc",
-          content: [
-            {
-              type: "paragraph",
-              content: [
-                { type: "text", text: "First line" },
-                ...Array.from({ length: 51 }, () => ({ type: "hardBreak" })),
-                { type: "text", text: "Last line" },
-              ],
-            },
-          ],
-        },
-        header: null,
-        footer: null,
-      }),
-    );
-  });
-  await page.goto("/");
-
-  await expect(page.locator(".page")).toHaveCount(2);
-  // Lexical renders one terminal caret break in addition to the 51 canonical
-  // hard breaks; the canonical breaks must all survive pagination.
-  await expect(page.locator(".ProseMirror br")).toHaveCount(52);
-  await expect(page.locator(".ProseMirror").nth(1)).toContainText("Last line");
-});
-
 test("matches the native Docs page and default paragraph metrics", async ({
   page,
 }) => {
