@@ -13,6 +13,9 @@ export const MAX_IMAGE_DIMENSION_POINTS = 1440;
 export const IMAGE_ASSET_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{1,127}$/;
 export const HEADER_DISTANCE_POINTS = 36;
 export const FOOTER_DISTANCE_POINTS = 36;
+/** List text starts at the same 27pt inset as the browser's 36px list padding. */
+export const LIST_INDENT_POINTS = 27;
+export const LIST_MARKER_HANGING_POINTS = 18;
 
 /** Fixed-layout metrics shared by the browser renderer and Google compiler. */
 export const DOCUMENT_TYPOGRAPHY = {

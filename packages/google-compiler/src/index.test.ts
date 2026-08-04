@@ -441,10 +441,75 @@ describe("native list render metrics", () => {
           spaceAbove: { magnitude: 0, unit: "PT" },
           spaceBelow: { magnitude: 0, unit: "PT" },
           spacingMode: "COLLAPSE_LISTS",
+          indentStart: { magnitude: 27, unit: "PT" },
+          indentFirstLine: { magnitude: -18, unit: "PT" },
         },
-        fields: "lineSpacing,spaceAbove,spaceBelow,spacingMode",
+        fields:
+          "lineSpacing,spaceAbove,spaceBelow,spacingMode,indentStart,indentFirstLine",
       },
     });
+  });
+
+  it("increases native list indentation for nested levels", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Parent" }],
+                },
+                {
+                  type: "orderedList",
+                  content: [
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [{ type: "text", text: "Child" }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const styles = compileDocument(document).requests.filter(
+      (request) =>
+        "updateParagraphStyle" in request &&
+        request.updateParagraphStyle.paragraphStyle.indentStart,
+    );
+
+    expect(styles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          updateParagraphStyle: expect.objectContaining({
+            paragraphStyle: expect.objectContaining({
+              indentStart: { magnitude: 27, unit: "PT" },
+            }),
+          }),
+        }),
+        expect.objectContaining({
+          updateParagraphStyle: expect.objectContaining({
+            paragraphStyle: expect.objectContaining({
+              indentStart: { magnitude: 54, unit: "PT" },
+            }),
+          }),
+        }),
+      ]),
+    );
   });
 
   it("preserves nested list levels for native Docs", () => {
