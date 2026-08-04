@@ -139,9 +139,11 @@ export function flattenPages(pages: PaginationPage[]): DocumentNode[] {
         node.content?.[0]?.attrs?.[PAGE_LIST_ITEM_CONTINUATION_ATTR] === true;
       const sameListFragment =
         Boolean(fragmentId) && fragmentId === previousFragmentId;
+      const continuationWithoutFragmentIdentity =
+        startsWithContinuation && !fragmentId && !previousFragmentId;
       if (
         (isList
-          ? sameListFragment || startsWithContinuation
+          ? sameListFragment || continuationWithoutFragmentIdentity
           : crossesPageBoundary || sameListFragment) &&
         previous?.type === node.type
       ) {
