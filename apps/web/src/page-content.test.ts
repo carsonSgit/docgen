@@ -56,6 +56,59 @@ describe("flattenPages", () => {
     expect(lists.map((list) => list.attrs?.start)).toEqual([3, 9]);
   });
 
+  it("does not merge a distinct ordered-list start when its first item is marked as a continuation", () => {
+    const pages = [
+      {
+        number: 1,
+        breakBefore: false,
+        content: [
+          {
+            type: "orderedList" as const,
+            attrs: { "data-page-fragment": "first", start: 3 },
+            content: [
+              {
+                type: "listItem" as const,
+                content: [
+                  {
+                    type: "paragraph" as const,
+                    content: [{ type: "text" as const, text: "First" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        number: 2,
+        breakBefore: false,
+        content: [
+          {
+            type: "orderedList" as const,
+            attrs: { "data-page-fragment": "second", start: 9 },
+            content: [
+              {
+                type: "listItem" as const,
+                attrs: { "data-page-list-item-continuation": true },
+                content: [
+                  {
+                    type: "paragraph" as const,
+                    content: [{ type: "text" as const, text: "Second" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const lists = flattenPages(pages);
+
+    expect(lists).toHaveLength(2);
+    expect(lists.map((list) => list.attrs?.start)).toEqual([3, 9]);
+  });
+
   it("preserves mixed nested list identity when the nested ordered list splits", () => {
     const document = createBlankDocument();
     document.content = {
