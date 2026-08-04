@@ -170,7 +170,16 @@ function BodyEditor({
     }
   }, [page.content, serializedContent]);
 
-  return <div ref={host} className="editor" />;
+  return (
+    <div className="editor">
+      <div
+        ref={host}
+        className="ProseMirror"
+        contentEditable
+        suppressContentEditableWarning
+      />
+    </div>
+  );
 }
 
 function SectionEditor({
@@ -216,7 +225,11 @@ function SectionEditor({
     }
   }, [content, serializedContent]);
 
-  return <div className={`section-editor ${section}-editor`} ref={host} />;
+  return (
+    <div className={`section-editor ${section}-editor`}>
+      <div ref={host} className="ProseMirror" />
+    </div>
+  );
 }
 
 function PageEditor({
