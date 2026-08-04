@@ -2,7 +2,7 @@ import {
   createBlankDocument,
   type DocumentNode,
 } from "@document-playground/domain";
-import { $getRoot, $isTextNode } from "lexical";
+import { $getRoot, $isElementNode, $isTextNode } from "lexical";
 import { describe, expect, it } from "vitest";
 import {
   createCoreEditor,
@@ -87,6 +87,87 @@ describe("Lexical editor adapter", () => {
         {
           type: "paragraph",
           content: [{ type: "text", text: "Edited" }],
+        },
+      ],
+    });
+    editor.destroy();
+  });
+
+  it("ignores malformed image resize events at the adapter boundary", async () => {
+    const host = document.createElement("div");
+    const editor = createLexicalEditor(host, {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "image",
+              attrs: {
+                assetId: "asset_photo",
+                alt: "Photo",
+                width: 120,
+                height: 60,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const imageKey = editor.lexical.getEditorState().read(() => {
+      const paragraph = $getRoot().getFirstChild();
+      return $isElementNode(paragraph)
+        ? paragraph.getFirstChild()?.getKey()
+        : undefined;
+    });
+    expect(imageKey).toEqual(expect.any(String));
+
+    host.dispatchEvent(
+      new CustomEvent("document-playground-resize-image", {
+        bubbles: true,
+        detail: { key: imageKey, width: 240, height: 120 },
+      }),
+    );
+    await new Promise((resolve) => queueMicrotask(resolve));
+    expect(editor.getDocument()).toMatchObject({
+      content: [
+        {
+          content: [{ type: "image", attrs: { width: 240, height: 120 } }],
+        },
+      ],
+    });
+
+    host.dispatchEvent(
+      new CustomEvent("document-playground-resize-image", {
+        bubbles: true,
+        detail: { key: imageKey, width: Number.NaN, height: 120 },
+      }),
+    );
+    host.dispatchEvent(
+      new CustomEvent("document-playground-resize-image", {
+        bubbles: true,
+        detail: { key: imageKey, width: 240, height: 1441 },
+      }),
+    );
+    await new Promise((resolve) => queueMicrotask(resolve));
+
+    expect(editor.getDocument()).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "image",
+              attrs: {
+                assetId: "asset_photo",
+                alt: "Photo",
+                width: 240,
+                height: 120,
+              },
+            },
+          ],
         },
       ],
     });
