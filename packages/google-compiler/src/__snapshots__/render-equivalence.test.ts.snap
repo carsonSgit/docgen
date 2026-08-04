@@ -412,8 +412,16 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     },
     {
       "updateParagraphStyle": {
-        "fields": "lineSpacing,spaceAbove,spaceBelow,spacingMode",
+        "fields": "lineSpacing,spaceAbove,spaceBelow,spacingMode,indentStart,indentFirstLine",
         "paragraphStyle": {
+          "indentFirstLine": {
+            "magnitude": -18,
+            "unit": "PT",
+          },
+          "indentStart": {
+            "magnitude": 27,
+            "unit": "PT",
+          },
           "lineSpacing": 115,
           "spaceAbove": {
             "magnitude": 0,
@@ -506,8 +514,16 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     },
     {
       "updateParagraphStyle": {
-        "fields": "lineSpacing,spaceAbove,spaceBelow,spacingMode",
+        "fields": "lineSpacing,spaceAbove,spaceBelow,spacingMode,indentStart,indentFirstLine",
         "paragraphStyle": {
+          "indentFirstLine": {
+            "magnitude": -18,
+            "unit": "PT",
+          },
+          "indentStart": {
+            "magnitude": 27,
+            "unit": "PT",
+          },
           "lineSpacing": 115,
           "spaceAbove": {
             "magnitude": 0,
@@ -600,8 +616,16 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     },
     {
       "updateParagraphStyle": {
-        "fields": "lineSpacing,spaceAbove,spaceBelow,spacingMode",
+        "fields": "lineSpacing,spaceAbove,spaceBelow,spacingMode,indentStart,indentFirstLine",
         "paragraphStyle": {
+          "indentFirstLine": {
+            "magnitude": -18,
+            "unit": "PT",
+          },
+          "indentStart": {
+            "magnitude": 27,
+            "unit": "PT",
+          },
           "lineSpacing": 115,
           "spaceAbove": {
             "magnitude": 0,

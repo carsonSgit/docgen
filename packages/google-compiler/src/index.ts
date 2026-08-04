@@ -3,6 +3,8 @@ import {
   type DocumentEnvelope,
   FOOTER_DISTANCE_POINTS,
   HEADER_DISTANCE_POINTS,
+  LIST_INDENT_POINTS,
+  LIST_MARKER_HANGING_POINTS,
   parseDocumentEnvelope,
   type TiptapNode,
 } from "@document-playground/domain";
@@ -25,7 +27,11 @@ function headingMetrics(node: TiptapNode) {
   };
 }
 
-function paragraphStyle(node: TiptapNode, listType?: "bullet" | "ordered") {
+function paragraphStyle(
+  node: TiptapNode,
+  listType?: "bullet" | "ordered",
+  listDepth = 0,
+) {
   if (node.type !== "heading") {
     const spacingMode =
       node.type === "listItem" && listType ? "COLLAPSE_LISTS" : undefined;
@@ -35,9 +41,21 @@ function paragraphStyle(node: TiptapNode, listType?: "bullet" | "ordered") {
         spaceAbove: { magnitude: 0, unit: "PT" },
         spaceBelow: { magnitude: 0, unit: "PT" },
         ...(spacingMode ? { spacingMode } : {}),
+        ...(spacingMode
+          ? {
+              indentStart: {
+                magnitude: LIST_INDENT_POINTS * (listDepth + 1),
+                unit: "PT",
+              },
+              indentFirstLine: {
+                magnitude: -LIST_MARKER_HANGING_POINTS,
+                unit: "PT",
+              },
+            }
+          : {}),
       },
       fields: spacingMode
-        ? "lineSpacing,spaceAbove,spaceBelow,spacingMode"
+        ? "lineSpacing,spaceAbove,spaceBelow,spacingMode,indentStart,indentFirstLine"
         : "lineSpacing,spaceAbove,spaceBelow",
     };
   }
@@ -307,7 +325,7 @@ function compileNode(
     requests.push({
       updateParagraphStyle: {
         range,
-        ...paragraphStyle(node, listType),
+        ...paragraphStyle(node, listType, listDepth),
       },
     });
     if (node.type !== "listItem") {
