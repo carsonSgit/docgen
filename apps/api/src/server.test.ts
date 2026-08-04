@@ -3,7 +3,7 @@ import {
   createImageNode,
 } from "@document-playground/domain";
 import type { GoogleProviderClient } from "@document-playground/export-service";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { GoogleOAuthService } from "./google-oauth";
 import { handleRequest } from "./server";
 
@@ -47,10 +47,10 @@ describe("API", () => {
     });
   });
 
-  it("returns the provider error detail when Google rejects an export", async () => {
+  it("normalizes provider details when Google rejects an export", async () => {
     const provider: GoogleProviderClient = {
       createDocument: async () => {
-        throw new Error("Google API request failed (400): invalid request");
+        throw new Error("Google API request failed: bearer secret-token");
       },
       batchUpdate: async () => undefined,
     };
@@ -64,8 +64,9 @@ describe("API", () => {
     );
 
     expect(response.status).toBe(502);
-    await expect(response.json()).resolves.toMatchObject({
-      error: expect.stringContaining("invalid request"),
+    await expect(response.json()).resolves.toEqual({
+      error:
+        "Google export failed. Your local document was not changed; retry when the provider is available.",
     });
   });
 
