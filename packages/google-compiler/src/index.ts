@@ -227,6 +227,24 @@ function markStyle(mark: {
   throw new UnsupportedContentError("mark", mark.type);
 }
 
+function appendListMarkerRequests(
+  requests: GoogleDocsRequest[],
+  ranges: Range[],
+  bulletPreset: string,
+): void {
+  let range = ranges[0];
+  if (!range) return;
+  for (const next of ranges.slice(1)) {
+    if (range.endIndex === next.startIndex) {
+      range = { ...range, endIndex: next.endIndex };
+      continue;
+    }
+    requests.push({ createParagraphBullets: { range, bulletPreset } });
+    range = next;
+  }
+  requests.push({ createParagraphBullets: { range, bulletPreset } });
+}
+
 function compileNode(
   node: TiptapNode,
   requests: GoogleDocsRequest[],
@@ -234,6 +252,7 @@ function compileNode(
   imageUris: ReadonlyMap<string, string>,
   listType?: "bullet" | "ordered",
   listDepth = 0,
+  listItemRanges?: Range[],
 ): void {
   if (node.type === "hardBreak") {
     requests.push({
@@ -306,9 +325,25 @@ function compileNode(
 
   if (node.type === "bulletList" || node.type === "orderedList") {
     const nextListType = node.type === "bulletList" ? "bullet" : "ordered";
+    const ranges: Range[] = [];
     node.content?.forEach((child) => {
-      compileNode(child, requests, state, imageUris, nextListType, listDepth);
+      compileNode(
+        child,
+        requests,
+        state,
+        imageUris,
+        nextListType,
+        listDepth,
+        ranges,
+      );
     });
+    appendListMarkerRequests(
+      requests,
+      ranges,
+      nextListType === "bullet"
+        ? "BULLET_DISC_CIRCLE_SQUARE"
+        : "NUMBERED_DECIMAL_ALPHA_ROMAN",
+    );
     return;
   }
 
@@ -333,6 +368,7 @@ function compileNode(
         (child.type === "bulletList" || child.type === "orderedList")
         ? listDepth + 1
         : listDepth,
+      listItemRanges,
     );
     if (
       node.type === "listItem" &&
@@ -390,17 +426,9 @@ function compileNode(
     }
 
     if (listType && node.type === "listItem") {
-      requests.push({
-        createParagraphBullets: {
-          range: {
-            startIndex,
-            endIndex: listItemContentEndIndex ?? state.index,
-          },
-          bulletPreset:
-            listType === "bullet"
-              ? "BULLET_DISC_CIRCLE_SQUARE"
-              : "NUMBERED_DECIMAL_ALPHA_ROMAN",
-        },
+      listItemRanges?.push({
+        startIndex,
+        endIndex: listItemContentEndIndex ?? state.index,
       });
       // Google removes the leading tabs used to derive nesting. Keep later
       // request indexes aligned with the post-batch document state.

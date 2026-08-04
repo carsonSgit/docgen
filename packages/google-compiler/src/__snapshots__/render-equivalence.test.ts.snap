@@ -441,15 +441,6 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       },
     },
     {
-      "createParagraphBullets": {
-        "bulletPreset": "BULLET_DISC_CIRCLE_SQUARE",
-        "range": {
-          "endIndex": 352,
-          "startIndex": 340,
-        },
-      },
-    },
-    {
       "insertText": {
         "location": {
           "index": 352,
@@ -538,7 +529,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
         "bulletPreset": "BULLET_DISC_CIRCLE_SQUARE",
         "range": {
           "endIndex": 371,
-          "startIndex": 352,
+          "startIndex": 340,
         },
       },
     },
