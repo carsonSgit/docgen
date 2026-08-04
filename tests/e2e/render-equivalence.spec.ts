@@ -240,7 +240,10 @@ test("reserves browser list indentation during pagination", async ({
       page.locator(".page-body-editor .editor").evaluateAll((editors) =>
         editors.every((editor) => {
           const body = editor.querySelector<HTMLElement>(".ProseMirror");
-          return (body?.scrollHeight ?? 0) <= editor.clientHeight + 1;
+          return (
+            (body?.scrollHeight ?? 0) <= editor.clientHeight + 1 &&
+            (body?.scrollWidth ?? 0) <= editor.clientWidth + 1
+          );
         }),
       ),
     )
