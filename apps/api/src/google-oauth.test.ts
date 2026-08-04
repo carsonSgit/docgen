@@ -109,6 +109,130 @@ describe("Google OAuth service", () => {
     });
   });
 
+  it("rejects a non-JSON token exchange without exposing the provider body", async () => {
+    const providerSecret = "provider-exchange-secret";
+    const fetchImpl = vi.fn(
+      async () => new Response(providerSecret, { status: 502 }),
+    );
+    const oauth = new GoogleOAuthService({
+      clientId: "client",
+      clientSecret: "secret",
+      redirectUri: "callback",
+      stateFactory: () => "state-1",
+      fetchImpl,
+    });
+
+    oauth.startAuthorization();
+    const error = await oauth
+      .completeAuthorization("code", "state-1")
+      .catch((caught) => caught);
+
+    expect(error).toEqual(new Error("Google OAuth token exchange failed."));
+    expect(String(error)).not.toContain(providerSecret);
+    expect(oauth.hasAccessToken()).toBe(false);
+  });
+
+  it("rejects a malformed token refresh without exposing the provider body", async () => {
+    const providerSecret = "provider-refresh-secret";
+    const fetchImpl = vi.fn(
+      async () => new Response(providerSecret, { status: 200 }),
+    );
+    const oauth = new GoogleOAuthService({
+      clientId: "client",
+      clientSecret: "secret",
+      redirectUri: "callback",
+      fetchImpl,
+      tokenStore: {
+        load: () => ({ accessToken: "old-access", refreshToken: "refresh" }),
+        save: vi.fn(),
+      },
+    });
+
+    const error = await oauth.refreshAccessToken().catch((caught) => caught);
+
+    expect(error).toEqual(new Error("Google returned an invalid OAuth token."));
+    expect(String(error)).not.toContain(providerSecret);
+    expect(oauth.hasAccessToken()).toBe(true);
+  });
+
+  it("does not update in-memory credentials when exchanging token persistence fails", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ access_token: "new-access" }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ documentId: "doc-1" }), { status: 200 }),
+      );
+    const oauth = new GoogleOAuthService({
+      clientId: "client",
+      clientSecret: "secret",
+      redirectUri: "callback",
+      stateFactory: () => "state-1",
+      fetchImpl,
+      tokenStore: {
+        load: () => ({ accessToken: "old-access", refreshToken: "refresh" }),
+        save: () => {
+          throw new Error("failed to persist new-access");
+        },
+      },
+    });
+
+    oauth.startAuthorization();
+    const error = await oauth
+      .completeAuthorization("code", "state-1")
+      .catch((caught) => caught);
+
+    expect(String(error)).not.toContain("new-access");
+    await oauth.provider().createDocument("title");
+    expect(fetchImpl.mock.calls[1]?.[1]).toEqual(
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          authorization: "Bearer old-access",
+        }),
+      }),
+    );
+  });
+
+  it("does not update in-memory credentials when refreshing token persistence fails", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ access_token: "new-access" }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ documentId: "doc-1" }), { status: 200 }),
+      );
+    const oauth = new GoogleOAuthService({
+      clientId: "client",
+      clientSecret: "secret",
+      redirectUri: "callback",
+      fetchImpl,
+      tokenStore: {
+        load: () => ({ accessToken: "old-access", refreshToken: "refresh" }),
+        save: () => {
+          throw new Error("failed to persist new-access");
+        },
+      },
+    });
+
+    const error = await oauth.refreshAccessToken().catch((caught) => caught);
+
+    expect(String(error)).not.toContain("new-access");
+    await oauth.provider().createDocument("title");
+    expect(fetchImpl.mock.calls[1]?.[1]).toEqual(
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          authorization: "Bearer old-access",
+        }),
+      }),
+    );
+  });
+
   it("stores file-backed tokens with restricted permissions", () => {
     const directory = mkdtempSync(join(tmpdir(), "document-playground-oauth-"));
     const path = join(directory, "token.json");

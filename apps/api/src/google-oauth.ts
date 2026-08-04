@@ -144,16 +144,22 @@ export class GoogleOAuthService {
         grant_type: "authorization_code",
       }),
     });
-    const body: unknown = await response.json();
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      if (!response.ok) throw new Error("Google OAuth token exchange failed.");
+      throw new Error("Google returned an invalid OAuth token.");
+    }
     if (!response.ok) throw new Error("Google OAuth token exchange failed.");
     const parsed = TokenResponseSchema.safeParse(body);
     if (!parsed.success)
       throw new Error("Google returned an invalid OAuth token.");
-    this.tokens = {
+    const tokens = {
       accessToken: parsed.data.access_token,
       refreshToken: parsed.data.refresh_token ?? this.tokens?.refreshToken,
     };
-    this.options.tokenStore?.save(this.tokens);
+    this.saveTokens(tokens);
   }
 
   async refreshAccessToken(): Promise<string | undefined> {
@@ -171,17 +177,34 @@ export class GoogleOAuthService {
         grant_type: "refresh_token",
       }),
     });
-    const body: unknown = await response.json();
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      if (!response.ok) throw new Error("Google OAuth token refresh failed.");
+      throw new Error("Google returned an invalid OAuth token.");
+    }
     if (!response.ok) throw new Error("Google OAuth token refresh failed.");
     const parsed = TokenResponseSchema.safeParse(body);
     if (!parsed.success)
       throw new Error("Google returned an invalid OAuth token.");
-    this.tokens = {
+    const tokens = {
       accessToken: parsed.data.access_token,
       refreshToken,
     };
-    this.options.tokenStore?.save(this.tokens);
-    return this.tokens.accessToken;
+    this.saveTokens(tokens);
+    return tokens.accessToken;
+  }
+
+  private saveTokens(tokens: OAuthTokens): void {
+    try {
+      this.options.tokenStore?.save(tokens);
+    } catch (error) {
+      throw new Error("Could not persist Google OAuth token.", {
+        cause: error,
+      });
+    }
+    this.tokens = tokens;
   }
 
   provider(): GoogleProviderClient {
