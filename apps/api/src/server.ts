@@ -13,6 +13,8 @@ import { FileOAuthTokenStore, GoogleOAuthService } from "./google-oauth";
 import { createGoogleProviderClient } from "./google-provider";
 
 const port = Number(process.env.PORT ?? 3000);
+const EXPORT_FAILURE_MESSAGE =
+  "Google export failed. Your local document was not changed; retry when the provider is available.";
 
 const ExportRequestSchema = z
   .object({
@@ -35,6 +37,24 @@ const ExportRequestSchema = z
       .default([]),
   })
   .strict();
+
+function decodeBase64Asset(assetId: string, data: string): Uint8Array {
+  if (data.length === 0 || data.length % 4 === 1) {
+    throw new Error(`Image asset ${assetId} has invalid base64 data.`);
+  }
+  try {
+    const binary = atob(data);
+    // Round-tripping rejects non-canonical encodings and makes decoding deterministic.
+    if (btoa(binary) !== data) {
+      throw new Error("not canonical base64");
+    }
+    return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  } catch (error) {
+    throw new Error(`Image asset ${assetId} has invalid base64 data.`, {
+      cause: error,
+    });
+  }
+}
 
 const defaultProvider = createGoogleProviderClient({
   accessToken: process.env.GOOGLE_ACCESS_TOKEN,
@@ -138,12 +158,31 @@ export async function handleRequest(
 
         const assets = new Map<string, ExportImageAsset>();
         for (const asset of parsed.data.assets) {
-          const bytes = Uint8Array.from(atob(asset.data), (character) =>
-            character.charCodeAt(0),
-          );
+          if (assets.has(asset.assetId)) {
+            return Response.json(
+              { error: `Duplicate image asset ${asset.assetId}.` },
+              { status: 400 },
+            );
+          }
+          let bytes: Uint8Array;
+          try {
+            bytes = decodeBase64Asset(asset.assetId, asset.data);
+          } catch (error) {
+            return Response.json(
+              {
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : `Image asset ${asset.assetId} has invalid base64 data.`,
+              },
+              { status: 400 },
+            );
+          }
           assets.set(asset.assetId, {
             assetId: asset.assetId,
-            blob: new Blob([bytes], { type: asset.mimeType }),
+            blob: new Blob([new Uint8Array(bytes).buffer as ArrayBuffer], {
+              type: asset.mimeType,
+            }),
             mimeType: asset.mimeType,
             size: bytes.byteLength,
           });
@@ -197,13 +236,8 @@ export async function handleRequest(
           assets,
         )
           .then((result) => Response.json(result))
-          .catch((error: unknown) =>
-            Response.json(
-              {
-                error: error instanceof Error ? error.message : "Export failed",
-              },
-              { status: 502 },
-            ),
+          .catch(() =>
+            Response.json({ error: EXPORT_FAILURE_MESSAGE }, { status: 502 }),
           );
       })
       .catch(() =>
