@@ -3,6 +3,23 @@ import { describe, expect, it } from "vitest";
 import { compileDocument, UnsupportedContentError } from "./index";
 
 describe("Google Docs compiler", () => {
+  it("omits null and structurally empty sections", () => {
+    const document = createBlankDocument();
+    document.header = { type: "doc", content: [{ type: "paragraph" }] };
+    document.footer = { type: "doc", content: [{ type: "paragraph" }] };
+    expect(compileDocument(document).sections).toEqual({
+      header: null,
+      footer: null,
+    });
+  });
+
+  it("rejects page breaks inside repeated sections", () => {
+    const document = createBlankDocument();
+    document.header = { type: "doc", content: [{ type: "pageBreak" }] };
+    expect(() => compileDocument(document)).toThrow("header.content[0]");
+    expect(() => compileDocument(document)).toThrow("pageBreak");
+  });
+
   it("uses the document's structural trailing newline for the final paragraph", () => {
     const document = createBlankDocument();
     document.content = {

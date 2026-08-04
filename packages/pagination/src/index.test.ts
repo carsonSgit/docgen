@@ -1,6 +1,7 @@
 import { createBlankDocument } from "@document-playground/domain";
 import { describe, expect, it } from "vitest";
 import {
+  getUsableBodyHeight,
   PAGE_FRAGMENT_ATTR,
   PAGE_LIST_ITEM_CONTINUATION_ATTR,
   paginateDocument,
@@ -8,6 +9,40 @@ import {
 } from "./index";
 
 describe("pagination adapter", () => {
+  it("reserves measured section height plus the 36pt distance", () => {
+    const document = createBlankDocument();
+    document.header = {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Header" }] },
+      ],
+    };
+    document.footer = {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Footer" }] },
+      ],
+    };
+    expect(getUsableBodyHeight(document, () => 20)).toBe(536);
+  });
+
+  it("does not reserve space for empty sections", () => {
+    const document = createBlankDocument();
+    document.header = { type: "doc", content: [{ type: "paragraph" }] };
+    document.footer = { type: "doc", content: [{ type: "paragraph" }] };
+    expect(getUsableBodyHeight(document, () => 20)).toBe(648);
+  });
+
+  it("clamps section overflow to a minimal body capacity", () => {
+    const document = createBlankDocument();
+    document.header = {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Header" }] },
+      ],
+    };
+    expect(getUsableBodyHeight(document, () => 700)).toBe(1);
+  });
   it("rejects tables at the canonical extension boundary", () => {
     const document = createBlankDocument();
     document.content = { type: "doc", content: [{ type: "table" }] };

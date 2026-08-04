@@ -3,7 +3,10 @@ import {
   DOCUMENT_CONTENT_WIDTH_POINTS,
   DOCUMENT_TYPOGRAPHY,
   type DocumentEnvelope,
+  FOOTER_DISTANCE_POINTS,
   findUnsupportedDocumentNode,
+  HEADER_DISTANCE_POINTS,
+  isEmptyDocumentSection,
   LIST_INDENT_POINTS,
   type TiptapNode,
 } from "@document-playground/domain";
@@ -33,6 +36,8 @@ const LIST_CHARS_PER_LINE = 85;
 // Nested list markers and proportional text make the width estimate less exact.
 const NESTED_LIST_CHAR_COST = 5;
 
+export const CONTENT_BODY_HEIGHT_POINTS = CONTENT_HEIGHT;
+
 function listCharsPerLine(depth: number): number {
   return Math.max(
     1,
@@ -58,6 +63,32 @@ export type PaginatedDocument = {
 };
 
 export type NodeMeasurement = (node: TiptapNode) => number;
+
+export function measureDocumentSection(
+  section: DocumentEnvelope["header"] | DocumentEnvelope["footer"],
+  measureNode: NodeMeasurement = defaultMeasure,
+): number {
+  if (!section || isEmptyDocumentSection(section)) return 0;
+  return (section.content ?? []).reduce(
+    (height, node) => height + Math.max(0, measureNode(node)),
+    0,
+  );
+}
+
+/** Section reservation is shared by every page of the fixed-layout document. */
+export function getUsableBodyHeight(
+  document: DocumentEnvelope,
+  measureNode: NodeMeasurement = defaultMeasure,
+): number {
+  const header = measureDocumentSection(document.header, measureNode);
+  const footer = measureDocumentSection(document.footer, measureNode);
+  return Math.max(
+    1,
+    CONTENT_HEIGHT -
+      (header ? header + HEADER_DISTANCE_POINTS : 0) -
+      (footer ? footer + FOOTER_DISTANCE_POINTS : 0),
+  );
+}
 
 export const PAGE_FRAGMENT_ATTR = "data-page-fragment";
 export const PAGE_VISUAL_FRAGMENT_ATTR = "data-page-visual-fragment";
@@ -502,12 +533,13 @@ export function paginateDocument(
   const pages: PaginationPage[] = [
     { number: 1, content: [], breakBefore: false },
   ];
-  let remainingHeight = CONTENT_HEIGHT;
+  const bodyHeight = getUsableBodyHeight(document, measureNode);
+  let remainingHeight = bodyHeight;
 
   for (const [nodeIndex, node] of (document.content.content ?? []).entries()) {
     if (node.type === "pageBreak") {
       pages.push({ number: pages.length + 1, content: [], breakBefore: true });
-      remainingHeight = CONTENT_HEIGHT;
+      remainingHeight = bodyHeight;
       continue;
     }
 
@@ -535,7 +567,7 @@ export function paginateDocument(
         content: [],
         breakBefore: false,
       });
-      remainingHeight = CONTENT_HEIGHT;
+      remainingHeight = bodyHeight;
     }
 
     let remainingNode: TiptapNode | null = node;
@@ -551,7 +583,7 @@ export function paginateDocument(
           content: [],
           breakBefore: false,
         });
-        remainingHeight = CONTENT_HEIGHT;
+        remainingHeight = bodyHeight;
         continue;
       }
       const textFragments = splitTextNode(
@@ -584,7 +616,7 @@ export function paginateDocument(
           content: [],
           breakBefore: false,
         });
-        remainingHeight = CONTENT_HEIGHT;
+        remainingHeight = bodyHeight;
         continue;
       }
 
@@ -634,7 +666,7 @@ export function paginateDocument(
   }
 
   const result: Omit<PaginatedDocument, "cursorRanges"> = {
-    pageHeight: CONTENT_HEIGHT,
+    pageHeight: bodyHeight,
     pages,
   };
   return { ...result, cursorRanges: createCursorPageRanges(document, result) };
