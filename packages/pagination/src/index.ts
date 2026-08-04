@@ -1,11 +1,14 @@
 import {
   DOCUMENT_TYPOGRAPHY,
   type DocumentEnvelope,
+  RENDER_METRICS,
   type TiptapNode,
 } from "@document-playground/domain";
 
-const CONTENT_HEIGHT = 648;
-const DEFAULT_BLOCK_HEIGHT = 11 * 1.15;
+const CONTENT_HEIGHT = RENDER_METRICS.page.contentHeightPoints;
+const DEFAULT_BLOCK_HEIGHT =
+  RENDER_METRICS.typography.bodyFontSizePoints *
+  (RENDER_METRICS.typography.lineSpacingPercent / 100);
 
 export type PaginationPage = {
   number: number;

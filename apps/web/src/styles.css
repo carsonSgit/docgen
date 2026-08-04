@@ -543,7 +543,8 @@ button:disabled {
 .section-editor > .ProseMirror ul,
 .section-editor > .ProseMirror ol {
   margin: 0;
-  padding-left: 36px;
+  /* Render Metrics listStartPoints (36pt) converted at 96dpi. */
+  padding-left: 48px;
 }
 
 .editor > .ProseMirror a {

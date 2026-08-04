@@ -72,6 +72,10 @@ _Avoid_: HTML conversion, best-effort conversion
 The canonical measurement unit for page dimensions, margins, typography, spacing, and indentation in the Local Document.
 _Avoid_: CSS pixel, screen pixel
 
+**Render Metrics**:
+The immutable fixed-layout contract shared by the browser renderer, pagination adapter, and native Google Docs compiler. It defines page geometry, typography, paragraph spacing, alignment, indentation, header/footer distances, and media dimension limits in Document Points.
+_Avoid_: Renderer-specific CSS values, Google defaults
+
 **Document Version**:
 The explicit schema version stored with a Local Document so persisted browser data can be validated and migrated safely.
 _Avoid_: App version, dependency version

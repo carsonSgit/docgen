@@ -9,32 +9,84 @@ export type JsonObject = { [key: string]: JsonValue };
 export const DOCUMENT_VERSION = 2 as const;
 export const TEMPLATE_VERSION = 1 as const;
 
-export const MAX_IMAGE_DIMENSION_POINTS = 1440;
-export const IMAGE_ASSET_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{1,127}$/;
-export const HEADER_DISTANCE_POINTS = 36;
-export const FOOTER_DISTANCE_POINTS = 36;
-
-/** Fixed-layout metrics shared by the browser renderer and Google compiler. */
-export const DOCUMENT_TYPOGRAPHY = {
-  fontFamily: "Arial",
-  bodyFontSizePoints: 11,
-  lineSpacingPercent: 115,
-  headings: {
-    1: { fontSizePoints: 20, spaceAbovePoints: 0, spaceBelowPoints: 6 },
-    2: { fontSizePoints: 16, spaceAbovePoints: 12, spaceBelowPoints: 6 },
-    3: { fontSizePoints: 14, spaceAbovePoints: 10, spaceBelowPoints: 2 },
-    4: { fontSizePoints: 12, spaceAbovePoints: 8, spaceBelowPoints: 2 },
-    5: { fontSizePoints: 11, spaceAbovePoints: 6, spaceBelowPoints: 2 },
-    6: { fontSizePoints: 10, spaceAbovePoints: 4, spaceBelowPoints: 2 },
+export const RENDER_METRICS = {
+  units: "PT",
+  page: {
+    size: "letter",
+    widthPoints: 612,
+    heightPoints: 792,
+    margins: {
+      topPoints: 72,
+      rightPoints: 72,
+      bottomPoints: 72,
+      leftPoints: 72,
+    },
+    contentWidthPoints: 468,
+    contentHeightPoints: 648,
+  },
+  typography: {
+    fontFamily: "Arial",
+    bodyFontSizePoints: 11,
+    lineSpacingPercent: 115,
+    headings: {
+      1: { fontSizePoints: 20, spaceAbovePoints: 0, spaceBelowPoints: 6 },
+      2: { fontSizePoints: 16, spaceAbovePoints: 12, spaceBelowPoints: 6 },
+      3: { fontSizePoints: 14, spaceAbovePoints: 10, spaceBelowPoints: 2 },
+      4: { fontSizePoints: 12, spaceAbovePoints: 8, spaceBelowPoints: 2 },
+      5: { fontSizePoints: 11, spaceAbovePoints: 6, spaceBelowPoints: 2 },
+      6: { fontSizePoints: 10, spaceAbovePoints: 4, spaceBelowPoints: 2 },
+    },
+  },
+  paragraph: {
+    alignment: "left",
+    spaceAbovePoints: 0,
+    spaceBelowPoints: 0,
+  },
+  indentation: {
+    listStartPoints: 36,
+    listHangingPoints: 18,
+  },
+  header: { distancePoints: 36 },
+  footer: { distancePoints: 36 },
+  media: {
+    minDimensionPoints: 1,
+    maxDimensionPoints: 1440,
   },
 } as const;
+
+export type RenderMetrics = typeof RENDER_METRICS;
+export type RenderAlignment = "left" | "center" | "right" | "justify";
+
+/** Normalize user or persisted paragraph alignment at the document boundary. */
+export function normalizeRenderAlignment(input: unknown): RenderAlignment {
+  return input === "center" || input === "right" || input === "justify"
+    ? input
+    : RENDER_METRICS.paragraph.alignment;
+}
+
+export const MAX_IMAGE_DIMENSION_POINTS =
+  RENDER_METRICS.media.maxDimensionPoints;
+export const IMAGE_ASSET_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{1,127}$/;
+export const HEADER_DISTANCE_POINTS = RENDER_METRICS.header.distancePoints;
+export const FOOTER_DISTANCE_POINTS = RENDER_METRICS.footer.distancePoints;
+
+/** Fixed-layout metrics shared by the browser renderer and Google compiler. */
+export const DOCUMENT_TYPOGRAPHY = RENDER_METRICS.typography;
 
 const ImageAttributesSchema = z
   .object({
     assetId: z.string().regex(IMAGE_ASSET_ID_PATTERN),
     alt: z.string().trim().max(500),
-    width: z.number().finite().positive().max(MAX_IMAGE_DIMENSION_POINTS),
-    height: z.number().finite().positive().max(MAX_IMAGE_DIMENSION_POINTS),
+    width: z
+      .number()
+      .finite()
+      .min(RENDER_METRICS.media.minDimensionPoints)
+      .max(MAX_IMAGE_DIMENSION_POINTS),
+    height: z
+      .number()
+      .finite()
+      .min(RENDER_METRICS.media.minDimensionPoints)
+      .max(MAX_IMAGE_DIMENSION_POINTS),
   })
   .strict();
 
@@ -155,10 +207,15 @@ export const DocumentTemplateSchema = z
 export type DocumentTemplate = z.infer<typeof DocumentTemplateSchema>;
 
 const page = (): PageLayout => ({
-  size: "letter",
-  width: 612,
-  height: 792,
-  margins: { top: 72, right: 72, bottom: 72, left: 72 },
+  size: RENDER_METRICS.page.size,
+  width: RENDER_METRICS.page.widthPoints,
+  height: RENDER_METRICS.page.heightPoints,
+  margins: {
+    top: RENDER_METRICS.page.margins.topPoints,
+    right: RENDER_METRICS.page.margins.rightPoints,
+    bottom: RENDER_METRICS.page.margins.bottomPoints,
+    left: RENDER_METRICS.page.margins.leftPoints,
+  },
 });
 
 const templateDocument = (
@@ -345,10 +402,15 @@ export function createBlankDocument(): DocumentEnvelope {
     version: DOCUMENT_VERSION,
     title: "Untitled document",
     page: {
-      size: "letter",
-      width: 612,
-      height: 792,
-      margins: { top: 72, right: 72, bottom: 72, left: 72 },
+      size: RENDER_METRICS.page.size,
+      width: RENDER_METRICS.page.widthPoints,
+      height: RENDER_METRICS.page.heightPoints,
+      margins: {
+        top: RENDER_METRICS.page.margins.topPoints,
+        right: RENDER_METRICS.page.margins.rightPoints,
+        bottom: RENDER_METRICS.page.margins.bottomPoints,
+        left: RENDER_METRICS.page.margins.leftPoints,
+      },
     },
     content: { type: "doc", content: [{ type: "paragraph" }] },
     header: null,

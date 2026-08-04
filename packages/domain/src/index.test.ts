@@ -6,13 +6,54 @@ import {
   createImageNode,
   DOCUMENT_VERSION,
   listDocumentTemplates,
+  normalizeRenderAlignment,
   parseDocumentEnvelope,
   parseDocumentTemplate,
+  RENDER_METRICS,
   validateDocumentEnvelope,
   validateImageDimensions,
 } from "./index";
 
 describe("document envelope", () => {
+  it("publishes one canonical render metrics contract", () => {
+    expect(RENDER_METRICS).toEqual({
+      units: "PT",
+      page: {
+        size: "letter",
+        widthPoints: 612,
+        heightPoints: 792,
+        margins: {
+          topPoints: 72,
+          rightPoints: 72,
+          bottomPoints: 72,
+          leftPoints: 72,
+        },
+        contentWidthPoints: 468,
+        contentHeightPoints: 648,
+      },
+      typography: expect.objectContaining({
+        fontFamily: "Arial",
+        bodyFontSizePoints: 11,
+        lineSpacingPercent: 115,
+      }),
+      paragraph: {
+        alignment: "left",
+        spaceAbovePoints: 0,
+        spaceBelowPoints: 0,
+      },
+      indentation: { listStartPoints: 36, listHangingPoints: 18 },
+      header: { distancePoints: 36 },
+      footer: { distancePoints: 36 },
+      media: { minDimensionPoints: 1, maxDimensionPoints: 1440 },
+    });
+  });
+
+  it("normalizes paragraph alignment to the canonical default", () => {
+    expect(normalizeRenderAlignment(undefined)).toBe("left");
+    expect(normalizeRenderAlignment("center")).toBe("center");
+    expect(normalizeRenderAlignment("unsupported")).toBe("left");
+  });
+
   it("creates a valid blank document with the fixed letter layout", () => {
     const document = createBlankDocument();
 
