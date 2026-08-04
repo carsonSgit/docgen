@@ -289,6 +289,37 @@ describe("core editor adapter", () => {
     ).toThrow("Unsupported Lexical node 'table' at root.children[0]");
   });
 
+  it("preserves heading alignment at the canonical editor boundary", () => {
+    const lexical = {
+      root: {
+        type: "root",
+        children: [
+          {
+            type: "heading",
+            tag: "h2",
+            format: "right",
+            children: [{ type: "text", text: "Aligned heading", format: 0 }],
+          },
+        ],
+      },
+    };
+
+    const canonical = fromLexicalDocument(lexical);
+    expect(canonical).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 2, textAlign: "right" },
+          content: [{ type: "text", text: "Aligned heading" }],
+        },
+      ],
+    });
+    expect(fromLexicalDocument(toLexicalDocument(canonical))).toEqual(
+      canonical,
+    );
+  });
+
   it("round-trips canonical content through a Lexical-neutral shape", () => {
     const canonical = {
       type: "doc" as const,
