@@ -138,8 +138,16 @@ function mapNode(node: LexicalSerializedNode, path: string): DocumentNode {
       const content = childrenOf(node).map((child, index) =>
         mapNode(child, `${path}.children[${index}]`),
       );
+      const start =
+        node.listType === "number" &&
+        typeof node.start === "number" &&
+        Number.isInteger(node.start) &&
+        node.start > 1
+          ? node.start
+          : undefined;
       return {
         type: node.listType === "bullet" ? "bulletList" : "orderedList",
+        ...(start === undefined ? {} : { attrs: { start } }),
         ...(content.length ? { content } : {}),
       };
     }
@@ -239,14 +247,22 @@ function toLexicalNode(node: DocumentNode): LexicalSerializedNode {
     case "hardBreak":
       return { type: "linebreak" };
     case "bulletList":
-    case "orderedList":
+    case "orderedList": {
+      const start = node.attrs?.start;
       return {
         type: "list",
         listType: node.type === "bulletList" ? "bullet" : "number",
         indent: 0,
-        start: 1,
+        start:
+          node.type === "orderedList" &&
+          typeof start === "number" &&
+          Number.isInteger(start) &&
+          start > 1
+            ? start
+            : 1,
         children,
       };
+    }
     case "listItem":
       return { type: "listitem", value: 1, indent: 0, children };
     case "image": {
