@@ -4,6 +4,7 @@ import {
   type DocumentEnvelope,
   findUnsupportedDocumentNode,
   isCoreDocumentNodeType,
+  isEmptyDocumentSection,
   LIST_INDENT_POINTS,
   LIST_MARKER_HANGING_POINTS,
   parseDocumentEnvelope,
@@ -171,6 +172,15 @@ function assertSupported(node: TiptapNode, path: string): void {
   }
   node.content?.forEach((child, index) => {
     assertSupported(child, `${path}.content[${index}]`);
+  });
+}
+
+function assertSectionHasNoPageBreak(node: TiptapNode, path: string): void {
+  if (node.type === "pageBreak") {
+    throw new UnsupportedContentError(path, "pageBreak");
+  }
+  node.content?.forEach((child, index) => {
+    assertSectionHasNoPageBreak(child, `${path}.content[${index}]`);
   });
 }
 
@@ -512,8 +522,14 @@ export function compileDocument(
   }
   const document = normalizeDocument(input);
   assertSupported(document.content, "content");
-  if (document.header) assertSupported(document.header, "header");
-  if (document.footer) assertSupported(document.footer, "footer");
+  if (document.header) {
+    assertSupported(document.header, "header");
+    assertSectionHasNoPageBreak(document.header, "header");
+  }
+  if (document.footer) {
+    assertSupported(document.footer, "footer");
+    assertSectionHasNoPageBreak(document.footer, "footer");
+  }
   const requests: GoogleDocsRequest[] = [
     {
       updateDocumentStyle: {
@@ -546,7 +562,7 @@ export function compileDocument(
   compileNode(document.content, requests, { index: 1 }, imageUris);
   removeFinalBodyParagraphBreak(requests, document.content.content?.at(-1));
   const compileSection = (section: TiptapNode | null) => {
-    if (!section) return null;
+    if (!section || isEmptyDocumentSection(section)) return null;
     const sectionRequests: GoogleDocsRequest[] = [];
     compileNode(section, sectionRequests, { index: 0 }, imageUris);
     return sectionRequests;

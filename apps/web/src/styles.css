@@ -445,7 +445,7 @@ button:disabled {
 }
 
 .page-body-editor {
-  flex: 1;
+  flex: 0 0 auto;
   min-height: 0;
 }
 
