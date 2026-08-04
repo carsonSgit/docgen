@@ -325,7 +325,10 @@ function compileNode(
 
   if (node.type === "bulletList" || node.type === "orderedList") {
     const nextListType = node.type === "bulletList" ? "bullet" : "ordered";
-    const ranges: Range[] = [];
+    // Nested list markers remove the leading tab used to establish their
+    // nesting level. Keep those requests adjacent to each item so the next
+    // item's location is rebased against the document produced so far.
+    const ranges = listDepth === 0 ? [] : undefined;
     node.content?.forEach((child) => {
       compileNode(
         child,
@@ -337,13 +340,15 @@ function compileNode(
         ranges,
       );
     });
-    appendListMarkerRequests(
-      requests,
-      ranges,
-      nextListType === "bullet"
-        ? "BULLET_DISC_CIRCLE_SQUARE"
-        : "NUMBERED_DECIMAL_ALPHA_ROMAN",
-    );
+    if (ranges) {
+      appendListMarkerRequests(
+        requests,
+        ranges,
+        nextListType === "bullet"
+          ? "BULLET_DISC_CIRCLE_SQUARE"
+          : "NUMBERED_DECIMAL_ALPHA_ROMAN",
+      );
+    }
     return;
   }
 
@@ -426,10 +431,23 @@ function compileNode(
     }
 
     if (listType && node.type === "listItem") {
-      listItemRanges?.push({
+      const range = {
         startIndex,
         endIndex: listItemContentEndIndex ?? state.index,
-      });
+      };
+      if (listItemRanges) {
+        listItemRanges.push(range);
+      } else {
+        requests.push({
+          createParagraphBullets: {
+            range,
+            bulletPreset:
+              listType === "bullet"
+                ? "BULLET_DISC_CIRCLE_SQUARE"
+                : "NUMBERED_DECIMAL_ALPHA_ROMAN",
+          },
+        });
+      }
       // Google removes the leading tabs used to derive nesting. Keep later
       // request indexes aligned with the post-batch document state.
       state.index -= listDepth;

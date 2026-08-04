@@ -671,6 +671,73 @@ describe("native list render metrics", () => {
     });
   });
 
+  it("rebases nested sibling items after each marker removes indentation", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Parent" }],
+                },
+                {
+                  type: "orderedList",
+                  content: [
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [{ type: "text", text: "First" }],
+                        },
+                      ],
+                    },
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [{ type: "text", text: "Second" }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        { type: "pageBreak" },
+        { type: "paragraph", content: [{ type: "text", text: "After" }] },
+      ],
+    };
+
+    const requests = compileDocument(document).requests;
+    expect(requests).toContainEqual({
+      insertText: { location: { index: 14 }, text: "\t" },
+    });
+    expect(requests).toContainEqual({
+      insertText: { location: { index: 15 }, text: "Second" },
+    });
+    expect(requests).toContainEqual({
+      insertPageBreak: { location: { index: 21 } },
+    });
+    expect(requests).toContainEqual({
+      insertText: { location: { index: 22 }, text: "After" },
+    });
+
+    const nestedMarkerIndexes = requests
+      .filter((request) => "createParagraphBullets" in request)
+      .map((request) => request.createParagraphBullets.range.startIndex);
+    expect(nestedMarkerIndexes).toEqual([9, 15, 1]);
+  });
+
   it("scopes native bullets to each list item's own paragraph", () => {
     const document = createBlankDocument();
     document.content = {
