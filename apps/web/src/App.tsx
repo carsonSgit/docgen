@@ -4,6 +4,8 @@ import {
   type DocumentNode,
   type DocumentSection,
   type DocumentTemplateId,
+  FOOTER_DISTANCE_POINTS,
+  HEADER_DISTANCE_POINTS,
   listDocumentTemplates,
 } from "@document-playground/domain";
 import {
@@ -291,6 +293,8 @@ function PageEditor({
           "--document-page-margin-right": `${(layout.margins.right * 96) / 72}px`,
           "--document-page-margin-bottom": `${(layout.margins.bottom * 96) / 72}px`,
           "--document-page-margin-left": `${(layout.margins.left * 96) / 72}px`,
+          "--document-header-distance": `${(HEADER_DISTANCE_POINTS * 96) / 72}px`,
+          "--document-footer-distance": `${(FOOTER_DISTANCE_POINTS * 96) / 72}px`,
         } as CSSProperties
       }
       data-break-before={
