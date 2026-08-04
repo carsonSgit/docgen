@@ -461,9 +461,9 @@ button:disabled {
   outline: 0;
   cursor: text;
   color: #202124;
-  font-family: Arial, sans-serif;
-  font-size: 11pt;
-  line-height: 1.15;
+  font-family: var(--document-font-family), sans-serif;
+  font-size: var(--document-body-font-size);
+  line-height: calc(var(--document-line-spacing) / 100);
   overflow-wrap: anywhere;
 }
 
@@ -472,9 +472,9 @@ button:disabled {
   outline: 0;
   cursor: text;
   color: #202124;
-  font-family: Arial, sans-serif;
-  font-size: 11pt;
-  line-height: 1.15;
+  font-family: var(--document-font-family), sans-serif;
+  font-size: var(--document-body-font-size);
+  line-height: calc(var(--document-line-spacing) / 100);
   overflow-wrap: anywhere;
 }
 
@@ -483,9 +483,9 @@ button:disabled {
   outline: 0;
   cursor: text;
   color: #202124;
-  font-family: Arial, sans-serif;
-  font-size: 11pt;
-  line-height: 1.15;
+  font-family: var(--document-font-family), sans-serif;
+  font-size: var(--document-body-font-size);
+  line-height: calc(var(--document-line-spacing) / 100);
   overflow-wrap: anywhere;
 }
 

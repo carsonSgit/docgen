@@ -1,9 +1,8 @@
 import {
+  DEFAULT_RENDER_METRICS,
   DOCUMENT_TYPOGRAPHY,
   type DocumentEnvelope,
-  FOOTER_DISTANCE_POINTS,
   findUnsupportedDocumentNode,
-  HEADER_DISTANCE_POINTS,
   isCoreDocumentNodeType,
   LIST_INDENT_POINTS,
   LIST_MARKER_HANGING_POINTS,
@@ -162,7 +161,7 @@ function assertSupported(node: TiptapNode, path: string): void {
     const alignment = node.attrs.textAlign;
     if (
       typeof alignment !== "string" ||
-      !["left", "center", "right", "justify"].includes(alignment)
+      !DEFAULT_RENDER_METRICS.alignment.allowed.includes(alignment as never)
     ) {
       throw new UnsupportedContentError(
         `${path}.attrs.textAlign`,
@@ -530,8 +529,14 @@ export function compileDocument(
           },
           marginLeft: { magnitude: document.page.margins.left, unit: "PT" },
           marginRight: { magnitude: document.page.margins.right, unit: "PT" },
-          marginHeader: { magnitude: HEADER_DISTANCE_POINTS, unit: "PT" },
-          marginFooter: { magnitude: FOOTER_DISTANCE_POINTS, unit: "PT" },
+          marginHeader: {
+            magnitude: DEFAULT_RENDER_METRICS.headerFooter.headerDistancePoints,
+            unit: "PT",
+          },
+          marginFooter: {
+            magnitude: DEFAULT_RENDER_METRICS.headerFooter.footerDistancePoints,
+            unit: "PT",
+          },
         },
         fields:
           "pageSize,marginTop,marginBottom,marginLeft,marginRight,marginHeader,marginFooter",

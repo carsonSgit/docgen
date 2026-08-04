@@ -1,4 +1,13 @@
 import { z } from "zod";
+import { DEFAULT_RENDER_METRICS } from "./render-metrics";
+
+export {
+  DEFAULT_RENDER_METRICS,
+  normalizeRenderMetrics,
+  type RenderMetrics,
+  type RenderMetricsOverrides,
+  resolveNodeRenderMetrics,
+} from "./render-metrics";
 
 export type JsonPrimitive = string | number | boolean | null;
 
@@ -9,29 +18,23 @@ export type JsonObject = { [key: string]: JsonValue };
 export const DOCUMENT_VERSION = 2 as const;
 export const TEMPLATE_VERSION = 1 as const;
 
-export const MAX_IMAGE_DIMENSION_POINTS = 1440;
+export const MAX_IMAGE_DIMENSION_POINTS =
+  DEFAULT_RENDER_METRICS.media.maxWidthPoints;
 export const IMAGE_ASSET_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{1,127}$/;
-export const HEADER_DISTANCE_POINTS = 36;
-export const FOOTER_DISTANCE_POINTS = 36;
-export const DOCUMENT_CONTENT_WIDTH_POINTS = 468;
+export const HEADER_DISTANCE_POINTS =
+  DEFAULT_RENDER_METRICS.headerFooter.headerDistancePoints;
+export const FOOTER_DISTANCE_POINTS =
+  DEFAULT_RENDER_METRICS.headerFooter.footerDistancePoints;
+export const DOCUMENT_CONTENT_WIDTH_POINTS =
+  DEFAULT_RENDER_METRICS.page.widthPoints - 72 - 72;
 /** List text starts at the same 27pt inset as the browser's 36px list padding. */
-export const LIST_INDENT_POINTS = 27;
-export const LIST_MARKER_HANGING_POINTS = 18;
+export const LIST_INDENT_POINTS =
+  DEFAULT_RENDER_METRICS.indentation.listStartPoints;
+export const LIST_MARKER_HANGING_POINTS =
+  DEFAULT_RENDER_METRICS.indentation.listHangingPoints;
 
 /** Fixed-layout metrics shared by the browser renderer and Google compiler. */
-export const DOCUMENT_TYPOGRAPHY = {
-  fontFamily: "Arial",
-  bodyFontSizePoints: 11,
-  lineSpacingPercent: 115,
-  headings: {
-    1: { fontSizePoints: 20, spaceAbovePoints: 0, spaceBelowPoints: 6 },
-    2: { fontSizePoints: 16, spaceAbovePoints: 12, spaceBelowPoints: 6 },
-    3: { fontSizePoints: 14, spaceAbovePoints: 10, spaceBelowPoints: 2 },
-    4: { fontSizePoints: 12, spaceAbovePoints: 8, spaceBelowPoints: 2 },
-    5: { fontSizePoints: 11, spaceAbovePoints: 6, spaceBelowPoints: 2 },
-    6: { fontSizePoints: 10, spaceAbovePoints: 4, spaceBelowPoints: 2 },
-  },
-} as const;
+export const DOCUMENT_TYPOGRAPHY = DEFAULT_RENDER_METRICS.typography;
 
 const ImageAttributesSchema = z
   .object({
