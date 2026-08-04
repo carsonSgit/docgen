@@ -1,0 +1,252 @@
+{
+  "version": 2,
+  "title": "Core render equivalence fixture",
+  "page": {
+    "size": "letter",
+    "width": 612,
+    "height": 792,
+    "margins": { "top": 72, "right": 72, "bottom": 72, "left": 72 }
+  },
+  "header": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [{ "type": "text", "text": "Core Slice Header" }]
+      }
+    ]
+  },
+  "footer": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [{ "type": "text", "text": "Core Slice Footer" }]
+      }
+    ]
+  },
+  "content": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": { "level": 1 },
+        "content": [{ "type": "text", "text": "Core Editor Slice" }]
+      },
+      {
+        "type": "heading",
+        "attrs": { "level": 2 },
+        "content": [{ "type": "text", "text": "Structured content" }]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          { "type": "text", "text": "Bold", "marks": [{ "type": "bold" }] },
+          {
+            "type": "text",
+            "text": " italic",
+            "marks": [{ "type": "italic" }]
+          },
+          {
+            "type": "text",
+            "text": " underlined",
+            "marks": [{ "type": "underline" }]
+          },
+          {
+            "type": "text",
+            "text": " and linked",
+            "marks": [
+              {
+                "type": "link",
+                "attrs": { "href": "https://example.test/core" }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "A deterministic paragraph with enough stable text to wrap across lines without relying on network-loaded fonts, dates, random identifiers, animations, or remote content. This sentence deliberately continues so automatic pagination can be observed in the same fixture."
+          }
+        ]
+      },
+      {
+        "type": "bulletList",
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [{ "type": "text", "text": "Bullet item" }]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [{ "type": "text", "text": "Second bullet item" }]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "orderedList",
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [{ "type": "text", "text": "Ordered item" }]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "image",
+            "attrs": {
+              "assetId": "asset_core_slice_hero",
+              "alt": "Core slice hero",
+              "width": 240,
+              "height": 120
+            }
+          }
+        ]
+      },
+      { "type": "pageBreak" },
+      {
+        "type": "paragraph",
+        "content": [
+          { "type": "text", "text": "After the explicit manual page break. " },
+          { "type": "hardBreak" },
+          {
+            "type": "text",
+            "text": "The following stable paragraph forces an automatic break after this page has accumulated enough measured content. "
+          },
+          {
+            "type": "text",
+            "text": "Measured pagination remains deterministic and observable across repeated captures. "
+          },
+          {
+            "type": "text",
+            "text": "Measured pagination remains deterministic and observable across repeated captures. "
+          },
+          {
+            "type": "text",
+            "text": "Measured pagination remains deterministic and observable across repeated captures."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout."
+          }
+        ]
+      }
+    ]
+  }
+}

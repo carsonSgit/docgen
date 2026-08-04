@@ -1,16 +1,21 @@
 import {
   createBlankDocument,
-  createImageNode,
+  DOCUMENT_CONTENT_WIDTH_POINTS,
   type DocumentEnvelope,
+  type DocumentNode,
   type DocumentSection,
   type DocumentTemplateId,
-  fitImageToWidth,
+  FOOTER_DISTANCE_POINTS,
+  HEADER_DISTANCE_POINTS,
+  LIST_INDENT_POINTS,
   listDocumentTemplates,
-  type TiptapNode,
+  MAX_IMAGE_DIMENSION_POINTS,
 } from "@document-playground/domain";
-import { createCoreEditor, saveDocument } from "@document-playground/editor";
 import {
-  PAGE_FRAGMENT_ATTR,
+  createLexicalEditor,
+  type LexicalEditorAdapter,
+} from "@document-playground/editor";
+import {
   type PaginationPage,
   paginateDocument,
 } from "@document-playground/pagination";
@@ -21,61 +26,46 @@ import {
   resetDocumentFromTemplate,
   restoreDocument,
 } from "@document-playground/persistence";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ExportAuthorizationRequiredError,
   type ExportRequestAsset,
   requestExport,
 } from "./export";
+import { flattenPages } from "./page-content";
 
-type CoreEditor = ReturnType<typeof createCoreEditor>;
+type CoreEditor = LexicalEditorAdapter;
 
 type BodyEditorChange = {
   cursorAtEnd: boolean;
 };
 
-function flattenPages(pages: PaginationPage[]): TiptapNode[] {
-  const content: TiptapNode[] = [];
-
-  for (const [pageIndex, page] of pages.entries()) {
-    if (page.number > 1 && page.breakBefore) {
-      content.push({ type: "pageBreak" });
-    }
-
-    for (const [nodeIndex, node] of page.content.entries()) {
-      const fragmentId = node.attrs?.[PAGE_FRAGMENT_ATTR];
-      const previous = content.at(-1);
-      const previousFragmentId = previous?.attrs?.[PAGE_FRAGMENT_ATTR];
-      const previousPage = pages[pageIndex - 1];
-      const previousPageLastNode = previousPage?.content.at(-1);
-      const crossesPageBoundary =
-        pageIndex > 0 &&
-        nodeIndex === 0 &&
-        (Boolean(fragmentId) ||
-          Boolean(previousPageLastNode?.attrs?.[PAGE_FRAGMENT_ATTR]));
-
-      if (
-        (crossesPageBoundary ||
-          (fragmentId && fragmentId === previousFragmentId)) &&
-        previous?.type === node.type
-      ) {
-        previous.content = [
-          ...(previous.content ?? []),
-          ...(node.content ?? []),
-        ];
-      } else {
-        content.push({ ...node });
-      }
-    }
+function refreshImageSources(
+  host: HTMLElement | null,
+  resolveImageSource: (assetId: string) => string | undefined,
+): void {
+  for (const image of host?.querySelectorAll<HTMLImageElement>(
+    "img[data-asset-id]",
+  ) ?? []) {
+    const assetId = image.dataset.assetId;
+    const source = assetId ? resolveImageSource(assetId) : undefined;
+    if (source) image.src = source;
   }
+}
 
-  return content.map((node) => {
-    if (!node.attrs?.[PAGE_FRAGMENT_ATTR]) return node;
-    const { [PAGE_FRAGMENT_ATTR]: _fragmentId, ...attrs } = node.attrs;
-    return {
-      ...node,
-      ...(Object.keys(attrs).length ? { attrs } : { attrs: undefined }),
-    };
+function collectImageAssetIds(node: DocumentNode, assetIds: Set<string>): void {
+  if (node.type === "image" && typeof node.attrs?.assetId === "string") {
+    assetIds.add(node.attrs.assetId);
+  }
+  node.content?.forEach((child) => {
+    collectImageAssetIds(child, assetIds);
   });
 }
 
@@ -101,12 +91,14 @@ function ToolbarButton({ label, mark, onClick }: ToolbarButtonProps) {
 
 type PageEditorProps = {
   page: PaginationPage;
+  layout: DocumentEnvelope["page"];
   header: DocumentSection | null;
   footer: DocumentSection | null;
+  assetRevision: number;
   resolveImageSource: (assetId: string) => string | undefined;
   onChange: (
     pageNumber: number,
-    content: TiptapNode[],
+    content: DocumentNode[],
     change?: BodyEditorChange,
   ) => void;
   onEditorReady: (pageNumber: number, editor: CoreEditor) => void;
@@ -119,13 +111,19 @@ type PageEditorProps = {
 
 function BodyEditor({
   page,
+  assetRevision,
   onChange,
   onEditorReady,
   onFocus,
   resolveImageSource,
 }: Pick<
   PageEditorProps,
-  "page" | "onChange" | "onEditorReady" | "onFocus" | "resolveImageSource"
+  | "page"
+  | "onChange"
+  | "onEditorReady"
+  | "onFocus"
+  | "resolveImageSource"
+  | "assetRevision"
 >) {
   const host = useRef<HTMLDivElement>(null);
   const editorRef = useRef<CoreEditor | null>(null);
@@ -135,32 +133,29 @@ function BodyEditor({
 
   useEffect(() => {
     if (!host.current) return;
-    const editor = createCoreEditor(
+    const editor = createLexicalEditor(
       host.current,
       {
         type: "doc",
-        content: page.content,
+        content:
+          page.content.length > 0
+            ? page.content
+            : [{ type: "paragraph" as const }],
       },
       { resolveImageSource },
     );
     editorRef.current = editor;
     onEditorReady(page.number, editor);
     const handleFocus = () => onFocusRef.current(editor);
-    const handleUpdate = () => {
-      const saved = saveDocument(editor, createBlankDocument());
-      const selection = editor.state.selection;
-      const change: BodyEditorChange = {
-        cursorAtEnd:
-          selection.empty &&
-          selection.anchor >= editor.state.doc.content.size - 1,
-      };
-      onChange(page.number, saved.content.content ?? [], change);
-    };
-    editor.on("focus", handleFocus);
-    editor.on("update", handleUpdate);
+    const unsubscribe = editor.onChange((content) => {
+      onChange(page.number, content.content ?? [], {
+        cursorAtEnd: editor.isCursorAtEnd(),
+      });
+    });
+    host.current.addEventListener("focusin", handleFocus);
     return () => {
-      editor.off("focus", handleFocus);
-      editor.off("update", handleUpdate);
+      unsubscribe();
+      host.current?.removeEventListener("focusin", handleFocus);
       editor.destroy();
       editorRef.current = null;
     };
@@ -169,34 +164,54 @@ function BodyEditor({
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
-    const current = JSON.stringify(editor.getJSON().content ?? []);
-    if (current !== serializedContent) {
-      const { anchor, head } = editor.state.selection;
-      editor.commands.setContent(
-        { type: "doc", content: page.content },
-        { emitUpdate: false },
-      );
-      const maxPosition = editor.state.doc.content.size;
-      editor.commands.setTextSelection({
-        from: Math.min(anchor, maxPosition),
-        to: Math.min(head, maxPosition),
-      });
-    }
+    const timeout = window.setTimeout(() => {
+      const current = JSON.stringify(editor.getDocument().content ?? []);
+      if (current !== serializedContent) {
+        editor.loadDocument(
+          {
+            type: "doc",
+            content:
+              page.content.length > 0
+                ? page.content
+                : [{ type: "paragraph" as const }],
+          },
+          { notify: false },
+        );
+      }
+    });
+    return () => window.clearTimeout(timeout);
   }, [page.content, serializedContent]);
 
-  return <div ref={host} className="editor" />;
+  useEffect(() => {
+    refreshImageSources(host.current, resolveImageSource);
+  }, [assetRevision, resolveImageSource]);
+
+  return (
+    <div className="editor">
+      <div
+        ref={host}
+        className="ProseMirror"
+        contentEditable
+        suppressContentEditableWarning
+      />
+    </div>
+  );
 }
 
 function SectionEditor({
   section,
   content,
+  assetRevision,
   onChange,
   onFocus,
+  resolveImageSource,
 }: {
   section: "header" | "footer";
   content: DocumentSection;
+  assetRevision: number;
   onChange: (content: DocumentSection) => void;
   onFocus: (editor: CoreEditor) => void;
+  resolveImageSource: (assetId: string) => string | undefined;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const editorRef = useRef<CoreEditor | null>(null);
@@ -208,35 +223,47 @@ function SectionEditor({
 
   useEffect(() => {
     if (!host.current) return;
-    const editor = createCoreEditor(host.current, content);
+    const editor = createLexicalEditor(host.current, content, {
+      resolveImageSource,
+    });
     editorRef.current = editor;
     const handleFocus = () => onFocusRef.current(editor);
-    const handleUpdate = () =>
-      onChangeRef.current(saveDocument(editor, createBlankDocument()).content);
-    editor.on("focus", handleFocus);
-    editor.on("update", handleUpdate);
+    const unsubscribe = editor.onChange((nextContent) =>
+      onChangeRef.current(nextContent),
+    );
+    host.current.addEventListener("focusin", handleFocus);
     return () => {
-      editor.off("focus", handleFocus);
-      editor.off("update", handleUpdate);
+      unsubscribe();
+      host.current?.removeEventListener("focusin", handleFocus);
       editor.destroy();
       editorRef.current = null;
     };
-  }, []);
+  }, [resolveImageSource]);
 
   useEffect(() => {
     const editor = editorRef.current;
-    if (editor && JSON.stringify(editor.getJSON()) !== serializedContent) {
-      editor.commands.setContent(content, { emitUpdate: false });
+    if (editor && JSON.stringify(editor.getDocument()) !== serializedContent) {
+      editor.loadDocument(content);
     }
   }, [content, serializedContent]);
 
-  return <div className={`section-editor ${section}-editor`} ref={host} />;
+  useEffect(() => {
+    refreshImageSources(host.current, resolveImageSource);
+  }, [assetRevision, resolveImageSource]);
+
+  return (
+    <div className={`section-editor ${section}-editor`}>
+      <div ref={host} className="ProseMirror" />
+    </div>
+  );
 }
 
 function PageEditor({
   page,
+  layout,
   header,
   footer,
+  assetRevision,
   resolveImageSource,
   onChange,
   onSectionChange,
@@ -248,7 +275,26 @@ function PageEditor({
     content: [{ type: "paragraph" as const }],
   };
   return (
-    <article className="page" aria-label={`Page ${page.number}`}>
+    <article
+      className="page"
+      aria-label={`Page ${page.number}`}
+      style={
+        {
+          "--document-page-width": `${(layout.width * 96) / 72}px`,
+          "--document-page-height": `${(layout.height * 96) / 72}px`,
+          "--document-page-margin-top": `${(layout.margins.top * 96) / 72}px`,
+          "--document-page-margin-right": `${(layout.margins.right * 96) / 72}px`,
+          "--document-page-margin-bottom": `${(layout.margins.bottom * 96) / 72}px`,
+          "--document-page-margin-left": `${(layout.margins.left * 96) / 72}px`,
+          "--document-header-distance": `${(HEADER_DISTANCE_POINTS * 96) / 72}px`,
+          "--document-footer-distance": `${(FOOTER_DISTANCE_POINTS * 96) / 72}px`,
+          "--document-list-indent": `${(LIST_INDENT_POINTS * 96) / 72}px`,
+        } as CSSProperties
+      }
+      data-break-before={
+        page.number > 1 ? (page.breakBefore ? "manual" : "automatic") : "none"
+      }
+    >
       <section className="page-header" aria-label="Page header">
         {header ? (
           <SectionEditor
@@ -256,6 +302,8 @@ function PageEditor({
             content={header}
             onChange={(content) => onSectionChange("header", content)}
             onFocus={onFocus}
+            assetRevision={assetRevision}
+            resolveImageSource={resolveImageSource}
           />
         ) : (
           <button
@@ -272,6 +320,7 @@ function PageEditor({
           onChange={onChange}
           onEditorReady={onEditorReady}
           onFocus={onFocus}
+          assetRevision={assetRevision}
           resolveImageSource={resolveImageSource}
         />
       </section>
@@ -282,6 +331,8 @@ function PageEditor({
             content={footer}
             onChange={(content) => onSectionChange("footer", content)}
             onFocus={onFocus}
+            assetRevision={assetRevision}
+            resolveImageSource={resolveImageSource}
           />
         ) : (
           <button
@@ -312,6 +363,7 @@ export function App() {
   const [selectedTemplateId, setSelectedTemplateId] =
     useState<DocumentTemplateId>("blank");
   const [assetError, setAssetError] = useState<string | null>(null);
+  const [assetRevision, setAssetRevision] = useState(0);
   const assetUrls = useRef(new Map<string, string>());
   const imageInputRef = useRef<HTMLInputElement>(null);
   const documentRef = useRef(document);
@@ -325,6 +377,37 @@ export function App() {
   const assetStorage = useMemo(() => new BrowserAssetStorage(), []);
   const resolveImageSource = useCallback(
     (assetId: string) => assetUrls.current.get(assetId),
+    [],
+  );
+
+  useEffect(() => {
+    const assetIds = new Set<string>();
+    collectImageAssetIds(document.content, assetIds);
+    if (document.header) collectImageAssetIds(document.header, assetIds);
+    if (document.footer) collectImageAssetIds(document.footer, assetIds);
+    const missingAssetIds = [...assetIds].filter(
+      (assetId) => !assetUrls.current.has(assetId),
+    );
+    if (missingAssetIds.length === 0) return;
+    let active = true;
+    void Promise.all(
+      missingAssetIds.map(async (assetId) => {
+        const asset = await assetStorage.get(assetId);
+        if (!active || !asset) return;
+        assetUrls.current.set(assetId, URL.createObjectURL(asset.blob));
+      }),
+    ).then(() => {
+      if (active) setAssetRevision((revision) => revision + 1);
+    });
+    return () => {
+      active = false;
+    };
+  }, [assetStorage, document]);
+
+  useEffect(
+    () => () => {
+      for (const url of assetUrls.current.values()) URL.revokeObjectURL(url);
+    },
     [],
   );
 
@@ -352,14 +435,18 @@ export function App() {
     const editor = pageEditorsRef.current.get(pageNumber);
     if (!editor) return;
     requestAnimationFrame(() => {
-      editor.commands.focus("start");
+      editor.focus("start");
       activeEditorRef.current = editor;
       pendingPageFocusRef.current = null;
     });
   }, [pages]);
 
   const updatePageContent = useCallback(
-    (pageNumber: number, content: TiptapNode[], change?: BodyEditorChange) => {
+    (
+      pageNumber: number,
+      content: DocumentNode[],
+      change?: BodyEditorChange,
+    ) => {
       const currentPages = paginateDocument(documentRef.current).pages;
       const nextPages = currentPages.map((page) =>
         page.number === pageNumber ? { ...page, content } : page,
@@ -431,11 +518,8 @@ export function App() {
   }
 
   function insertPageBreak() {
-    activeEditorRef.current
-      ?.chain()
-      .focus()
-      .insertContent({ type: "pageBreak" })
-      .run();
+    activeEditorRef.current?.focus();
+    activeEditorRef.current?.insertPageBreak();
   }
 
   async function insertImage(file: File | undefined) {
@@ -443,30 +527,33 @@ export function App() {
     setAssetError(null);
     try {
       const bitmap = await createImageBitmap(file);
-      const intrinsicWidthPoints = bitmap.width * (72 / 96);
-      const intrinsicHeightPoints = bitmap.height * (72 / 96);
-      const rendered = fitImageToWidth(
-        intrinsicWidthPoints,
-        intrinsicHeightPoints,
-        468,
+      const intrinsicWidth = bitmap.width * (72 / 96);
+      const intrinsicHeight = bitmap.height * (72 / 96);
+      const scale = Math.min(
+        1,
+        DOCUMENT_CONTENT_WIDTH_POINTS / intrinsicWidth,
+        MAX_IMAGE_DIMENSION_POINTS / intrinsicWidth,
+        MAX_IMAGE_DIMENSION_POINTS / intrinsicHeight,
+      );
+      const width = Math.min(
+        MAX_IMAGE_DIMENSION_POINTS,
+        Math.max(1, intrinsicWidth * scale),
+      );
+      const height = Math.min(
+        MAX_IMAGE_DIMENSION_POINTS,
+        Math.max(1, intrinsicHeight * scale),
       );
       const asset = await putImageAsset(assetStorage, file, {
-        widthPoints: intrinsicWidthPoints,
-        heightPoints: intrinsicHeightPoints,
+        widthPoints: width,
+        heightPoints: height,
       });
       assetUrls.current.set(asset.assetId, URL.createObjectURL(file));
-      activeEditorRef.current
-        .chain()
-        .focus()
-        .insertContent(
-          createImageNode({
-            assetId: asset.assetId,
-            alt: file.name,
-            width: rendered.width,
-            height: rendered.height,
-          }),
-        )
-        .run();
+      activeEditorRef.current.insertImage({
+        assetId: asset.assetId,
+        alt: file.name,
+        width,
+        height,
+      });
       bitmap.close();
     } catch (error) {
       setAssetError(
@@ -481,10 +568,10 @@ export function App() {
     const href = window.prompt("Link URL");
     if (href === null) return;
     if (href.trim() === "") {
-      editor.chain().focus().unsetLink().run();
+      editor.setLink(null);
       return;
     }
-    editor.chain().focus().setLink({ href: href.trim() }).run();
+    editor.setLink(href.trim());
   }
 
   async function exportCurrentDocument() {
@@ -502,6 +589,12 @@ export function App() {
         node.content?.forEach(collectImageIds);
       };
       collectImageIds(documentRef.current.content);
+      if (documentRef.current.header) {
+        collectImageIds(documentRef.current.header);
+      }
+      if (documentRef.current.footer) {
+        collectImageIds(documentRef.current.footer);
+      }
       const exportAssets: ExportRequestAsset[] = [];
       for (const assetId of assetIds) {
         const asset = await assetStorage.get(assetId);
@@ -642,34 +735,22 @@ export function App() {
           <ToolbarButton
             label="Bold"
             mark="B"
-            onClick={() =>
-              activeEditorRef.current?.chain().focus().toggleBold().run()
-            }
+            onClick={() => activeEditorRef.current?.toggleFormat("bold")}
           />
           <ToolbarButton
             label="Italic"
             mark="I"
-            onClick={() =>
-              activeEditorRef.current?.chain().focus().toggleItalic().run()
-            }
+            onClick={() => activeEditorRef.current?.toggleFormat("italic")}
           />
           <ToolbarButton
             label="Underline"
             mark="U"
-            onClick={() =>
-              activeEditorRef.current?.chain().focus().toggleUnderline().run()
-            }
+            onClick={() => activeEditorRef.current?.toggleFormat("underline")}
           />
           <ToolbarButton
             label="Heading"
             mark="H2"
-            onClick={() =>
-              activeEditorRef.current
-                ?.chain()
-                .focus()
-                .toggleHeading({ level: 2 })
-                .run()
-            }
+            onClick={() => activeEditorRef.current?.setHeading(2)}
           />
         </fieldset>
         <div className="toolbar-divider" aria-hidden="true" />
@@ -677,16 +758,12 @@ export function App() {
           <ToolbarButton
             label="Bulleted list"
             mark="•"
-            onClick={() =>
-              activeEditorRef.current?.chain().focus().toggleBulletList().run()
-            }
+            onClick={() => activeEditorRef.current?.toggleList("bullet")}
           />
           <ToolbarButton
             label="Numbered list"
             mark="1."
-            onClick={() =>
-              activeEditorRef.current?.chain().focus().toggleOrderedList().run()
-            }
+            onClick={() => activeEditorRef.current?.toggleList("number")}
           />
         </fieldset>
         <div className="toolbar-divider" aria-hidden="true" />
@@ -694,24 +771,22 @@ export function App() {
           <ToolbarButton
             label="Align left"
             mark="≡"
-            onClick={() =>
-              activeEditorRef.current
-                ?.chain()
-                .focus()
-                .setTextAlign("left")
-                .run()
-            }
+            onClick={() => activeEditorRef.current?.setAlignment("left")}
           />
           <ToolbarButton
             label="Align center"
             mark="≣"
-            onClick={() =>
-              activeEditorRef.current
-                ?.chain()
-                .focus()
-                .setTextAlign("center")
-                .run()
-            }
+            onClick={() => activeEditorRef.current?.setAlignment("center")}
+          />
+          <ToolbarButton
+            label="Align right"
+            mark="≡"
+            onClick={() => activeEditorRef.current?.setAlignment("right")}
+          />
+          <ToolbarButton
+            label="Justify"
+            mark="≣"
+            onClick={() => activeEditorRef.current?.setAlignment("justify")}
           />
           <ToolbarButton label="Link" mark="↗" onClick={setLink} />
           <ToolbarButton
@@ -743,16 +818,12 @@ export function App() {
           <ToolbarButton
             label="Undo"
             mark="↶"
-            onClick={() =>
-              activeEditorRef.current?.chain().focus().undo().run()
-            }
+            onClick={() => activeEditorRef.current?.undo()}
           />
           <ToolbarButton
             label="Redo"
             mark="↷"
-            onClick={() =>
-              activeEditorRef.current?.chain().focus().redo().run()
-            }
+            onClick={() => activeEditorRef.current?.redo()}
           />
         </fieldset>
       </section>
@@ -761,6 +832,8 @@ export function App() {
           <PageEditor
             key={page.number}
             page={page}
+            layout={document.page}
+            assetRevision={assetRevision}
             resolveImageSource={resolveImageSource}
             header={document.header}
             footer={document.footer}
@@ -771,6 +844,12 @@ export function App() {
             }}
             onEditorReady={(pageNumber, editor) => {
               pageEditorsRef.current.set(pageNumber, editor);
+              if (pendingPageFocusRef.current !== pageNumber) return;
+              requestAnimationFrame(() => {
+                editor.focus("start");
+                activeEditorRef.current = editor;
+                pendingPageFocusRef.current = null;
+              });
             }}
           />
         ))}

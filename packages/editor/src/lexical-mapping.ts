@@ -59,6 +59,9 @@ function mapInlineChildren(
 }
 
 function formatMarks(format: number): DocumentMark[] {
+  if (!Number.isInteger(format) || format < 0) {
+    throw new Error("Invalid Lexical text format bitmask");
+  }
   const marks: DocumentMark[] = [];
   if (format & 1) marks.push({ type: "bold" });
   if (format & 2) marks.push({ type: "italic" });
@@ -74,6 +77,9 @@ function formatMarks(format: number): DocumentMark[] {
   }
   if (format & 64) {
     throw new Error("Unsupported Lexical text format 'superscript'");
+  }
+  if (format > 127) {
+    throw new Error(`Unsupported Lexical text format bit ${format}`);
   }
   return marks;
 }
@@ -104,10 +110,14 @@ function mapNode(node: LexicalSerializedNode, path: string): DocumentNode {
       if (!Number.isInteger(level) || level < 1 || level > 6) {
         throw new Error(`Invalid Lexical heading tag at ${path}`);
       }
+      const attrs =
+        typeof node.format === "string" && node.format !== ""
+          ? { level, textAlign: node.format }
+          : { level };
       const content = mapInlineChildren(node, path);
       return {
         type: "heading",
-        attrs: { level },
+        attrs,
         ...(content.length ? { content } : {}),
       };
     }
@@ -134,8 +144,16 @@ function mapNode(node: LexicalSerializedNode, path: string): DocumentNode {
       const content = childrenOf(node).map((child, index) =>
         mapNode(child, `${path}.children[${index}]`),
       );
+      const start =
+        node.listType === "number" &&
+        typeof node.start === "number" &&
+        Number.isInteger(node.start) &&
+        node.start > 1
+          ? node.start
+          : undefined;
       return {
         type: node.listType === "bullet" ? "bulletList" : "orderedList",
+        ...(start === undefined ? {} : { attrs: { start } }),
         ...(content.length ? { content } : {}),
       };
     }
@@ -178,6 +196,9 @@ export function fromLexicalDocument(input: unknown): DocumentNode {
   const root = (input as { root: unknown }).root;
   if (!root || typeof root !== "object" || !("type" in root)) {
     throw new Error("Lexical serialized document has an invalid root node");
+  }
+  if ((root as { type: unknown }).type !== "root") {
+    throw new Error("Lexical serialized document root must have type 'root'");
   }
   return mapNode(root as LexicalSerializedNode, "root");
 }
@@ -224,19 +245,35 @@ function toLexicalNode(node: DocumentNode): LexicalSerializedNode {
         children,
       };
     case "heading":
-      return { type: "heading", tag: `h${node.attrs?.level ?? 1}`, children };
+      return {
+        type: "heading",
+        tag: `h${node.attrs?.level ?? 1}`,
+        ...(typeof node.attrs?.textAlign === "string"
+          ? { format: node.attrs.textAlign }
+          : {}),
+        children,
+      };
     case "hardBreak":
       return { type: "linebreak" };
     case "bulletList":
-    case "orderedList":
+    case "orderedList": {
+      const start = node.attrs?.start;
       return {
         type: "list",
         listType: node.type === "bulletList" ? "bullet" : "number",
-        start: 1,
+        indent: 0,
+        start:
+          node.type === "orderedList" &&
+          typeof start === "number" &&
+          Number.isInteger(start) &&
+          start > 1
+            ? start
+            : 1,
         children,
       };
+    }
     case "listItem":
-      return { type: "listitem", value: 1, children };
+      return { type: "listitem", value: 1, indent: 0, children };
     case "image": {
       const assetId = node.attrs?.assetId;
       const alt = node.attrs?.alt;

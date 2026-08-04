@@ -401,9 +401,10 @@ button:disabled {
 .page {
   box-sizing: border-box;
   /* Document points become CSS pixels at 96 / 72. */
-  width: 816px;
-  height: 1056px;
-  padding: 96px;
+  width: var(--document-page-width);
+  height: var(--document-page-height);
+  padding: var(--document-page-margin-top) var(--document-page-margin-right)
+    var(--document-page-margin-bottom) var(--document-page-margin-left);
   background: white;
   box-shadow: 0 2px 12px rgb(0 0 0 / 12%);
   display: flex;
@@ -414,19 +415,17 @@ button:disabled {
 .page-header,
 .page-footer {
   position: absolute;
-  right: 96px;
-  left: 96px;
+  right: var(--document-page-margin-right);
+  left: var(--document-page-margin-left);
   min-height: 1px;
 }
 
 .page-header {
-  top: 48px;
+  top: var(--document-header-distance);
 }
 
 .page-footer {
-  /* The editor line box sits inside the footer region; 54pt visually matches
-     Google Docs' footer baseline while the export margin remains 36pt. */
-  bottom: 72px;
+  bottom: var(--document-footer-distance);
 }
 
 .page-header button,
@@ -465,6 +464,18 @@ button:disabled {
   font-family: Arial, sans-serif;
   font-size: 11pt;
   line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.editor > [contenteditable="true"] {
+  min-height: 100%;
+  outline: 0;
+  cursor: text;
+  color: #202124;
+  font-family: Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .section-editor > .ProseMirror {
@@ -475,6 +486,29 @@ button:disabled {
   font-family: Arial, sans-serif;
   font-size: 11pt;
   line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.section-editor > [contenteditable="true"] {
+  min-height: 1em;
+  outline: 0;
+  cursor: text;
+  color: #202124;
+  font-family: Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.editor [data-page-break="true"] {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px dashed #9aa0a6;
+}
+
+.editor img,
+.section-editor img {
+  max-width: 100%;
 }
 
 .editor > .ProseMirror p,
@@ -543,10 +577,22 @@ button:disabled {
 .section-editor > .ProseMirror ul,
 .section-editor > .ProseMirror ol {
   margin: 0;
-  padding-left: 36px;
+  padding-left: var(--document-list-indent);
 }
 
-.editor > .ProseMirror a {
+.editor > .ProseMirror ul ul,
+.editor > .ProseMirror ul ol,
+.editor > .ProseMirror ol ul,
+.editor > .ProseMirror ol ol,
+.section-editor > .ProseMirror ul ul,
+.section-editor > .ProseMirror ul ol,
+.section-editor > .ProseMirror ol ul,
+.section-editor > .ProseMirror ol ol {
+  padding-left: var(--document-list-indent);
+}
+
+.editor > .ProseMirror a,
+.section-editor > .ProseMirror a {
   color: #1155cc;
   text-decoration: underline;
 }
