@@ -726,4 +726,100 @@ describe("native list render metrics", () => {
       },
     ]);
   });
+
+  it("scopes nested list paragraph styles to non-overlapping item ranges", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Parent" }],
+                },
+                {
+                  type: "orderedList",
+                  attrs: { start: 3 },
+                  content: [
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [{ type: "text", text: "Ordered" }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: "bulletList",
+                  content: [
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [{ type: "text", text: "Sibling" }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const requests = compileDocument(document).requests;
+    const paragraphRanges = requests
+      .filter((request) => "updateParagraphStyle" in request)
+      .filter(
+        (request) =>
+          request.updateParagraphStyle.paragraphStyle.spacingMode ===
+          "COLLAPSE_LISTS",
+      )
+      .map((request) => request.updateParagraphStyle.range)
+      .filter((range) => range.startIndex > 0);
+    const bulletRequests = requests.filter(
+      (request) => "createParagraphBullets" in request,
+    );
+
+    expect(paragraphRanges).toEqual(
+      expect.arrayContaining([
+        { startIndex: 1, endIndex: 8 },
+        { startIndex: 9, endIndex: 17 },
+        { startIndex: 17, endIndex: 25 },
+      ]),
+    );
+    expect(bulletRequests).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          createParagraphBullets: expect.objectContaining({
+            range: { startIndex: 1, endIndex: 8 },
+            bulletPreset: "BULLET_DISC_CIRCLE_SQUARE",
+          }),
+        }),
+        expect.objectContaining({
+          createParagraphBullets: expect.objectContaining({
+            range: { startIndex: 9, endIndex: 17 },
+            bulletPreset: "NUMBERED_DECIMAL_ALPHA_ROMAN",
+          }),
+        }),
+        expect.objectContaining({
+          createParagraphBullets: expect.objectContaining({
+            range: { startIndex: 17, endIndex: 25 },
+            bulletPreset: "BULLET_DISC_CIRCLE_SQUARE",
+          }),
+        }),
+      ]),
+    );
+  });
 });
