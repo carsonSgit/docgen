@@ -312,14 +312,16 @@ function compileNode(
     return;
   }
 
-  const startIndex = state.index;
+  let startIndex = state.index;
   if (node.type === "listItem" && listDepth > 0) {
     const indentation = "\t".repeat(listDepth);
     requests.push({
       insertText: { location: { index: state.index }, text: indentation },
     });
     state.index += indentation.length;
+    startIndex = state.index;
   }
+  let listItemContentEndIndex: number | undefined;
   node.content?.forEach((child) => {
     compileNode(
       child,
@@ -332,6 +334,14 @@ function compileNode(
         ? listDepth + 1
         : listDepth,
     );
+    if (
+      node.type === "listItem" &&
+      listItemContentEndIndex === undefined &&
+      child.type !== "bulletList" &&
+      child.type !== "orderedList"
+    ) {
+      listItemContentEndIndex = state.index;
+    }
   });
 
   if (
@@ -376,7 +386,10 @@ function compileNode(
     if (listType && node.type === "listItem") {
       requests.push({
         createParagraphBullets: {
-          range,
+          range: {
+            startIndex,
+            endIndex: listItemContentEndIndex ?? state.index,
+          },
           bulletPreset:
             listType === "bullet"
               ? "BULLET_DISC_CIRCLE_SQUARE"
