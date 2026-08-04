@@ -155,6 +155,40 @@ describe("export service", () => {
     expect(provider.createDocument).not.toHaveBeenCalled();
   });
 
+  it("rejects an asset whose persisted identity differs from the document reference", async () => {
+    const provider: GoogleProviderClient = {
+      createDocument: vi.fn(async () => ({ documentId: "never" })),
+      uploadImage: vi.fn(),
+      batchUpdate: vi.fn(async () => undefined),
+    };
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "image",
+          attrs: { assetId: "asset_document", alt: "", width: 10, height: 10 },
+        },
+      ],
+    };
+    const mismatchedAsset = {
+      assetId: "asset_storage",
+      blob: new Blob(["image"], { type: "image/png" }),
+      mimeType: "image/png" as const,
+      size: 5,
+    };
+
+    await expect(
+      exportDocument(
+        document,
+        provider,
+        new Map([["asset_document", mismatchedAsset]]),
+      ),
+    ).rejects.toThrow("mismatched asset identity");
+    expect(provider.uploadImage).not.toHaveBeenCalled();
+    expect(provider.createDocument).not.toHaveBeenCalled();
+  });
+
   it("uploads images used by repeated header sections", async () => {
     const provider: GoogleProviderClient = {
       createDocument: vi.fn(async () => ({ documentId: "section-image-doc" })),
