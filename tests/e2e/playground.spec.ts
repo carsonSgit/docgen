@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { MAX_IMAGE_DIMENSION_POINTS } from "../../packages/domain/src";
 
 test("edits a title and completes a mocked export", async ({ page }) => {
   await page.route("**/api/export", async (route) => {
@@ -141,7 +142,10 @@ test("inserts a tall image within the document dimension limit", async ({
 
   const image = page.locator(".image-node-view-image");
   await expect(image).toBeVisible();
-  await expect(image).toHaveAttribute("height", "1920");
+  await expect(image).toHaveAttribute(
+    "height",
+    String(MAX_IMAGE_DIMENSION_POINTS * (96 / 72)),
+  );
 });
 
 test("restores an inserted image source after refresh", async ({ page }) => {
