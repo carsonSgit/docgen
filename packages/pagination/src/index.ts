@@ -6,6 +6,7 @@ import {
 
 const CONTENT_HEIGHT = 648;
 const DEFAULT_BLOCK_HEIGHT = 11 * 1.15;
+const HEADING_WRAP_WIDTH_FACTOR = 1.6;
 
 export type PaginationPage = {
   number: number;
@@ -23,6 +24,25 @@ export type NodeMeasurement = (node: TiptapNode) => number;
 export const PAGE_FRAGMENT_ATTR = "data-page-fragment";
 export const PAGE_VISUAL_FRAGMENT_ATTR = "data-page-visual-fragment";
 
+function headingLineMetrics(node: TiptapNode) {
+  const rawLevel = node.attrs?.level;
+  const level =
+    typeof rawLevel === "number" ? Math.min(6, Math.max(1, rawLevel)) : 1;
+  const metrics = DOCUMENT_TYPOGRAPHY.headings[level as 1 | 2 | 3 | 4 | 5 | 6];
+  return {
+    lineHeight:
+      metrics.fontSizePoints * (DOCUMENT_TYPOGRAPHY.lineSpacingPercent / 100),
+    charsPerLine: Math.max(
+      1,
+      Math.floor(
+        (90 * DOCUMENT_TYPOGRAPHY.bodyFontSizePoints) /
+          (metrics.fontSizePoints * HEADING_WRAP_WIDTH_FACTOR),
+      ),
+    ),
+    metrics,
+  };
+}
+
 function containsImage(node: TiptapNode): boolean {
   return (
     node.type === "image" ||
@@ -38,13 +58,27 @@ function defaultMeasure(node: TiptapNode): number {
       : DEFAULT_BLOCK_HEIGHT;
   }
   if (node.type === "heading") {
-    const rawLevel = node.attrs?.level;
-    const level =
-      typeof rawLevel === "number" ? Math.min(6, Math.max(1, rawLevel)) : 1;
-    const metrics =
-      DOCUMENT_TYPOGRAPHY.headings[level as 1 | 2 | 3 | 4 | 5 | 6];
+    const { charsPerLine, lineHeight, metrics } = headingLineMetrics(node);
+    const lineCount = (current: TiptapNode): number => {
+      if (current.type === "hardBreak") return 1;
+      if (current.text) {
+        return current.text
+          .split("\n")
+          .reduce(
+            (lines, line) =>
+              lines + Math.max(1, Math.ceil(line.length / charsPerLine)),
+            0,
+          );
+      }
+      return (
+        current.content?.reduce(
+          (lines, child) => lines + lineCount(child),
+          0,
+        ) ?? 0
+      );
+    };
     return (
-      metrics.fontSizePoints * (DOCUMENT_TYPOGRAPHY.lineSpacingPercent / 100) +
+      lineHeight * Math.max(1, lineCount(node)) +
       metrics.spaceAbovePoints +
       metrics.spaceBelowPoints
     );
@@ -210,12 +244,17 @@ function splitTextNode(
     return [node];
   }
 
-  const maxLines = Math.max(1, Math.floor(maxHeight / DEFAULT_BLOCK_HEIGHT));
+  const { lineHeight, charsPerLine } =
+    node.type === "heading"
+      ? headingLineMetrics(node)
+      : { lineHeight: DEFAULT_BLOCK_HEIGHT, charsPerLine: 90 };
+  const maxLines = Math.max(1, Math.floor(maxHeight / lineHeight));
   const visualLines = (text: string) =>
     text
       .split("\n")
       .reduce(
-        (lines, line) => lines + Math.max(1, Math.ceil(line.length / 90)),
+        (lines, line) =>
+          lines + Math.max(1, Math.ceil(line.length / charsPerLine)),
         0,
       );
   if (
@@ -244,7 +283,9 @@ function splitTextNode(
     const childText = child.text ?? "";
     const logicalLines = childText.split("\n");
     for (const [lineIndex, logicalLine] of logicalLines.entries()) {
-      const chunks = logicalLine.match(/.{1,90}/g) ?? [""];
+      const chunks = logicalLine.match(
+        new RegExp(`.{1,${charsPerLine}}`, "g"),
+      ) ?? [""];
       for (const [chunkIndex, chunk] of chunks.entries()) {
         if (currentLines >= maxLines) pushFragment();
         const separator = lineIndex > 0 && chunkIndex === 0 ? "\n" : "";

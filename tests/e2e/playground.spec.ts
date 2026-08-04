@@ -680,6 +680,46 @@ test("moves wrapped lines of one paragraph onto the next page", async ({
   ).toBe(true);
 });
 
+test("keeps a long heading within the rendered page body", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "document-playground:document",
+      JSON.stringify({
+        version: 2,
+        title: "Long heading fixture",
+        page: {
+          size: "letter",
+          width: 612,
+          height: 792,
+          margins: { top: 72, right: 72, bottom: 72, left: 72 },
+        },
+        content: {
+          type: "doc",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 1 },
+              content: [{ type: "text", text: "Heading ".repeat(700) }],
+            },
+          ],
+        },
+        header: null,
+        footer: null,
+      }),
+    );
+  });
+  await page.goto("/");
+
+  const overflows = await page.locator(".page").evaluateAll((pages) =>
+    pages.map((currentPage) => {
+      const editor = currentPage.querySelector<HTMLElement>(".editor");
+      const body = currentPage.querySelector<HTMLElement>(".ProseMirror");
+      return (body?.scrollHeight ?? 0) > (editor?.clientHeight ?? 0) + 1;
+    }),
+  );
+  expect(overflows.every((overflow) => !overflow)).toBe(true);
+});
+
 test("edits a shared header and footer on page one", async ({ page }) => {
   await page.goto("/");
   const firstPage = page.getByLabel("Page 1");
