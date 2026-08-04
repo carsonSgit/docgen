@@ -1,6 +1,7 @@
 import {
   DOCUMENT_TYPOGRAPHY,
   type DocumentEnvelope,
+  findUnsupportedDocumentNode,
   type TiptapNode,
 } from "@document-playground/domain";
 
@@ -21,6 +22,16 @@ export type PaginatedDocument = {
 export type NodeMeasurement = (node: TiptapNode) => number;
 
 export const PAGE_FRAGMENT_ATTR = "data-page-fragment";
+
+export class UnsupportedPaginationContentError extends Error {
+  constructor(
+    readonly path: string,
+    readonly nodeType: string,
+  ) {
+    super(`Unsupported document content at ${path}: ${nodeType}`);
+    this.name = "UnsupportedPaginationContentError";
+  }
+}
 
 function containsImage(node: TiptapNode): boolean {
   return (
@@ -176,6 +187,13 @@ export function paginateDocument(
   document: DocumentEnvelope,
   measureNode: NodeMeasurement = defaultMeasure,
 ): PaginatedDocument {
+  const unsupported = findUnsupportedDocumentNode(document.content, "content");
+  if (unsupported) {
+    throw new UnsupportedPaginationContentError(
+      unsupported.path,
+      unsupported.nodeType,
+    );
+  }
   const pages: PaginationPage[] = [
     { number: 1, content: [], breakBefore: false },
   ];
