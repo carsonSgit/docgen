@@ -401,9 +401,10 @@ button:disabled {
 .page {
   box-sizing: border-box;
   /* Document points become CSS pixels at 96 / 72. */
-  width: 816px;
-  height: 1056px;
-  padding: 96px;
+  width: var(--document-page-width);
+  height: var(--document-page-height);
+  padding: var(--document-page-margin-top) var(--document-page-margin-right)
+    var(--document-page-margin-bottom) var(--document-page-margin-left);
   background: white;
   box-shadow: 0 2px 12px rgb(0 0 0 / 12%);
   display: flex;
@@ -414,8 +415,8 @@ button:disabled {
 .page-header,
 .page-footer {
   position: absolute;
-  right: 96px;
-  left: 96px;
+  right: var(--document-page-margin-right);
+  left: var(--document-page-margin-left);
   min-height: 1px;
 }
 

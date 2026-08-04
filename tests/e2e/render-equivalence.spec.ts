@@ -49,6 +49,17 @@ test("captures the Core Editor Slice with deterministic local assertions", async
       return {
         width: pageRect.width,
         height: pageRect.height,
+        layout: {
+          width: getComputedStyle(currentPage).getPropertyValue(
+            "--document-page-width",
+          ),
+          height: getComputedStyle(currentPage).getPropertyValue(
+            "--document-page-height",
+          ),
+          padding: getComputedStyle(currentPage).getPropertyValue(
+            "--document-page-margin-left",
+          ),
+        },
         overflow: (body?.scrollHeight ?? 0) > (editor?.clientHeight ?? 0) + 1,
         header: currentPage.querySelector(".page-header")?.textContent?.trim(),
         footer: currentPage.querySelector(".page-footer")?.textContent?.trim(),
@@ -92,6 +103,13 @@ test("captures the Core Editor Slice with deterministic local assertions", async
   expect(metrics[0]?.height).toBeCloseTo(
     manifest.expected.page.heightPoints * (96 / 72),
     0,
+  );
+  expect(metrics.every((metric) => metric.layout.width === "816px")).toBe(true);
+  expect(metrics.every((metric) => metric.layout.height === "1056px")).toBe(
+    true,
+  );
+  expect(metrics.every((metric) => metric.layout.padding === "96px")).toBe(
+    true,
   );
   expect(metrics[0]?.header).toBe(manifest.expected.headerFooter.header);
   expect(metrics[0]?.footer).toBe(manifest.expected.headerFooter.footer);
