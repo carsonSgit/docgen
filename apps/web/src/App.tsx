@@ -1,13 +1,11 @@
 import {
   createBlankDocument,
+  DEFAULT_RENDER_METRICS,
   DOCUMENT_CONTENT_WIDTH_POINTS,
   type DocumentEnvelope,
   type DocumentNode,
   type DocumentSection,
   type DocumentTemplateId,
-  FOOTER_DISTANCE_POINTS,
-  HEADER_DISTANCE_POINTS,
-  LIST_INDENT_POINTS,
   listDocumentTemplates,
   MAX_IMAGE_DIMENSION_POINTS,
 } from "@document-playground/domain";
@@ -286,9 +284,13 @@ function PageEditor({
           "--document-page-margin-right": `${(layout.margins.right * 96) / 72}px`,
           "--document-page-margin-bottom": `${(layout.margins.bottom * 96) / 72}px`,
           "--document-page-margin-left": `${(layout.margins.left * 96) / 72}px`,
-          "--document-header-distance": `${(HEADER_DISTANCE_POINTS * 96) / 72}px`,
-          "--document-footer-distance": `${(FOOTER_DISTANCE_POINTS * 96) / 72}px`,
-          "--document-list-indent": `${(LIST_INDENT_POINTS * 96) / 72}px`,
+          "--document-header-distance": `${(DEFAULT_RENDER_METRICS.headerFooter.headerDistancePoints * 96) / 72}px`,
+          "--document-footer-distance": `${(DEFAULT_RENDER_METRICS.headerFooter.footerDistancePoints * 96) / 72}px`,
+          "--document-list-indent": `${(DEFAULT_RENDER_METRICS.indentation.listStartPoints * 96) / 72}px`,
+          "--document-font-family":
+            DEFAULT_RENDER_METRICS.typography.fontFamily,
+          "--document-body-font-size": `${DEFAULT_RENDER_METRICS.typography.bodyFontSizePoints}pt`,
+          "--document-line-spacing": `${DEFAULT_RENDER_METRICS.typography.lineSpacingPercent}%`,
         } as CSSProperties
       }
       data-break-before={
