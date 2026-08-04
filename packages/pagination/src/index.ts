@@ -1,4 +1,5 @@
 import {
+  DEFAULT_RENDER_METRICS,
   DOCUMENT_CONTENT_WIDTH_POINTS,
   DOCUMENT_TYPOGRAPHY,
   type DocumentEnvelope,
@@ -19,8 +20,13 @@ export {
   resolveCursor,
 } from "./cursor";
 
-const CONTENT_HEIGHT = 648;
-const DEFAULT_BLOCK_HEIGHT = 11 * 1.15;
+const CONTENT_HEIGHT =
+  DEFAULT_RENDER_METRICS.page.heightPoints -
+  DEFAULT_RENDER_METRICS.page.margins.topPoints -
+  DEFAULT_RENDER_METRICS.page.margins.bottomPoints;
+const DEFAULT_BLOCK_HEIGHT =
+  DEFAULT_RENDER_METRICS.typography.bodyFontSizePoints *
+  (DEFAULT_RENDER_METRICS.typography.lineSpacingPercent / 100);
 const HEADING_WRAP_WIDTH_FACTOR = 1.6;
 // Lists lose 27pt of the 468pt content width to their marker indent.
 const LIST_CHARS_PER_LINE = 85;

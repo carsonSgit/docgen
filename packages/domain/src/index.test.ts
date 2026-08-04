@@ -4,10 +4,12 @@ import {
   createBlankDocument,
   createDocumentFromTemplate,
   createImageNode,
+  DEFAULT_RENDER_METRICS,
   DOCUMENT_VERSION,
   findUnsupportedDocumentNode,
   fitImageToWidth,
   listDocumentTemplates,
+  normalizeRenderMetrics,
   parseDocumentEnvelope,
   parseDocumentTemplate,
   resizeImageDimensions,
@@ -16,6 +18,34 @@ import {
 } from "./index";
 
 describe("document envelope", () => {
+  it("normalizes partial render metrics with explicit inherited defaults", () => {
+    const metrics = normalizeRenderMetrics({
+      typography: { headings: { 2: { fontSizePoints: 18 } } },
+      page: { margins: { leftPoints: 54 } },
+    });
+
+    expect(metrics.typography.headings[2]).toEqual({
+      fontSizePoints: 18,
+      spaceAbovePoints: 12,
+      spaceBelowPoints: 6,
+    });
+    expect(metrics.page.margins).toEqual({
+      topPoints: 72,
+      rightPoints: 72,
+      bottomPoints: 72,
+      leftPoints: 54,
+    });
+    expect(metrics.alignment.default).toBe(
+      DEFAULT_RENDER_METRICS.alignment.default,
+    );
+  });
+
+  it("rejects unknown render metric fields at the normalization boundary", () => {
+    expect(() =>
+      normalizeRenderMetrics({ typography: { family: "Arial" } }),
+    ).toThrow();
+  });
+
   it("reserves tables and other future nodes outside the core vocabulary", () => {
     expect(
       findUnsupportedDocumentNode(
