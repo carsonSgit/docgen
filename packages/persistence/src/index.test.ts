@@ -36,8 +36,8 @@ describe("local document persistence", () => {
     });
 
     const asset = await putImageAsset(storage, file, {
-      width: 240,
-      height: 120,
+      widthPoints: 240,
+      heightPoints: 120,
     });
 
     expect(asset.assetId).toMatch(/^asset_/);
@@ -45,6 +45,8 @@ describe("local document persistence", () => {
     expect(await storage.get(asset.assetId)).toMatchObject({
       assetId: asset.assetId,
       size: 3,
+      intrinsicWidthPoints: 240,
+      intrinsicHeightPoints: 120,
     });
   });
 
@@ -54,7 +56,7 @@ describe("local document persistence", () => {
       putImageAsset(
         storage,
         new File(["text"], "notes.txt", { type: "text/plain" }),
-        { width: 10, height: 10 },
+        { widthPoints: 10, heightPoints: 10 },
       ),
     ).rejects.toBeInstanceOf(ImageAssetError);
 
@@ -64,7 +66,10 @@ describe("local document persistence", () => {
       { type: "image/png" },
     );
     await expect(
-      putImageAsset(storage, oversized, { width: 10, height: 10 }),
+      putImageAsset(storage, oversized, {
+        widthPoints: 10,
+        heightPoints: 10,
+      }),
     ).rejects.toBeInstanceOf(ImageAssetError);
   });
 
@@ -86,6 +91,8 @@ describe("local document persistence", () => {
       blob: new Blob(["bad"], { type: "text/plain" }),
       mimeType: "image/png",
       size: 3,
+      intrinsicWidthPoints: 10,
+      intrinsicHeightPoints: 10,
     });
     expect(await restoreImageAsset(storage, image)).toMatchObject({
       kind: "corrupt",

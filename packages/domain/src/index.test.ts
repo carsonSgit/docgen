@@ -5,9 +5,11 @@ import {
   createDocumentFromTemplate,
   createImageNode,
   DOCUMENT_VERSION,
+  fitImageToWidth,
   listDocumentTemplates,
   parseDocumentEnvelope,
   parseDocumentTemplate,
+  resizeImageDimensions,
   validateDocumentEnvelope,
   validateImageDimensions,
 } from "./index";
@@ -154,6 +156,17 @@ describe("document envelope", () => {
   it("rejects invalid image dimensions", () => {
     expect(() => validateImageDimensions(0, 10)).toThrow();
     expect(() => validateImageDimensions(10, 2000)).toThrow();
+  });
+
+  it("keeps intrinsic aspect ratio when choosing or resizing rendered points", () => {
+    expect(fitImageToWidth(1200, 600, 468)).toEqual({
+      width: 468,
+      height: 234,
+    });
+    expect(resizeImageDimensions({ width: 468, height: 234 }, 234)).toEqual({
+      width: 234,
+      height: 117,
+    });
   });
 
   it("provides validated, versioned built-in templates", () => {
