@@ -22,7 +22,12 @@ test("captures the Core Editor Slice with deterministic local assertions", async
       manualBreaks: number[];
       automaticBreaks: number[];
       page: { widthPoints: number; heightPoints: number };
-      headerFooter: { header: string; footer: string };
+      headerFooter: {
+        header: string;
+        footer: string;
+        headerDistancePoints: number;
+        footerDistancePoints: number;
+      };
       typography: { fontFamily: string };
     };
   };
@@ -63,6 +68,14 @@ test("captures the Core Editor Slice with deterministic local assertions", async
         overflow: (body?.scrollHeight ?? 0) > (editor?.clientHeight ?? 0) + 1,
         header: currentPage.querySelector(".page-header")?.textContent?.trim(),
         footer: currentPage.querySelector(".page-footer")?.textContent?.trim(),
+        sectionOffsets: (() => {
+          const header = currentPage.querySelector<HTMLElement>(".page-header");
+          const footer = currentPage.querySelector<HTMLElement>(".page-footer");
+          return {
+            headerTop: header ? getComputedStyle(header).top : null,
+            footerBottom: footer ? getComputedStyle(footer).bottom : null,
+          };
+        })(),
         breakBefore: currentPage.getAttribute("data-break-before"),
         typography: body
           ? {
@@ -113,6 +126,15 @@ test("captures the Core Editor Slice with deterministic local assertions", async
   );
   expect(metrics[0]?.header).toBe(manifest.expected.headerFooter.header);
   expect(metrics[0]?.footer).toBe(manifest.expected.headerFooter.footer);
+  expect(
+    metrics.every(
+      (metric) =>
+        metric.sectionOffsets.headerTop ===
+          `${manifest.expected.headerFooter.headerDistancePoints * (96 / 72)}px` &&
+        metric.sectionOffsets.footerBottom ===
+          `${manifest.expected.headerFooter.footerDistancePoints * (96 / 72)}px`,
+    ),
+  ).toBe(true);
   expect(
     metrics.every(
       (metric) => metric.header === manifest.expected.headerFooter.header,

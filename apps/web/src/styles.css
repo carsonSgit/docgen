@@ -421,13 +421,11 @@ button:disabled {
 }
 
 .page-header {
-  top: 48px;
+  top: var(--document-header-distance);
 }
 
 .page-footer {
-  /* The editor line box sits inside the footer region; 54pt visually matches
-     Google Docs' footer baseline while the export margin remains 36pt. */
-  bottom: 72px;
+  bottom: var(--document-footer-distance);
 }
 
 .page-header button,

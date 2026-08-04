@@ -312,7 +312,7 @@ test("uses the native header and footer distances around the body", async ({
   });
 
   expect(distances.headerTop).toBeCloseTo(48, 0);
-  expect(distances.footerBottom).toBeCloseTo(72, 0);
+  expect(distances.footerBottom).toBeCloseTo(48, 0);
 });
 
 test("matches native Docs heading and list spacing in the meeting template", async ({
