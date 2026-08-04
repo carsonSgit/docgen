@@ -401,3 +401,49 @@ describe("Google Docs compiler", () => {
     expect(() => compileDocument(document)).toThrow("table");
   });
 });
+
+describe("native list render metrics", () => {
+  it("sets list spacing mode explicitly for native Docs", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "First item" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = compileDocument(document);
+    const paragraph = result.requests.find(
+      (request) =>
+        "updateParagraphStyle" in request &&
+        request.updateParagraphStyle.paragraphStyle.spacingMode ===
+          "COLLAPSE_LISTS",
+    );
+
+    expect(paragraph).toEqual({
+      updateParagraphStyle: {
+        range: { startIndex: 1, endIndex: 13 },
+        paragraphStyle: {
+          lineSpacing: 115,
+          spaceAbove: { magnitude: 0, unit: "PT" },
+          spaceBelow: { magnitude: 0, unit: "PT" },
+          spacingMode: "COLLAPSE_LISTS",
+        },
+        fields: "lineSpacing,spaceAbove,spaceBelow,spacingMode",
+      },
+    });
+  });
+});

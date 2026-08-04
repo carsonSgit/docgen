@@ -412,7 +412,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     },
     {
       "updateParagraphStyle": {
-        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "fields": "lineSpacing,spaceAbove,spaceBelow,spacingMode",
         "paragraphStyle": {
           "lineSpacing": 115,
           "spaceAbove": {
@@ -423,6 +423,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
             "magnitude": 0,
             "unit": "PT",
           },
+          "spacingMode": "COLLAPSE_LISTS",
         },
         "range": {
           "endIndex": 353,
@@ -505,7 +506,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     },
     {
       "updateParagraphStyle": {
-        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "fields": "lineSpacing,spaceAbove,spaceBelow,spacingMode",
         "paragraphStyle": {
           "lineSpacing": 115,
           "spaceAbove": {
@@ -516,6 +517,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
             "magnitude": 0,
             "unit": "PT",
           },
+          "spacingMode": "COLLAPSE_LISTS",
         },
         "range": {
           "endIndex": 373,
@@ -598,7 +600,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     },
     {
       "updateParagraphStyle": {
-        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "fields": "lineSpacing,spaceAbove,spaceBelow,spacingMode",
         "paragraphStyle": {
           "lineSpacing": 115,
           "spaceAbove": {
@@ -609,6 +611,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
             "magnitude": 0,
             "unit": "PT",
           },
+          "spacingMode": "COLLAPSE_LISTS",
         },
         "range": {
           "endIndex": 387,
