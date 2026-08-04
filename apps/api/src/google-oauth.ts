@@ -130,7 +130,7 @@ export class GoogleOAuthService {
     }
     const expiresAt = this.pendingStates.get(state);
     this.pendingStates.delete(state);
-    if (!expiresAt || expiresAt < Date.now()) {
+    if (!expiresAt || expiresAt <= Date.now()) {
       throw new Error("Google OAuth state is invalid or expired.");
     }
     const response = await this.fetchImpl(GOOGLE_TOKEN_ENDPOINT, {
