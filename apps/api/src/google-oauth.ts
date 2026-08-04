@@ -5,8 +5,14 @@ import type { GoogleProviderClient } from "@document-playground/export-service";
 import { z } from "zod";
 import { createGoogleProviderClient } from "./google-provider";
 
-const TokenResponseSchema = z.object({ access_token: z.string().min(1) });
-const PersistedTokenSchema = z.object({ accessToken: z.string().min(1) });
+const TokenResponseSchema = z.object({
+  access_token: z.string().min(1),
+  refresh_token: z.string().min(1).optional(),
+});
+const PersistedTokenSchema = z.object({
+  accessToken: z.string().min(1),
+  refreshToken: z.string().min(1).optional(),
+});
 const GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const SCOPES = [
@@ -29,14 +35,16 @@ type GoogleOAuthOptions = {
 };
 
 type OAuthTokenStore = {
-  load: () => string | undefined;
-  save: (accessToken: string) => void;
+  load: () => OAuthTokens | undefined;
+  save: (tokens: OAuthTokens) => void;
 };
+
+type OAuthTokens = { accessToken: string; refreshToken?: string };
 
 export class FileOAuthTokenStore implements OAuthTokenStore {
   constructor(private readonly path: string) {}
 
-  load(): string | undefined {
+  load(): OAuthTokens | undefined {
     let raw: string;
     try {
       raw = readFileSync(this.path, "utf8");
@@ -65,12 +73,12 @@ export class FileOAuthTokenStore implements OAuthTokenStore {
     if (!parsed.success) {
       throw new Error(`OAuth token file '${this.path}' is invalid.`);
     }
-    return parsed.data.accessToken;
+    return parsed.data;
   }
 
-  save(accessToken: string): void {
+  save(tokens: OAuthTokens): void {
     mkdirSync(dirname(this.path), { recursive: true, mode: 0o700 });
-    writeFileSync(this.path, JSON.stringify({ accessToken }), {
+    writeFileSync(this.path, JSON.stringify(tokens), {
       encoding: "utf8",
       mode: 0o600,
     });
@@ -79,7 +87,7 @@ export class FileOAuthTokenStore implements OAuthTokenStore {
 }
 
 export class GoogleOAuthService {
-  private accessToken: string | undefined;
+  private tokens: OAuthTokens | undefined;
   private readonly pendingStates = new Map<string, number>();
   private readonly fetchImpl: FetchLike;
   private readonly stateFactory: () => string;
@@ -87,7 +95,7 @@ export class GoogleOAuthService {
   constructor(private readonly options: GoogleOAuthOptions) {
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.stateFactory = options.stateFactory ?? randomUUID;
-    this.accessToken = options.tokenStore?.load();
+    this.tokens = options.tokenStore?.load();
   }
 
   isConfigured(): boolean {
@@ -95,7 +103,7 @@ export class GoogleOAuthService {
   }
 
   hasAccessToken(): boolean {
-    return Boolean(this.accessToken);
+    return Boolean(this.tokens?.accessToken);
   }
 
   startAuthorization(): string {
@@ -141,13 +149,45 @@ export class GoogleOAuthService {
     const parsed = TokenResponseSchema.safeParse(body);
     if (!parsed.success)
       throw new Error("Google returned an invalid OAuth token.");
-    this.accessToken = parsed.data.access_token;
-    this.options.tokenStore?.save(this.accessToken);
+    this.tokens = {
+      accessToken: parsed.data.access_token,
+      refreshToken: parsed.data.refresh_token ?? this.tokens?.refreshToken,
+    };
+    this.options.tokenStore?.save(this.tokens);
+  }
+
+  async refreshAccessToken(): Promise<string | undefined> {
+    const refreshToken = this.tokens?.refreshToken;
+    if (!refreshToken || !this.options.clientId || !this.options.clientSecret) {
+      return undefined;
+    }
+    const response = await this.fetchImpl(GOOGLE_TOKEN_ENDPOINT, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        refresh_token: refreshToken,
+        client_id: this.options.clientId,
+        client_secret: this.options.clientSecret,
+        grant_type: "refresh_token",
+      }),
+    });
+    const body: unknown = await response.json();
+    if (!response.ok) throw new Error("Google OAuth token refresh failed.");
+    const parsed = TokenResponseSchema.safeParse(body);
+    if (!parsed.success)
+      throw new Error("Google returned an invalid OAuth token.");
+    this.tokens = {
+      accessToken: parsed.data.access_token,
+      refreshToken,
+    };
+    this.options.tokenStore?.save(this.tokens);
+    return this.tokens.accessToken;
   }
 
   provider(): GoogleProviderClient {
     return createGoogleProviderClient({
-      accessToken: this.accessToken,
+      accessToken: this.tokens?.accessToken,
+      refreshAccessToken: () => this.refreshAccessToken(),
       fetchImpl: this.fetchImpl,
     });
   }

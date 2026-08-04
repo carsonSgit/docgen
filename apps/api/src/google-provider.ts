@@ -16,6 +16,7 @@ type FetchLike = (
 
 export function createGoogleProviderClient(options: {
   accessToken: string | undefined;
+  refreshAccessToken?: () => Promise<string | undefined>;
   fetchImpl?: FetchLike;
   retryDelayMs?: number;
 }): GoogleProviderClient {
@@ -45,17 +46,27 @@ export function createGoogleProviderClient(options: {
     input: RequestInfo | URL,
     init: RequestInit,
   ): Promise<unknown> {
+    let accessToken = options.accessToken;
+    let refreshed = false;
     for (let attempt = 0; ; attempt += 1) {
       const response = await fetchImpl(input, {
         ...init,
         headers: {
-          authorization: `Bearer ${options.accessToken}`,
+          authorization: `Bearer ${accessToken}`,
           "content-type": "application/json",
           ...init.headers,
         },
       });
       const body: unknown = await response.json().catch(() => undefined);
       if (response.ok) return body;
+      if (response.status === 401 && !refreshed && options.refreshAccessToken) {
+        refreshed = true;
+        const nextToken = await options.refreshAccessToken();
+        if (nextToken) {
+          accessToken = nextToken;
+          continue;
+        }
+      }
       if (RETRYABLE_STATUS.has(response.status) && attempt < MAX_RETRIES) {
         const delay = Math.min(retryDelayMs * 2 ** attempt, 1_000);
         if (delay > 0) {

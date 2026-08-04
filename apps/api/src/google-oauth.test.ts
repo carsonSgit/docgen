@@ -42,7 +42,10 @@ describe("Google OAuth service", () => {
 
   it("restores a persisted token and saves a newly exchanged token", async () => {
     const tokenStore = {
-      load: vi.fn(() => "restored-token"),
+      load: vi.fn(() => ({
+        accessToken: "restored-token",
+        refreshToken: "refresh",
+      })),
       save: vi.fn(),
     };
     const oauth = new GoogleOAuthService({
@@ -53,16 +56,57 @@ describe("Google OAuth service", () => {
       stateFactory: () => "state-1",
       fetchImpl: vi.fn(
         async () =>
-          new Response(JSON.stringify({ access_token: "fresh-token" }), {
-            status: 200,
-          }),
+          new Response(
+            JSON.stringify({
+              access_token: "fresh-token",
+              refresh_token: "new-refresh",
+            }),
+            {
+              status: 200,
+            },
+          ),
       ),
     });
 
     expect(oauth.hasAccessToken()).toBe(true);
     oauth.startAuthorization();
     await oauth.completeAuthorization("code", "state-1");
-    expect(tokenStore.save).toHaveBeenCalledWith("fresh-token");
+    expect(tokenStore.save).toHaveBeenCalledWith({
+      accessToken: "fresh-token",
+      refreshToken: "new-refresh",
+    });
+  });
+
+  it("refreshes an expired access token through the persisted refresh token", async () => {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ access_token: "refreshed-token" }), {
+          status: 200,
+        }),
+    );
+    const tokenStore = {
+      load: vi.fn(() => ({ accessToken: "expired", refreshToken: "refresh" })),
+      save: vi.fn(),
+    };
+    const oauth = new GoogleOAuthService({
+      clientId: "client",
+      clientSecret: "secret",
+      redirectUri: "callback",
+      tokenStore,
+      fetchImpl,
+    });
+
+    await expect(oauth.refreshAccessToken()).resolves.toBe("refreshed-token");
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "https://oauth2.googleapis.com/token",
+      expect.objectContaining({
+        body: expect.any(URLSearchParams),
+      }),
+    );
+    expect(tokenStore.save).toHaveBeenCalledWith({
+      accessToken: "refreshed-token",
+      refreshToken: "refresh",
+    });
   });
 
   it("stores file-backed tokens with restricted permissions", () => {
@@ -70,11 +114,15 @@ describe("Google OAuth service", () => {
     const path = join(directory, "token.json");
     try {
       const store = new FileOAuthTokenStore(path);
-      store.save("token");
+      store.save({ accessToken: "token", refreshToken: "refresh" });
       expect(JSON.parse(readFileSync(path, "utf8"))).toEqual({
         accessToken: "token",
+        refreshToken: "refresh",
       });
-      expect(new FileOAuthTokenStore(path).load()).toBe("token");
+      expect(new FileOAuthTokenStore(path).load()).toEqual({
+        accessToken: "token",
+        refreshToken: "refresh",
+      });
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
