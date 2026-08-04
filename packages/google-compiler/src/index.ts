@@ -355,7 +355,13 @@ function compileNode(
       });
       state.index += 1;
     }
-    const range = { startIndex, endIndex: state.index };
+    const range = {
+      startIndex,
+      endIndex:
+        node.type === "listItem"
+          ? (listItemContentEndIndex ?? state.index)
+          : state.index,
+    };
 
     requests.push({
       updateParagraphStyle: {
