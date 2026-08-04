@@ -1,6 +1,7 @@
 import {
   type DocumentNode,
   MAX_IMAGE_DIMENSION_POINTS,
+  validateImageDimensions,
 } from "@document-playground/domain";
 import { LinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import {
@@ -297,6 +298,11 @@ export function createLexicalEditor(
     )
       return;
     const { key, width, height } = detail;
+    try {
+      validateImageDimensions(width, height);
+    } catch {
+      return;
+    }
     lexical.update(() => {
       const node = $getNodeByKey(key);
       if (!(node instanceof ImageNode)) return;
