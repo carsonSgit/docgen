@@ -320,6 +320,32 @@ describe("core editor adapter", () => {
     );
   });
 
+  it("preserves justified paragraph alignment at the canonical editor boundary", async () => {
+    const host = document.createElement("div");
+    const editor = createLexicalEditor(host, {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Aligned" }] },
+      ],
+    });
+
+    editor.focus("end");
+    editor.setAlignment("justify");
+    await new Promise((resolve) => queueMicrotask(resolve));
+
+    expect(editor.getDocument()).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          attrs: { textAlign: "justify" },
+          content: [{ type: "text", text: "Aligned" }],
+        },
+      ],
+    });
+    editor.destroy();
+  });
+
   it("round-trips canonical content through a Lexical-neutral shape", () => {
     const canonical = {
       type: "doc" as const,

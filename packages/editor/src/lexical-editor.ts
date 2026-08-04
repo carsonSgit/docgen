@@ -236,7 +236,7 @@ export type LexicalEditorAdapter = {
   toggleFormat(format: "bold" | "italic" | "underline"): void;
   setHeading(level: number): void;
   toggleList(type: "bullet" | "number"): void;
-  setAlignment(alignment: "left" | "center" | "right"): void;
+  setAlignment(alignment: "left" | "center" | "right" | "justify"): void;
   setLink(url: string | null): void;
   insertPageBreak(): void;
   insertImage(attributes: {
