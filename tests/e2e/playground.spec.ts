@@ -21,6 +21,18 @@ test("edits a title and completes a mocked export", async ({ page }) => {
   ).toHaveAttribute("href", "https://docs.google.com/document/d/e2e-doc/edit");
 });
 
+test("propagates native text input through the Lexical adapter", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const editor = page.locator(".ProseMirror").first();
+
+  await editor.click();
+  await page.keyboard.insertText("Native input");
+
+  await expect(editor).toContainText("Native input");
+});
+
 test("shows the image upload control in the toolbar", async ({ page }) => {
   await page.goto("/");
   await expect(

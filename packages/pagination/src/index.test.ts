@@ -70,6 +70,32 @@ describe("pagination adapter", () => {
     ).toBe(true);
   });
 
+  it("moves a wrapped paragraph child when its first line crosses the boundary", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "a".repeat(92) }],
+        },
+        ...Array.from({ length: 50 }, () => ({
+          type: "paragraph",
+          content: [{ type: "text", text: "line" }],
+        })),
+      ],
+    };
+
+    const result = paginateDocument(document);
+
+    expect(result.pages).toHaveLength(2);
+    expect(result.pages[0]?.content).toHaveLength(50);
+    expect(result.pages[1]?.content[0]).toMatchObject({
+      type: "paragraph",
+      content: [{ type: "text", text: "line" }],
+    });
+  });
+
   it("keeps measured hard-break lines on the current page", () => {
     const document = createBlankDocument();
     document.content = {

@@ -12,6 +12,7 @@ import {
 } from "@document-playground/editor";
 import {
   PAGE_FRAGMENT_ATTR,
+  PAGE_VISUAL_FRAGMENT_ATTR,
   type PaginationPage,
   paginateDocument,
 } from "@document-playground/pagination";
@@ -60,8 +61,12 @@ function flattenPages(pages: PaginationPage[]): DocumentNode[] {
           (fragmentId && fragmentId === previousFragmentId)) &&
         previous?.type === node.type
       ) {
+        const visualBreak = node.attrs?.[PAGE_VISUAL_FRAGMENT_ATTR]
+          ? [{ type: "hardBreak" as const }]
+          : [];
         previous.content = [
           ...(previous.content ?? []),
+          ...visualBreak,
           ...(node.content ?? []),
         ];
       } else {
@@ -72,7 +77,11 @@ function flattenPages(pages: PaginationPage[]): DocumentNode[] {
 
   return content.map((node) => {
     if (!node.attrs?.[PAGE_FRAGMENT_ATTR]) return node;
-    const { [PAGE_FRAGMENT_ATTR]: _fragmentId, ...attrs } = node.attrs;
+    const {
+      [PAGE_FRAGMENT_ATTR]: _fragmentId,
+      [PAGE_VISUAL_FRAGMENT_ATTR]: _visualFragment,
+      ...attrs
+    } = node.attrs;
     return {
       ...node,
       ...(Object.keys(attrs).length ? { attrs } : { attrs: undefined }),
@@ -140,7 +149,10 @@ function BodyEditor({
       host.current,
       {
         type: "doc",
-        content: page.content,
+        content:
+          page.content.length > 0
+            ? page.content
+            : [{ type: "paragraph" as const }],
       },
       { resolveImageSource },
     );
@@ -164,13 +176,34 @@ function BodyEditor({
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
-    const current = JSON.stringify(editor.getDocument().content ?? []);
-    if (current !== serializedContent) {
-      editor.loadDocument({ type: "doc", content: page.content });
-    }
+    const timeout = window.setTimeout(() => {
+      const current = JSON.stringify(editor.getDocument().content ?? []);
+      if (current !== serializedContent) {
+        editor.loadDocument(
+          {
+            type: "doc",
+            content:
+              page.content.length > 0
+                ? page.content
+                : [{ type: "paragraph" as const }],
+          },
+          { notify: false },
+        );
+      }
+    });
+    return () => window.clearTimeout(timeout);
   }, [page.content, serializedContent]);
 
-  return <div ref={host} className="editor" />;
+  return (
+    <div className="editor">
+      <div
+        ref={host}
+        className="ProseMirror"
+        contentEditable
+        suppressContentEditableWarning
+      />
+    </div>
+  );
 }
 
 function SectionEditor({
@@ -216,7 +249,11 @@ function SectionEditor({
     }
   }, [content, serializedContent]);
 
-  return <div className={`section-editor ${section}-editor`} ref={host} />;
+  return (
+    <div className={`section-editor ${section}-editor`}>
+      <div ref={host} className="ProseMirror" />
+    </div>
+  );
 }
 
 function PageEditor({
@@ -713,6 +750,12 @@ export function App() {
             }}
             onEditorReady={(pageNumber, editor) => {
               pageEditorsRef.current.set(pageNumber, editor);
+              if (pendingPageFocusRef.current !== pageNumber) return;
+              requestAnimationFrame(() => {
+                editor.focus("start");
+                activeEditorRef.current = editor;
+                pendingPageFocusRef.current = null;
+              });
             }}
           />
         ))}
