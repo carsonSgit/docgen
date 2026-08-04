@@ -40,6 +40,30 @@ describe("Google OAuth service", () => {
     ).rejects.toThrow("state is invalid");
   });
 
+  it("rejects a callback at the exact state expiration deadline", async () => {
+    const fetchImpl = vi.fn();
+    const clock = vi.spyOn(Date, "now").mockReturnValue(1_000);
+    const oauth = new GoogleOAuthService({
+      clientId: "client",
+      clientSecret: "secret",
+      redirectUri: "callback",
+      stateFactory: () => "expiring-state",
+      fetchImpl,
+    });
+
+    try {
+      oauth.startAuthorization();
+      clock.mockReturnValue(601_000);
+
+      await expect(
+        oauth.completeAuthorization("code", "expiring-state"),
+      ).rejects.toThrow("state is invalid");
+      expect(fetchImpl).not.toHaveBeenCalled();
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
   it("restores a persisted token and saves a newly exchanged token", async () => {
     const tokenStore = {
       load: vi.fn(() => ({
