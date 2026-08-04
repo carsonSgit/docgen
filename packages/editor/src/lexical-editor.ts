@@ -6,7 +6,11 @@ import {
   ListItemNode,
   ListNode,
 } from "@lexical/list";
-import { $createHeadingNode, HeadingNode } from "@lexical/rich-text";
+import {
+  $createHeadingNode,
+  HeadingNode,
+  registerRichText,
+} from "@lexical/rich-text";
 import {
   $createParagraphNode,
   $createTextNode,
@@ -210,6 +214,7 @@ export function createLexicalEditor(
   element.setAttribute("role", "textbox");
   element.setAttribute("aria-multiline", "true");
   lexical.setRootElement(element as HTMLElement);
+  const unregisterRichText = registerRichText(lexical);
   const listeners = new Set<(document: DocumentNode) => void>();
   const renderImageSources = () => {
     if (!options.resolveImageSource) return;
@@ -271,9 +276,9 @@ export function createLexicalEditor(
       });
     },
     focus(position = "end") {
-      lexical.focus(() => ({
+      lexical.focus(undefined, {
         defaultSelection: position === "start" ? "rootStart" : "rootEnd",
-      }));
+      });
     },
     toggleFormat(format) {
       lexical.dispatchCommand(FORMAT_TEXT_COMMAND, format);
@@ -344,6 +349,7 @@ export function createLexicalEditor(
       lexical.dispatchCommand(REDO_COMMAND, undefined);
     },
     destroy() {
+      unregisterRichText();
       lexical.setRootElement(null);
       listeners.clear();
     },
