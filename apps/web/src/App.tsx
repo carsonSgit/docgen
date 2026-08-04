@@ -221,11 +221,13 @@ function SectionEditor({
   content,
   onChange,
   onFocus,
+  resolveImageSource,
 }: {
   section: "header" | "footer";
   content: DocumentSection;
   onChange: (content: DocumentSection) => void;
   onFocus: (editor: CoreEditor) => void;
+  resolveImageSource: (assetId: string) => string | undefined;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const editorRef = useRef<CoreEditor | null>(null);
@@ -237,7 +239,9 @@ function SectionEditor({
 
   useEffect(() => {
     if (!host.current) return;
-    const editor = createLexicalEditor(host.current, content);
+    const editor = createLexicalEditor(host.current, content, {
+      resolveImageSource,
+    });
     editorRef.current = editor;
     const handleFocus = () => onFocusRef.current(editor);
     const unsubscribe = editor.onChange((nextContent) =>
@@ -250,7 +254,7 @@ function SectionEditor({
       editor.destroy();
       editorRef.current = null;
     };
-  }, []);
+  }, [resolveImageSource]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -308,6 +312,7 @@ function PageEditor({
             content={header}
             onChange={(content) => onSectionChange("header", content)}
             onFocus={onFocus}
+            resolveImageSource={resolveImageSource}
           />
         ) : (
           <button
@@ -334,6 +339,7 @@ function PageEditor({
             content={footer}
             onChange={(content) => onSectionChange("footer", content)}
             onFocus={onFocus}
+            resolveImageSource={resolveImageSource}
           />
         ) : (
           <button
