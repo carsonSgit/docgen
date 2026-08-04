@@ -337,10 +337,12 @@ function compileNode(
       typeof alignment === "string" &&
       ["left", "center", "right", "justify"].includes(alignment)
     ) {
+      const googleAlignment =
+        alignment === "justify" ? "JUSTIFIED" : alignment.toUpperCase();
       requests.push({
         updateParagraphStyle: {
           range,
-          paragraphStyle: { alignment: alignment.toUpperCase() },
+          paragraphStyle: { alignment: googleAlignment },
           fields: "alignment",
         },
       });
