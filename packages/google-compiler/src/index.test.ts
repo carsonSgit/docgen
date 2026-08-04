@@ -446,4 +446,52 @@ describe("native list render metrics", () => {
       },
     });
   });
+
+  it("preserves nested list levels for native Docs", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Parent" }],
+                },
+                {
+                  type: "orderedList",
+                  content: [
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [{ type: "text", text: "Child" }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = compileDocument(document);
+    expect(result.requests).toContainEqual({
+      insertText: { location: { index: 8 }, text: "\t" },
+    });
+    expect(result.requests).toContainEqual({
+      insertText: { location: { index: 9 }, text: "Child" },
+    });
+    expect(result.requests).toContainEqual({
+      insertText: { location: { index: 14 }, text: "\n" },
+    });
+  });
 });
