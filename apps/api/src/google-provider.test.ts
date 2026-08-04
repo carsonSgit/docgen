@@ -101,4 +101,46 @@ describe("Google provider client", () => {
       }),
     ).rejects.toThrow("Google API request failed (403): Drive API is disabled");
   });
+
+  it("retries a transient Google failure once before succeeding", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: { message: "busy" } }), {
+          status: 503,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ documentId: "doc-1" }), { status: 200 }),
+      );
+    const provider = createGoogleProviderClient({
+      accessToken: "token",
+      fetchImpl,
+      retryDelayMs: 0,
+    });
+
+    await expect(provider.createDocument("Title")).resolves.toEqual({
+      documentId: "doc-1",
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops retrying after the bounded transient failure policy", async () => {
+    const fetchImpl = vi.fn().mockImplementation(
+      async () =>
+        new Response(JSON.stringify({ error: { message: "busy" } }), {
+          status: 503,
+        }),
+    );
+    const provider = createGoogleProviderClient({
+      accessToken: "token",
+      fetchImpl,
+      retryDelayMs: 0,
+    });
+
+    await expect(provider.createDocument("Title")).rejects.toThrow(
+      "Google API request failed (503): busy",
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
 });
