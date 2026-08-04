@@ -1,5 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname } from "node:path";
 import type { GoogleProviderClient } from "@document-playground/export-service";
 import { z } from "zod";
@@ -37,6 +43,7 @@ type GoogleOAuthOptions = {
 type OAuthTokenStore = {
   load: () => OAuthTokens | undefined;
   save: (tokens: OAuthTokens) => void;
+  clear?: () => void;
 };
 
 type OAuthTokens = { accessToken: string; refreshToken?: string };
@@ -83,6 +90,23 @@ export class FileOAuthTokenStore implements OAuthTokenStore {
       mode: 0o600,
     });
     chmodSync(this.path, 0o600);
+  }
+
+  clear(): void {
+    try {
+      unlinkSync(this.path);
+    } catch (error) {
+      if (
+        !error ||
+        typeof error !== "object" ||
+        !("code" in error) ||
+        error.code !== "ENOENT"
+      ) {
+        throw new Error(`Could not clear OAuth token file '${this.path}'.`, {
+          cause: error,
+        });
+      }
+    }
   }
 }
 
@@ -182,6 +206,11 @@ export class GoogleOAuthService {
     };
     this.options.tokenStore?.save(this.tokens);
     return this.tokens.accessToken;
+  }
+
+  clearAuthorization(): void {
+    this.tokens = undefined;
+    this.options.tokenStore?.clear?.();
   }
 
   provider(): GoogleProviderClient {
