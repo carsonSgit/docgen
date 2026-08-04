@@ -192,6 +192,7 @@ function compileNode(
   state: { index: number },
   imageUris: ReadonlyMap<string, string>,
   listType?: "bullet" | "ordered",
+  listDepth = 0,
 ): void {
   if (node.type === "hardBreak") {
     requests.push({
@@ -257,7 +258,7 @@ function compileNode(
 
   if (node.type === "doc") {
     node.content?.forEach((child) => {
-      compileNode(child, requests, state, imageUris);
+      compileNode(child, requests, state, imageUris, undefined, 0);
     });
     return;
   }
@@ -265,14 +266,31 @@ function compileNode(
   if (node.type === "bulletList" || node.type === "orderedList") {
     const nextListType = node.type === "bulletList" ? "bullet" : "ordered";
     node.content?.forEach((child) => {
-      compileNode(child, requests, state, imageUris, nextListType);
+      compileNode(child, requests, state, imageUris, nextListType, listDepth);
     });
     return;
   }
 
   const startIndex = state.index;
+  if (node.type === "listItem" && listDepth > 0) {
+    const indentation = "\t".repeat(listDepth);
+    requests.push({
+      insertText: { location: { index: state.index }, text: indentation },
+    });
+    state.index += indentation.length;
+  }
   node.content?.forEach((child) => {
-    compileNode(child, requests, state, imageUris, listType);
+    compileNode(
+      child,
+      requests,
+      state,
+      imageUris,
+      listType,
+      node.type === "listItem" &&
+        (child.type === "bulletList" || child.type === "orderedList")
+        ? listDepth + 1
+        : listDepth,
+    );
   });
 
   if (
@@ -320,6 +338,9 @@ function compileNode(
               : "NUMBERED_DECIMAL_ALPHA_ROMAN",
         },
       });
+      // Google removes the leading tabs used to derive nesting. Keep later
+      // request indexes aligned with the post-batch document state.
+      state.index -= listDepth;
     }
   }
 }
