@@ -140,7 +140,10 @@ function BodyEditor({
       host.current,
       {
         type: "doc",
-        content: page.content,
+        content:
+          page.content.length > 0
+            ? page.content
+            : [{ type: "paragraph" as const }],
       },
       { resolveImageSource },
     );
@@ -164,9 +167,21 @@ function BodyEditor({
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
+    // Pagination updates the prop value while the focused Lexical instance
+    // already contains the user's edit. Reloading here would replace its
+    // selection and send the next keystroke to a different position.
+    if (host.current?.contains(host.current.ownerDocument.activeElement)) {
+      return;
+    }
     const current = JSON.stringify(editor.getDocument().content ?? []);
     if (current !== serializedContent) {
-      editor.loadDocument({ type: "doc", content: page.content });
+      editor.loadDocument({
+        type: "doc",
+        content:
+          page.content.length > 0
+            ? page.content
+            : [{ type: "paragraph" as const }],
+      });
     }
   }, [page.content, serializedContent]);
 
@@ -373,8 +388,11 @@ export function App() {
         content: { type: "doc" as const, content: nextContent },
       };
       const reflowedPages = paginateDocument(nextDocument).pages;
+      const endsWithHardBreak =
+        content.at(-1)?.type === "paragraph" &&
+        content.at(-1)?.content?.some((node) => node.type === "hardBreak");
       if (
-        change?.cursorAtEnd &&
+        (change?.cursorAtEnd || endsWithHardBreak) &&
         reflowedPages.some((page) => page.number === pageNumber + 1)
       ) {
         pendingPageFocusRef.current = pageNumber + 1;
@@ -726,6 +744,12 @@ export function App() {
             }}
             onEditorReady={(pageNumber, editor) => {
               pageEditorsRef.current.set(pageNumber, editor);
+              if (pendingPageFocusRef.current !== pageNumber) return;
+              requestAnimationFrame(() => {
+                editor.focus("start");
+                activeEditorRef.current = editor;
+                pendingPageFocusRef.current = null;
+              });
             }}
           />
         ))}
