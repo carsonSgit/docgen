@@ -6,6 +6,7 @@ import {
   type DocumentNode,
   type DocumentSection,
   type DocumentTemplateId,
+  isEmptyDocumentSection,
   listDocumentTemplates,
   MAX_IMAGE_DIMENSION_POINTS,
 } from "@document-playground/domain";
@@ -89,6 +90,7 @@ function ToolbarButton({ label, mark, onClick }: ToolbarButtonProps) {
 
 type PageEditorProps = {
   page: PaginationPage;
+  bodyHeightPoints: number;
   layout: DocumentEnvelope["page"];
   header: DocumentSection | null;
   footer: DocumentSection | null;
@@ -103,7 +105,9 @@ type PageEditorProps = {
   onSectionChange: (
     section: "header" | "footer",
     content: DocumentSection,
+    activate?: boolean,
   ) => void;
+  editingSections: { header: boolean; footer: boolean };
   onFocus: (editor: CoreEditor) => void;
 };
 
@@ -163,7 +167,21 @@ function BodyEditor({
     const editor = editorRef.current;
     if (!editor) return;
     const timeout = window.setTimeout(() => {
-      const current = JSON.stringify(editor.getDocument().content ?? []);
+      const currentDocument = editor.getDocument();
+      const current = JSON.stringify(currentDocument.content ?? []);
+      const containsImage = (nodes: DocumentNode[] | undefined): boolean =>
+        (nodes ?? []).some(
+          (node) => node.type === "image" || containsImage(node.content),
+        );
+      // Pagination can briefly render the pre-insertion page while the editor
+      // already contains the newly inserted image. Do not replace that live
+      // node with stale empty-page content during this transient render.
+      if (
+        containsImage(currentDocument.content) &&
+        !containsImage(page.content)
+      ) {
+        return;
+      }
       if (current !== serializedContent) {
         editor.loadDocument(
           {
@@ -258,6 +276,7 @@ function SectionEditor({
 
 function PageEditor({
   page,
+  bodyHeightPoints,
   layout,
   header,
   footer,
@@ -265,6 +284,7 @@ function PageEditor({
   resolveImageSource,
   onChange,
   onSectionChange,
+  editingSections,
   onFocus,
   onEditorReady,
 }: PageEditorProps) {
@@ -272,6 +292,10 @@ function PageEditor({
     type: "doc" as const,
     content: [{ type: "paragraph" as const }],
   };
+  const activeHeader =
+    isEmptyDocumentSection(header) && !editingSections.header ? null : header;
+  const activeFooter =
+    isEmptyDocumentSection(footer) && !editingSections.footer ? null : footer;
   return (
     <article
       className="page"
@@ -298,11 +322,11 @@ function PageEditor({
       }
     >
       <section className="page-header" aria-label="Page header">
-        {header ? (
+        {activeHeader ? (
           <SectionEditor
             section="header"
-            content={header}
-            onChange={(content) => onSectionChange("header", content)}
+            content={activeHeader}
+            onChange={(content) => onSectionChange("header", content, false)}
             onFocus={onFocus}
             assetRevision={assetRevision}
             resolveImageSource={resolveImageSource}
@@ -310,13 +334,17 @@ function PageEditor({
         ) : (
           <button
             type="button"
-            onClick={() => onSectionChange("header", emptySection)}
+            onClick={() => onSectionChange("header", emptySection, true)}
           >
             Add header
           </button>
         )}
       </section>
-      <section className="page-body-editor" aria-label="Page body">
+      <section
+        className="page-body-editor"
+        aria-label="Page body"
+        style={{ height: `${bodyHeightPoints * (96 / 72)}px` }}
+      >
         <BodyEditor
           page={page}
           onChange={onChange}
@@ -327,11 +355,11 @@ function PageEditor({
         />
       </section>
       <section className="page-footer" aria-label="Page footer">
-        {footer ? (
+        {activeFooter ? (
           <SectionEditor
             section="footer"
-            content={footer}
-            onChange={(content) => onSectionChange("footer", content)}
+            content={activeFooter}
+            onChange={(content) => onSectionChange("footer", content, false)}
             onFocus={onFocus}
             assetRevision={assetRevision}
             resolveImageSource={resolveImageSource}
@@ -339,7 +367,7 @@ function PageEditor({
         ) : (
           <button
             type="button"
-            onClick={() => onSectionChange("footer", emptySection)}
+            onClick={() => onSectionChange("footer", emptySection, true)}
           >
             Add footer
           </button>
@@ -366,6 +394,10 @@ export function App() {
     useState<DocumentTemplateId>("blank");
   const [assetError, setAssetError] = useState<string | null>(null);
   const [assetRevision, setAssetRevision] = useState(0);
+  const [editingSections, setEditingSections] = useState({
+    header: false,
+    footer: false,
+  });
   const assetUrls = useRef(new Map<string, string>());
   const imageInputRef = useRef<HTMLInputElement>(null);
   const documentRef = useRef(document);
@@ -429,7 +461,8 @@ export function App() {
     };
   }, [persister]);
 
-  const pages = paginateDocument(document).pages;
+  const paginated = paginateDocument(document);
+  const pages = paginated.pages;
 
   useEffect(() => {
     const pageNumber = pendingPageFocusRef.current;
@@ -484,15 +517,28 @@ export function App() {
   }
 
   const updateSection = useCallback(
-    (section: "header" | "footer", content: DocumentSection) => {
-      const nextDocument = { ...documentRef.current, [section]: content };
+    (
+      section: "header" | "footer",
+      content: DocumentSection,
+      activate = false,
+    ) => {
+      const empty = isEmptyDocumentSection(content);
+      const nextDocument = {
+        ...documentRef.current,
+        [section]:
+          empty && !activate && !editingSections[section] ? null : content,
+      };
       documentRef.current = nextDocument;
       setDocument(nextDocument);
+      setEditingSections((current) => ({
+        ...current,
+        [section]: empty ? activate || current[section] : false,
+      }));
       setSaveStatus("Saving…");
       persister.schedule(nextDocument);
       window.setTimeout(() => setSaveStatus("Saved"), 300);
     },
-    [persister],
+    [editingSections, persister],
   );
 
   function openTemplateChooser() {
@@ -834,11 +880,13 @@ export function App() {
           <PageEditor
             key={page.number}
             page={page}
+            bodyHeightPoints={paginated.pageHeight}
             layout={document.page}
             assetRevision={assetRevision}
             resolveImageSource={resolveImageSource}
             header={document.header}
             footer={document.footer}
+            editingSections={editingSections}
             onChange={updatePageContent}
             onSectionChange={updateSection}
             onFocus={(editor) => {
