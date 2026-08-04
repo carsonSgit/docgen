@@ -117,6 +117,35 @@ describe("pagination adapter", () => {
     expect(result.pages[0]?.content[0]?.content).toHaveLength(50);
   });
 
+  it("retains hard breaks at split paragraph edges", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "First line" },
+            ...Array.from({ length: 51 }, () => ({
+              type: "hardBreak" as const,
+            })),
+            { type: "text", text: "Last line" },
+          ],
+        },
+      ],
+    };
+
+    const result = paginateDocument(document);
+    const allContent = result.pages.flatMap((page) =>
+      page.content.flatMap((node) => node.content ?? []),
+    );
+
+    expect(result.pages.length).toBeGreaterThan(1);
+    expect(allContent.filter((node) => node.type === "hardBreak")).toHaveLength(
+      51,
+    );
+  });
+
   it("uses persisted image height in points for deterministic pagination", () => {
     const document = createBlankDocument();
     document.content = {

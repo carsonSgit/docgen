@@ -119,7 +119,20 @@ function splitVisualFragment(fragment: TiptapNode): TiptapNode[] {
   };
   for (const child of fragment.content) {
     if (child.type === "hardBreak") {
-      pushVisualFragment();
+      if (visualContent.length === 0) {
+        const previous = visualFragments.at(-1);
+        if (previous) {
+          previous.content = [...(previous.content ?? []), child];
+        } else {
+          visualContent.push(child);
+        }
+      } else {
+        pushVisualFragment();
+        const previous = visualFragments.at(-1);
+        if (previous) {
+          previous.content = [...(previous.content ?? []), child];
+        }
+      }
       continue;
     }
     const textLines = child.text?.split("\n");

@@ -71,9 +71,11 @@ function flattenPages(pages: PaginationPage[]): DocumentNode[] {
           (fragmentId && fragmentId === previousFragmentId)) &&
         previous?.type === node.type
       ) {
-        const visualBreak = node.attrs?.[PAGE_VISUAL_FRAGMENT_ATTR]
-          ? [{ type: "hardBreak" as const }]
-          : [];
+        const visualBreak =
+          node.attrs?.[PAGE_VISUAL_FRAGMENT_ATTR] &&
+          previous.content?.at(-1)?.type !== "hardBreak"
+            ? [{ type: "hardBreak" as const }]
+            : [];
         previous.content = [
           ...(previous.content ?? []),
           ...visualBreak,
