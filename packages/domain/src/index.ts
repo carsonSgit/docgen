@@ -59,6 +59,60 @@ export type DocumentMark = {
   attrs?: Record<string, unknown>;
 };
 
+/**
+ * The node vocabulary implemented by the Core Editor Slice. New node types
+ * must be added here before pagination and export can handle them.
+ */
+export const CORE_DOCUMENT_NODE_TYPES = [
+  "doc",
+  "paragraph",
+  "heading",
+  "text",
+  "hardBreak",
+  "bulletList",
+  "orderedList",
+  "listItem",
+  "pageBreak",
+  "image",
+] as const;
+
+export type CoreDocumentNodeType = (typeof CORE_DOCUMENT_NODE_TYPES)[number];
+
+export function isCoreDocumentNodeType(
+  type: string,
+): type is CoreDocumentNodeType {
+  return (CORE_DOCUMENT_NODE_TYPES as readonly string[]).includes(type);
+}
+
+export type UnsupportedDocumentNode = {
+  path: string;
+  nodeType: string;
+};
+
+/** Find the first node outside the current canonical vocabulary. */
+export function findUnsupportedDocumentNode(
+  node: unknown,
+  path: string,
+): UnsupportedDocumentNode | null {
+  if (!node || typeof node !== "object") return null;
+  const candidate = node as { type?: unknown; content?: unknown };
+  if (
+    typeof candidate.type === "string" &&
+    !isCoreDocumentNodeType(candidate.type)
+  ) {
+    return { path, nodeType: candidate.type };
+  }
+  if (!Array.isArray(candidate.content)) return null;
+  for (const [index, child] of candidate.content.entries()) {
+    const unsupported = findUnsupportedDocumentNode(
+      child,
+      `${path}.content[${index}]`,
+    );
+    if (unsupported) return unsupported;
+  }
+  return null;
+}
+
 /** @deprecated Use DocumentNode; this alias remains for the existing editor adapter. */
 export type TiptapNode = DocumentNode;
 
