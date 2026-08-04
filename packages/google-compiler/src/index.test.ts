@@ -482,6 +482,82 @@ describe("Google Docs compiler", () => {
 });
 
 describe("native list render metrics", () => {
+  it("rebases a deeper nested sibling marker after the prior marker removes tabs", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                { type: "paragraph", content: [{ type: "text", text: "P" }] },
+                {
+                  type: "orderedList",
+                  content: [
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [{ type: "text", text: "C" }],
+                        },
+                        {
+                          type: "bulletList",
+                          content: [
+                            {
+                              type: "listItem",
+                              content: [
+                                {
+                                  type: "paragraph",
+                                  content: [{ type: "text", text: "G1" }],
+                                },
+                              ],
+                            },
+                            {
+                              type: "listItem",
+                              content: [
+                                {
+                                  type: "paragraph",
+                                  content: [{ type: "text", text: "G2" }],
+                                },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        { type: "paragraph", content: [{ type: "text", text: "After" }] },
+      ],
+    };
+    const markers = compileDocument(document).requests.filter(
+      (request) => "createParagraphBullets" in request,
+    );
+    expect(markers).toEqual(
+      expect.arrayContaining([
+        {
+          createParagraphBullets: {
+            range: { startIndex: 8, endIndex: 11 },
+            bulletPreset: "BULLET_DISC_CIRCLE_SQUARE",
+          },
+        },
+        {
+          createParagraphBullets: {
+            range: { startIndex: 9, endIndex: 12 },
+            bulletPreset: "BULLET_DISC_CIRCLE_SQUARE",
+          },
+        },
+      ]),
+    );
+  });
   it("does not add a blank native paragraph after a list item", () => {
     const document = createBlankDocument();
     document.content = {

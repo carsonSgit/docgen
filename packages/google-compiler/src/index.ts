@@ -245,6 +245,22 @@ function appendListMarkerRequests(
   requests.push({ createParagraphBullets: { range, bulletPreset } });
 }
 
+function markerRebase(
+  range: Range,
+  removedTabs: ReadonlyArray<{ position: number; count: number }>,
+): Range {
+  const removedBefore = removedTabs
+    .filter(({ position }) => position < range.startIndex)
+    .reduce((total, { count }) => total + count, 0);
+  return removedBefore === 0
+    ? range
+    : {
+        ...range,
+        startIndex: range.startIndex - removedBefore,
+        endIndex: range.endIndex - removedBefore,
+      };
+}
+
 function compileNode(
   node: TiptapNode,
   requests: GoogleDocsRequest[],
@@ -253,6 +269,7 @@ function compileNode(
   listType?: "bullet" | "ordered",
   listDepth = 0,
   listItemRanges?: Range[],
+  removedTabs: Array<{ position: number; count: number }> = [],
 ): void {
   if (node.type === "hardBreak") {
     requests.push({
@@ -338,6 +355,7 @@ function compileNode(
         nextListType,
         listDepth,
         ranges,
+        removedTabs,
       );
     });
     if (ranges) {
@@ -374,6 +392,7 @@ function compileNode(
         ? listDepth + 1
         : listDepth,
       listItemRanges,
+      removedTabs,
     );
     if (
       node.type === "listItem" &&
@@ -440,12 +459,18 @@ function compileNode(
       } else {
         requests.push({
           createParagraphBullets: {
-            range,
+            range: listDepth > 1 ? markerRebase(range, removedTabs) : range,
             bulletPreset:
               listType === "bullet"
                 ? "BULLET_DISC_CIRCLE_SQUARE"
                 : "NUMBERED_DECIMAL_ALPHA_ROMAN",
           },
+        });
+      }
+      if (!listItemRanges && listDepth > 1) {
+        removedTabs.push({
+          position: range.startIndex - listDepth,
+          count: listDepth,
         });
       }
       // Google removes the leading tabs used to derive nesting. Keep later
