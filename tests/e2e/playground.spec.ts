@@ -85,6 +85,34 @@ test("shows the image upload control in the toolbar", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("renders an inserted image in a repeated header", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "createImageBitmap", {
+      configurable: true,
+      value: async () => ({ width: 100, height: 50, close() {} }),
+    });
+  });
+  await page.goto("/");
+  const firstPage = page.getByLabel("Page 1");
+  await firstPage.getByRole("button", { name: "Add header" }).click();
+  const headerEditor = firstPage.locator(".header-editor .ProseMirror");
+  await expect(headerEditor).toBeVisible();
+  await headerEditor.click();
+  await expect(headerEditor).toBeFocused();
+  await page.getByLabel("Choose image file").setInputFiles({
+    name: "header.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("image"),
+  });
+
+  await expect(firstPage.locator(".page-header img")).toBeVisible();
+  await expect(firstPage.locator(".page-header img")).toHaveAttribute(
+    "src",
+    /^blob:/,
+  );
+  await expect(page.locator(".page-header img")).toHaveCount(1);
+});
+
 test("resizes an inserted image with the document-point aspect ratio", async ({
   page,
 }) => {
