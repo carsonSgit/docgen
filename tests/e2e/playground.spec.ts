@@ -122,6 +122,31 @@ test("renders an inserted image in a repeated header", async ({ page }) => {
   await expect(page.locator(".page-header img")).toHaveCount(1);
 });
 
+test("restores an inserted image source after refresh", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "createImageBitmap", {
+      configurable: true,
+      value: async () => ({ width: 100, height: 50, close() {} }),
+    });
+  });
+  await page.goto("/");
+  await page.locator(".ProseMirror").first().click();
+  await page.getByLabel("Choose image file").setInputFiles({
+    name: "persisted.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("image"),
+  });
+
+  const image = page.locator(".page-body-editor img").first();
+  await expect(image).toHaveAttribute("src", /^blob:/);
+  await page.reload();
+
+  await expect(page.locator(".page-body-editor img").first()).toHaveAttribute(
+    "src",
+    /^blob:/,
+  );
+});
+
 test("includes repeated-section images in the export assets", async ({
   page,
 }) => {
