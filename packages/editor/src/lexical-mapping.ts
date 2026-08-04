@@ -232,11 +232,12 @@ function toLexicalNode(node: DocumentNode): LexicalSerializedNode {
       return {
         type: "list",
         listType: node.type === "bulletList" ? "bullet" : "number",
+        indent: 0,
         start: 1,
         children,
       };
     case "listItem":
-      return { type: "listitem", value: 1, children };
+      return { type: "listitem", value: 1, indent: 0, children };
     case "image": {
       const assetId = node.attrs?.assetId;
       const alt = node.attrs?.alt;

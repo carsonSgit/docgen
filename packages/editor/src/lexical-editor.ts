@@ -198,14 +198,53 @@ export function createLexicalEditor(
 ): LexicalEditorAdapter {
   const lexical = createEditor({
     namespace: "document-playground",
+    editable: true,
     nodes: editorNodes,
     theme: options.theme,
     onError(error) {
       throw error;
     },
   });
+  lexical.setEditable(true);
+  element.setAttribute("contenteditable", "true");
+  element.setAttribute("role", "textbox");
+  element.setAttribute("aria-multiline", "true");
   lexical.setRootElement(element as HTMLElement);
   const listeners = new Set<(document: DocumentNode) => void>();
+  const syncNativeText = (domText: string) => {
+    const lexicalText = lexical
+      .getEditorState()
+      .read(() => $getRoot().getTextContent());
+    if (!domText || domText === lexicalText) return;
+    lexical.update(() => {
+      const root = $getRoot();
+      root.clear();
+      for (const paragraphText of domText.split(/\\n/)) {
+        const paragraph = $createParagraphNode();
+        if (paragraphText) paragraph.append($createTextNode(paragraphText));
+        root.append(paragraph);
+      }
+    });
+  };
+  const handleNativeInput = () => {
+    syncNativeText(
+      (element as HTMLElement).innerText ?? element.textContent ?? "",
+    );
+  };
+  const handleNativeBeforeInput = (event: Event) => {
+    const input = event as InputEvent;
+    if (!input.data || !input.inputType.startsWith("insert")) return;
+    const domText =
+      (element as HTMLElement).innerText ?? element.textContent ?? "";
+    const lexicalText = lexical
+      .getEditorState()
+      .read(() => $getRoot().getTextContent());
+    if (domText || lexicalText) return;
+    event.preventDefault();
+    syncNativeText(input.data);
+  };
+  element.addEventListener("beforeinput", handleNativeBeforeInput, true);
+  element.addEventListener("input", handleNativeInput, true);
   const renderImageSources = () => {
     if (!options.resolveImageSource) return;
     for (const image of element.querySelectorAll<HTMLElement>(
@@ -339,6 +378,8 @@ export function createLexicalEditor(
       lexical.dispatchCommand(REDO_COMMAND, undefined);
     },
     destroy() {
+      element.removeEventListener("beforeinput", handleNativeBeforeInput, true);
+      element.removeEventListener("input", handleNativeInput, true);
       lexical.setRootElement(null);
       listeners.clear();
     },
