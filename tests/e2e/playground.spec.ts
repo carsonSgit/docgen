@@ -33,6 +33,17 @@ test("propagates native text input through the Lexical adapter", async ({
   await expect(editor).toContainText("Native input");
 });
 
+test("aligns a paragraph to the right through the editor toolbar", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const editor = page.locator(".ProseMirror").first();
+  await editor.click();
+  await page.getByRole("button", { name: "Align right" }).click();
+
+  await expect(editor.locator("p").first()).toHaveCSS("text-align", "right");
+});
+
 test("shows the image upload control in the toolbar", async ({ page }) => {
   await page.goto("/");
   await expect(
