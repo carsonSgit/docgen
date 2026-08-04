@@ -36,6 +36,39 @@ describe("Google provider client", () => {
     );
   });
 
+  it("constructs Drive export and Docs snapshot requests", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("pdf", { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ revisionId: "r1" }), { status: 200 }),
+      );
+    const provider = createGoogleProviderClient({
+      accessToken: "token",
+      fetchImpl,
+    });
+
+    await expect(provider.exportPdf?.("doc/1")).resolves.toEqual(
+      new TextEncoder().encode("pdf").buffer,
+    );
+    await expect(provider.getDocument?.("doc/1")).resolves.toEqual({
+      revisionId: "r1",
+    });
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      1,
+      "https://www.googleapis.com/drive/v3/files/doc%2F1/export?mimeType=application%2Fpdf",
+      expect.objectContaining({
+        method: "GET",
+        headers: { authorization: "Bearer token" },
+      }),
+    );
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      2,
+      "https://docs.googleapis.com/v1/documents/doc%2F1",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
   it("fails clearly when no access token is configured", async () => {
     const provider = createGoogleProviderClient({ accessToken: undefined });
 

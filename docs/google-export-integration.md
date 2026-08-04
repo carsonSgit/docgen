@@ -50,6 +50,16 @@ For a repeatable provider-level check using the committed fixture, run:
 bun run verify:google
 ```
 
+This command is an opt-in credentialed lane: it does nothing against Google
+unless `GOOGLE_ACCESS_TOKEN` is explicitly present, and CI must not provide
+that secret. It validates the committed fixture and asset hash, creates a new
+native Google Doc, downloads its PDF through Drive `files.export`, and saves
+`artifacts/google-verify/core-slice/{google-document.pdf,google-doc-snapshot.json,compiled-requests.json,report.json}`.
+The snapshot removes document and segment identifiers while retaining structure
+and a redacted revision marker. The report records fixture hashes, deterministic
+artifact names, the created document link, and the limitation that a human must
+review page-by-page raster comparisons; it does not claim visual equivalence.
+
 To verify the complete OAuth authorization, document creation, native batch
 update, and link-return path, register
 `http://localhost:3001/oauth/callback` as an authorized redirect URI and run:
