@@ -198,12 +198,17 @@ export function createLexicalEditor(
 ): LexicalEditorAdapter {
   const lexical = createEditor({
     namespace: "document-playground",
+    editable: true,
     nodes: editorNodes,
     theme: options.theme,
     onError(error) {
       throw error;
     },
   });
+  lexical.setEditable(true);
+  element.setAttribute("contenteditable", "true");
+  element.setAttribute("role", "textbox");
+  element.setAttribute("aria-multiline", "true");
   lexical.setRootElement(element as HTMLElement);
   const listeners = new Set<(document: DocumentNode) => void>();
   const renderImageSources = () => {
