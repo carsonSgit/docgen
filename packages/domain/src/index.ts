@@ -39,6 +39,7 @@ const ImageAttributesSchema = z
   .strict();
 
 export type ImageAttributes = z.infer<typeof ImageAttributesSchema>;
+export type ImageRenderDimensions = Pick<ImageAttributes, "width" | "height">;
 
 const TiptapMarkSchema = z.object({
   type: z.string().min(1),
@@ -359,6 +360,39 @@ export function createBlankDocument(): DocumentEnvelope {
 export function validateImageDimensions(width: number, height: number): void {
   ImageAttributesSchema.shape.width.parse(width);
   ImageAttributesSchema.shape.height.parse(height);
+}
+
+/** Choose the initial rendered size from intrinsic point dimensions. */
+export function fitImageToWidth(
+  intrinsicWidthPoints: number,
+  intrinsicHeightPoints: number,
+  maxWidthPoints: number,
+): ImageRenderDimensions {
+  validateImageDimensions(intrinsicWidthPoints, intrinsicHeightPoints);
+  if (!Number.isFinite(maxWidthPoints) || maxWidthPoints <= 0) {
+    throw new Error("Image render width must be positive and finite");
+  }
+  const width = Math.min(intrinsicWidthPoints, maxWidthPoints);
+  return {
+    width,
+    height: width * (intrinsicHeightPoints / intrinsicWidthPoints),
+  };
+}
+
+/** Resize an existing rendered image while preserving its aspect ratio. */
+export function resizeImageDimensions(
+  current: ImageRenderDimensions,
+  requestedWidth: number,
+): ImageRenderDimensions {
+  validateImageDimensions(current.width, current.height);
+  const width = Math.min(
+    MAX_IMAGE_DIMENSION_POINTS,
+    Math.max(12, requestedWidth),
+  );
+  const height = width * (current.height / current.width);
+  if (height <= MAX_IMAGE_DIMENSION_POINTS) return { width, height };
+  const scale = MAX_IMAGE_DIMENSION_POINTS / height;
+  return { width: width * scale, height: MAX_IMAGE_DIMENSION_POINTS };
 }
 
 export function createImageNode(attributes: ImageAttributes): TiptapNode {
