@@ -1,4 +1,7 @@
-import type { DocumentNode } from "@document-playground/domain";
+import {
+  type DocumentNode,
+  MAX_IMAGE_DIMENSION_POINTS,
+} from "@document-playground/domain";
 import { LinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import {
   INSERT_ORDERED_LIST_COMMAND,
@@ -14,6 +17,7 @@ import {
 import {
   $createParagraphNode,
   $createTextNode,
+  $getNodeByKey,
   $getRoot,
   $getSelection,
   $isRangeSelection,
@@ -126,15 +130,69 @@ export class ImageNode extends ElementNode {
   }
 
   override createDOM(): HTMLElement {
-    const element = document.createElement("img");
-    element.dataset.assetId = this.__assetId;
-    element.alt = this.__altText;
-    element.width = this.__width * (96 / 72);
-    element.height = this.__height * (96 / 72);
-    return element;
+    const wrapper = document.createElement("span");
+    wrapper.className = "image-node-view";
+    wrapper.contentEditable = "false";
+    const image = document.createElement("img");
+    image.className = "image-node-view-image";
+    image.dataset.assetId = this.__assetId;
+    image.alt = this.__altText;
+    image.width = this.__width * (96 / 72);
+    image.height = this.__height * (96 / 72);
+    const handle = document.createElement("span");
+    handle.className = "image-resize-handle";
+    handle.setAttribute("role", "slider");
+    handle.setAttribute("aria-label", "Resize image");
+    handle.setAttribute("tabindex", "0");
+    let startX = 0;
+    let startWidth = 0;
+    let startHeight = 0;
+    let dragging = false;
+    const stopDragging = () => {
+      dragging = false;
+      document.removeEventListener("mousemove", moveImage);
+      document.removeEventListener("mouseup", stopDragging);
+    };
+    const moveImage = (event: MouseEvent) => {
+      if (!dragging) return;
+      const width = Math.min(
+        MAX_IMAGE_DIMENSION_POINTS,
+        Math.max(12, startWidth + (event.clientX - startX) * (72 / 96)),
+      );
+      wrapper.dispatchEvent(
+        new CustomEvent("document-playground-resize-image", {
+          bubbles: true,
+          detail: {
+            key: this.getKey(),
+            width,
+            height: width * (startHeight / startWidth),
+          },
+        }),
+      );
+    };
+    const startDragging = (event: MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      startX = event.clientX;
+      startWidth = this.__width;
+      startHeight = this.__height;
+      dragging = true;
+      document.addEventListener("mousemove", moveImage);
+      document.addEventListener("mouseup", stopDragging);
+    };
+    handle.addEventListener("mousedown", startDragging);
+    wrapper.append(image, handle);
+    return wrapper;
   }
 
-  override updateDOM(): false {
+  override updateDOM(_previousNode: ImageNode, element: HTMLElement): false {
+    const image = element.querySelector("img");
+    if (image) {
+      image.dataset.assetId = this.__assetId;
+      image.alt = this.__altText;
+      image.width = this.__width * (96 / 72);
+      image.height = this.__height * (96 / 72);
+    }
     return false;
   }
 
@@ -155,6 +213,12 @@ export class ImageNode extends ElementNode {
 
   override isInline(): true {
     return true;
+  }
+
+  resize(width: number, height: number): void {
+    const writable = this.getWritable();
+    writable.__width = width;
+    writable.__height = height;
   }
 }
 
@@ -216,6 +280,31 @@ export function createLexicalEditor(
   lexical.setRootElement(element as HTMLElement);
   const unregisterRichText = registerRichText(lexical);
   const listeners = new Set<(document: DocumentNode) => void>();
+  const handleImageResize = (event: Event) => {
+    const detail = (
+      event as CustomEvent<{
+        key?: string;
+        width?: number;
+        height?: number;
+      }>
+    ).detail;
+    if (
+      typeof detail?.key !== "string" ||
+      typeof detail.width !== "number" ||
+      typeof detail.height !== "number"
+    )
+      return;
+    const { key, width, height } = detail;
+    lexical.update(() => {
+      const node = $getNodeByKey(key);
+      if (!(node instanceof ImageNode)) return;
+      node.resize(width, height);
+    });
+  };
+  element.addEventListener(
+    "document-playground-resize-image",
+    handleImageResize,
+  );
   const renderImageSources = () => {
     if (!options.resolveImageSource) return;
     for (const image of element.querySelectorAll<HTMLElement>(
@@ -349,6 +438,10 @@ export function createLexicalEditor(
       lexical.dispatchCommand(REDO_COMMAND, undefined);
     },
     destroy() {
+      element.removeEventListener(
+        "document-playground-resize-image",
+        handleImageResize,
+      );
       unregisterRichText();
       lexical.setRootElement(null);
       listeners.clear();

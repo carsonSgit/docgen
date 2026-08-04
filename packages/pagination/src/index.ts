@@ -51,7 +51,14 @@ function defaultMeasure(node: TiptapNode): number {
 
   const lineCount = (current: TiptapNode): number => {
     if (current.type === "hardBreak") return 1;
-    if (current.text) return Math.max(1, Math.ceil(current.text.length / 90));
+    if (current.text) {
+      return current.text
+        .split("\n")
+        .reduce(
+          (lines, line) => lines + Math.max(1, Math.ceil(line.length / 90)),
+          0,
+        );
+    }
     return (
       current.content?.reduce((lines, child) => lines + lineCount(child), 0) ??
       0
@@ -97,7 +104,14 @@ function splitNodeToFit(node: TiptapNode, maxHeight: number): TiptapNode[] {
   let content: TiptapNode[] = [];
   let lines = 0;
   for (const child of node.content) {
-    const childLines = Math.max(1, Math.ceil((child.text?.length ?? 0) / 90));
+    const childLines = child.text
+      ? child.text
+          .split("\n")
+          .reduce(
+            (lines, line) => lines + Math.max(1, Math.ceil(line.length / 90)),
+            0,
+          )
+      : 1;
     const nextLines =
       child.type === "hardBreak" ? lines + 1 : lines + childLines;
     if (content.length > 0 && nextLines > maxLines) {
@@ -125,49 +139,58 @@ function splitTextNode(
     return [node];
   }
 
-  const textLength = node.content.reduce(
-    (length, child) => length + (child.text?.length ?? 0),
-    0,
-  );
-  const maxCharacters = Math.max(
-    1,
-    Math.floor((maxHeight / DEFAULT_BLOCK_HEIGHT) * 90),
-  );
-  if (textLength <= maxCharacters) return [node];
+  const maxLines = Math.max(1, Math.floor(maxHeight / DEFAULT_BLOCK_HEIGHT));
+  const visualLines = (text: string) =>
+    text
+      .split("\n")
+      .reduce(
+        (lines, line) => lines + Math.max(1, Math.ceil(line.length / 90)),
+        0,
+      );
+  if (
+    node.content.reduce(
+      (lines, child) => lines + visualLines(child.text ?? ""),
+      0,
+    ) <= maxLines
+  )
+    return [node];
 
   const fragments: TiptapNode[] = [];
   let current: TiptapNode[] = [];
-  let currentLength = 0;
-
-  for (const child of node.content) {
-    const childText = child.text ?? "";
-    let offset = 0;
-    while (offset < childText.length) {
-      const remaining = maxCharacters - currentLength;
-      const chunk = childText.slice(offset, offset + remaining);
-      current.push({ ...child, text: chunk });
-      currentLength += chunk.length;
-      offset += chunk.length;
-
-      if (currentLength === maxCharacters) {
-        fragments.push({
-          ...node,
-          attrs: { ...node.attrs, [PAGE_FRAGMENT_ATTR]: fragmentId },
-          content: current,
-        });
-        current = [];
-        currentLength = 0;
-      }
-    }
-  }
-
-  if (current.length) {
+  let currentLines = 0;
+  const pushFragment = () => {
+    if (current.length === 0) return;
     fragments.push({
       ...node,
       attrs: { ...node.attrs, [PAGE_FRAGMENT_ATTR]: fragmentId },
       content: current,
     });
+    current = [];
+    currentLines = 0;
+  };
+
+  for (const child of node.content) {
+    const childText = child.text ?? "";
+    const logicalLines = childText.split("\n");
+    for (const [lineIndex, logicalLine] of logicalLines.entries()) {
+      const chunks = logicalLine.match(/.{1,90}/g) ?? [""];
+      for (const [chunkIndex, chunk] of chunks.entries()) {
+        if (currentLines >= maxLines) pushFragment();
+        const separator = lineIndex > 0 && chunkIndex === 0 ? "\n" : "";
+        const previous = current.at(-1);
+        if (previous?.type === "text" && separator) {
+          current[current.length - 1] = {
+            ...previous,
+            text: `${previous.text ?? ""}${separator}${chunk}`,
+          };
+        } else {
+          current.push({ ...child, text: `${separator}${chunk}` });
+        }
+        currentLines += 1;
+      }
+    }
   }
+  pushFragment();
 
   return fragments;
 }
@@ -189,6 +212,18 @@ export function paginateDocument(
     }
 
     const nextNode = document.content.content?.[nodeIndex + 1];
+    // Lexical inserts an image after the initial empty paragraph. Treat that
+    // placeholder as the image's inline insertion point so a near-full-page
+    // image stays on the first page instead of being pushed by an empty line.
+    if (
+      node.type === "paragraph" &&
+      !node.content?.length &&
+      nextNode &&
+      containsImage(nextNode) &&
+      !pages.at(-1)?.content.length
+    ) {
+      continue;
+    }
     const keepsNextTogether =
       node.type === "heading" &&
       nextNode &&
