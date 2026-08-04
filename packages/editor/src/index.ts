@@ -1,7 +1,7 @@
 import {
   type DocumentEnvelope,
   type ImageAttributes,
-  MAX_IMAGE_DIMENSION_POINTS,
+  resizeImageDimensions,
   type TiptapNode,
 } from "@document-playground/domain";
 import { Editor, Node } from "@tiptap/core";
@@ -120,21 +120,17 @@ function createImageExtension(resolveSource?: ImageSourceResolver) {
 
         const moveImage = (event: MouseEvent) => {
           if (!dragging) return;
-          const width = Math.min(
-            MAX_IMAGE_DIMENSION_POINTS,
-            Math.max(
-              12,
-              dragStartWidth + (event.clientX - dragStartX) * (72 / 96),
-            ),
+          const dimensions = resizeImageDimensions(
+            { width: dragStartWidth, height: dragStartHeight },
+            dragStartWidth + (event.clientX - dragStartX) * (72 / 96),
           );
-          const height = width * (dragStartHeight / dragStartWidth);
           const position = getPos();
           if (typeof position !== "number") return;
           editor.view.dispatch(
             editor.state.tr.setNodeMarkup(position, undefined, {
               ...currentNode.attrs,
-              width,
-              height,
+              width: dimensions.width,
+              height: dimensions.height,
             }),
           );
         };
