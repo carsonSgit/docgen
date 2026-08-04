@@ -4,6 +4,7 @@ import {
   type DocumentEnvelope,
   type DocumentSection,
   type DocumentTemplateId,
+  fitImageToWidth,
   listDocumentTemplates,
   type TiptapNode,
 } from "@document-playground/domain";
@@ -442,10 +443,17 @@ export function App() {
     setAssetError(null);
     try {
       const bitmap = await createImageBitmap(file);
-      const scale = Math.min(1, 468 / (bitmap.width * (72 / 96)));
-      const width = Math.max(1, bitmap.width * (72 / 96) * scale);
-      const height = Math.max(1, bitmap.height * (72 / 96) * scale);
-      const asset = await putImageAsset(assetStorage, file, { width, height });
+      const intrinsicWidthPoints = bitmap.width * (72 / 96);
+      const intrinsicHeightPoints = bitmap.height * (72 / 96);
+      const rendered = fitImageToWidth(
+        intrinsicWidthPoints,
+        intrinsicHeightPoints,
+        468,
+      );
+      const asset = await putImageAsset(assetStorage, file, {
+        widthPoints: intrinsicWidthPoints,
+        heightPoints: intrinsicHeightPoints,
+      });
       assetUrls.current.set(asset.assetId, URL.createObjectURL(file));
       activeEditorRef.current
         .chain()
@@ -454,8 +462,8 @@ export function App() {
           createImageNode({
             assetId: asset.assetId,
             alt: file.name,
-            width,
-            height,
+            width: rendered.width,
+            height: rendered.height,
           }),
         )
         .run();
