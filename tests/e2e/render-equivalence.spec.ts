@@ -418,7 +418,12 @@ test("keeps a list item with nested content within the page body", async ({
                           content: [
                             {
                               type: "paragraph",
-                              content: [{ type: "text", text: "Nested item" }],
+                              content: [
+                                {
+                                  type: "text",
+                                  text: "Nested item ".repeat(900),
+                                },
+                              ],
                             },
                           ],
                         },
@@ -439,11 +444,21 @@ test("keeps a list item with nested content within the page body", async ({
   await expect(page.getByLabel("Document title")).toHaveValue(
     "Nested oversized item",
   );
+  await expect.poll(() => page.locator(".page").count()).toBeGreaterThan(1);
   await expect
     .poll(() =>
       page.locator(".page-body-editor .editor").evaluateAll((editors) =>
         editors.every((editor) => {
           const body = editor.querySelector<HTMLElement>(".ProseMirror");
+          if ((body?.scrollHeight ?? 0) > (editor.clientHeight ?? 0) + 1) {
+            throw new Error(
+              JSON.stringify({
+                editors: editors.length,
+                clientHeight: editor.clientHeight,
+                scrollHeight: body?.scrollHeight,
+              }),
+            );
+          }
           return (body?.scrollHeight ?? 0) <= (editor.clientHeight ?? 0) + 1;
         }),
       ),

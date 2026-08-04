@@ -352,4 +352,47 @@ describe("pagination adapter", () => {
       expect.objectContaining({ type: "bulletList" }),
     );
   });
+
+  it("splits an oversized nested list paragraph across pages", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Parent" }],
+                },
+                {
+                  type: "bulletList",
+                  content: [
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [
+                            { type: "text", text: "Nested item ".repeat(900) },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = paginateDocument(document);
+
+    expect(result.pages.length).toBeGreaterThan(1);
+  });
 });
