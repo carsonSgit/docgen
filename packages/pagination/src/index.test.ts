@@ -1,6 +1,10 @@
 import { createBlankDocument } from "@document-playground/domain";
 import { describe, expect, it } from "vitest";
-import { PAGE_FRAGMENT_ATTR, paginateDocument } from "./index";
+import {
+  PAGE_FRAGMENT_ATTR,
+  PAGE_LIST_ITEM_CONTINUATION_ATTR,
+  paginateDocument,
+} from "./index";
 
 describe("pagination adapter", () => {
   it("flows long content onto another fixed-layout page", () => {
@@ -302,6 +306,35 @@ describe("pagination adapter", () => {
     expect(
       result.pages.every((page) => page.content[0]?.type === "bulletList"),
     ).toBe(true);
+  });
+
+  it("marks non-empty list item continuations for canonical flattening", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Long item ".repeat(900) }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const pages = paginateDocument(document).pages;
+    expect(pages.length).toBeGreaterThan(1);
+    expect(pages[1]?.content[0]?.content?.[0]?.attrs).toMatchObject({
+      [PAGE_LIST_ITEM_CONTINUATION_ATTR]: true,
+    });
   });
 
   it("splits an oversized list item without dropping nested content", () => {
