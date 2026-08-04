@@ -44,6 +44,40 @@ test("aligns a paragraph to the right through the editor toolbar", async ({
   await expect(editor.locator("p").first()).toHaveCSS("text-align", "right");
 });
 
+test("preserves right alignment when a heading crosses the editor boundary", async ({
+  page,
+}) => {
+  let requestBody: { document?: { content?: { content?: unknown[] } } } | null =
+    null;
+  await page.route("**/api/export", async (route) => {
+    requestBody = route.request().postDataJSON() as typeof requestBody;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        documentId: "heading-alignment-doc",
+        url: "https://docs.google.com/document/d/heading-alignment-doc/edit",
+      }),
+    });
+  });
+
+  await page.goto("/");
+  const editor = page.locator(".ProseMirror").first();
+  await editor.click();
+  await page.keyboard.insertText("Aligned heading");
+  await page.getByRole("button", { name: "Heading" }).click();
+  await page.getByRole("button", { name: "Align right" }).click();
+  await expect(editor.locator("h2")).toHaveCSS("text-align", "right");
+  await page.getByRole("button", { name: "Export to Google Docs" }).click();
+  await expect(page.getByText("Export complete.")).toBeVisible();
+
+  expect(requestBody?.document?.content?.content).toContainEqual({
+    type: "heading",
+    attrs: { level: 2, textAlign: "right" },
+    content: [{ type: "text", text: "Aligned heading" }],
+  });
+});
+
 test("shows the image upload control in the toolbar", async ({ page }) => {
   await page.goto("/");
   await expect(

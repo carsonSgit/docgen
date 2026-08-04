@@ -104,10 +104,14 @@ function mapNode(node: LexicalSerializedNode, path: string): DocumentNode {
       if (!Number.isInteger(level) || level < 1 || level > 6) {
         throw new Error(`Invalid Lexical heading tag at ${path}`);
       }
+      const attrs =
+        typeof node.format === "string" && node.format !== ""
+          ? { level, textAlign: node.format }
+          : { level };
       const content = mapInlineChildren(node, path);
       return {
         type: "heading",
-        attrs: { level },
+        attrs,
         ...(content.length ? { content } : {}),
       };
     }
@@ -224,7 +228,14 @@ function toLexicalNode(node: DocumentNode): LexicalSerializedNode {
         children,
       };
     case "heading":
-      return { type: "heading", tag: `h${node.attrs?.level ?? 1}`, children };
+      return {
+        type: "heading",
+        tag: `h${node.attrs?.level ?? 1}`,
+        ...(typeof node.attrs?.textAlign === "string"
+          ? { format: node.attrs.textAlign }
+          : {}),
+        children,
+      };
     case "hardBreak":
       return { type: "linebreak" };
     case "bulletList":
