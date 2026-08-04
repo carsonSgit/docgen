@@ -52,6 +52,13 @@ test("captures the Core Editor Slice with deterministic local assertions", async
         overflow: (body?.scrollHeight ?? 0) > (editor?.clientHeight ?? 0) + 1,
         header: currentPage.querySelector(".page-header")?.textContent?.trim(),
         footer: currentPage.querySelector(".page-footer")?.textContent?.trim(),
+        breakBefore: currentPage.getAttribute("data-break-before"),
+        typography: body
+          ? {
+              fontFamily: getComputedStyle(body).fontFamily,
+              fontSize: getComputedStyle(body).fontSize,
+            }
+          : null,
         image: image
           ? {
               width: image.getBoundingClientRect().width,
@@ -62,6 +69,22 @@ test("captures the Core Editor Slice with deterministic local assertions", async
     }),
   );
   expect(metrics.every((metric) => !metric.overflow)).toBe(true);
+  expect(
+    metrics.filter((metric) => metric.breakBefore === "manual"),
+  ).toHaveLength(manifest.expected.manualBreaks.length);
+  expect(
+    metrics.filter((metric) => metric.breakBefore === "automatic"),
+  ).toHaveLength(manifest.expected.automaticBreaks.length);
+  expect(
+    metrics.every((metric) =>
+      metric.typography?.fontFamily.startsWith(
+        manifest.expected.typography.fontFamily,
+      ),
+    ),
+  ).toBe(true);
+  expect(
+    metrics.every((metric) => metric.typography?.fontSize === "14.6667px"),
+  ).toBe(true);
   expect(metrics[0]?.width).toBeCloseTo(
     manifest.expected.page.widthPoints * (96 / 72),
     0,
@@ -88,6 +111,9 @@ test("captures the Core Editor Slice with deterministic local assertions", async
   expect(
     page.locator("img[data-asset-id='asset_core_slice_hero']"),
   ).toHaveCount(1);
+  expect(metrics.find((metric) => metric.image)).toMatchObject({
+    image: { width: 320, height: 160 },
+  });
 
   const outputDir = testInfo.outputPath("render-equivalence");
   await mkdir(outputDir, { recursive: true });
@@ -103,6 +129,10 @@ test("captures the Core Editor Slice with deterministic local assertions", async
     format: "Letter",
     printBackground: true,
   });
+  await writeFile(
+    join(outputDir, "geometry.json"),
+    JSON.stringify(metrics, null, 2),
+  );
   await writeFile(
     join(outputDir, "report.json"),
     JSON.stringify(

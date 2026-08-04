@@ -271,7 +271,13 @@ function PageEditor({
     content: [{ type: "paragraph" as const }],
   };
   return (
-    <article className="page" aria-label={`Page ${page.number}`}>
+    <article
+      className="page"
+      aria-label={`Page ${page.number}`}
+      data-break-before={
+        page.number > 1 ? (page.breakBefore ? "manual" : "automatic") : "none"
+      }
+    >
       <section className="page-header" aria-label="Page header">
         {header ? (
           <SectionEditor
