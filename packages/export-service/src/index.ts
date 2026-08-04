@@ -27,6 +27,8 @@ export type GoogleProviderClient = {
     documentId: string,
     requests: GoogleDocsRequest[],
   ): Promise<unknown>;
+  exportPdf?(documentId: string): Promise<ArrayBuffer>;
+  getDocument?(documentId: string): Promise<unknown>;
 };
 
 export type ExportResult = {
