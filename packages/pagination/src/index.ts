@@ -185,7 +185,11 @@ function splitVisualFragment(fragment: TiptapNode): TiptapNode[] {
   return visualFragments;
 }
 
-function splitNodeToFit(node: TiptapNode, maxHeight: number): TiptapNode[] {
+function splitNodeToFit(
+  node: TiptapNode,
+  maxHeight: number,
+  fragmentId: string,
+): TiptapNode[] {
   if (node.type !== "paragraph" || !node.content?.length) return [node];
 
   const maxLines = Math.floor(maxHeight / DEFAULT_BLOCK_HEIGHT);
@@ -214,14 +218,24 @@ function splitNodeToFit(node: TiptapNode, maxHeight: number): TiptapNode[] {
     const nextLines =
       child.type === "hardBreak" ? lines + 1 : lines + childLines;
     if (content.length > 0 && nextLines > maxLines) {
-      fragments.push({ ...node, content });
+      fragments.push({
+        ...node,
+        attrs: { ...node.attrs, [PAGE_FRAGMENT_ATTR]: fragmentId },
+        content,
+      });
       content = [];
       lines = 0;
     }
     content.push(child);
     lines += child.type === "hardBreak" ? 1 : childLines;
   }
-  if (content.length > 0) fragments.push({ ...node, content });
+  if (content.length > 0) {
+    fragments.push({
+      ...node,
+      attrs: { ...node.attrs, [PAGE_FRAGMENT_ATTR]: fragmentId },
+      content,
+    });
+  }
   if (fragments.length === 0) return [node];
 
   // A split paragraph is rendered by multiple editor instances and must
@@ -360,7 +374,7 @@ export function paginateDocument(
       const fragmentCandidates: TiptapNode[] =
         textFragments.length === 1 &&
         measureNode(textFragments[0] ?? remainingNode) > remainingHeight
-          ? splitNodeToFit(remainingNode, remainingHeight)
+          ? splitNodeToFit(remainingNode, remainingHeight, String(nodeIndex))
           : textFragments;
       const fragments = fragmentCandidates;
       const fragment = fragments[0];
@@ -383,6 +397,7 @@ export function paginateDocument(
         fragments.length > 1
           ? {
               ...remainingNode,
+              attrs: fragments[1]?.attrs ?? remainingNode.attrs,
               content: fragments
                 .slice(1)
                 .flatMap((item: TiptapNode) => item.content ?? []),

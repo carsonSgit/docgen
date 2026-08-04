@@ -1,6 +1,6 @@
 import { createBlankDocument } from "@document-playground/domain";
 import { describe, expect, it } from "vitest";
-import { paginateDocument } from "./index";
+import { PAGE_FRAGMENT_ATTR, paginateDocument } from "./index";
 
 describe("pagination adapter", () => {
   it("flows long content onto another fixed-layout page", () => {
@@ -144,6 +144,35 @@ describe("pagination adapter", () => {
     expect(allContent.filter((node) => node.type === "hardBreak")).toHaveLength(
       51,
     );
+  });
+
+  it("gives hard-break split fragments a shared canonical identity", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "First line" },
+            ...Array.from({ length: 51 }, () => ({
+              type: "hardBreak" as const,
+            })),
+            { type: "text", text: "Last line" },
+          ],
+        },
+      ],
+    };
+
+    const fragments = paginateDocument(document).pages.flatMap(
+      (page) => page.content,
+    );
+
+    expect(fragments).toHaveLength(2);
+    expect(fragments.map((node) => node.attrs?.[PAGE_FRAGMENT_ATTR])).toEqual([
+      "0",
+      "0",
+    ]);
   });
 
   it("uses persisted image height in points for deterministic pagination", () => {
