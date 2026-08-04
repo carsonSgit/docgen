@@ -400,6 +400,54 @@ test("uses the native list indent for nested lists", async ({ page }) => {
   expect(listPadding).toEqual(["36px", "36px"]);
 });
 
+test("uses the native link color in repeated sections", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "document-playground:document",
+      JSON.stringify({
+        version: 2,
+        title: "Section link fixture",
+        page: {
+          size: "letter",
+          width: 612,
+          height: 792,
+          margins: { top: 72, right: 72, bottom: 72, left: 72 },
+        },
+        content: {
+          type: "doc",
+          content: [
+            { type: "paragraph", content: [{ type: "text", text: "Body" }] },
+          ],
+        },
+        header: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Header link",
+                  marks: [
+                    { type: "link", attrs: { href: "https://example.test" } },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        footer: null,
+      }),
+    );
+  });
+  await page.goto("/");
+
+  await expect(page.locator(".page-header a")).toHaveCSS(
+    "color",
+    "rgb(17, 85, 204)",
+  );
+});
+
 test("uses the native header and footer distances around the body", async ({
   page,
 }) => {

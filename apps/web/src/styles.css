@@ -587,7 +587,8 @@ button:disabled {
   padding-left: 36px;
 }
 
-.editor > .ProseMirror a {
+.editor > .ProseMirror a,
+.section-editor > .ProseMirror a {
   color: #1155cc;
   text-decoration: underline;
 }
