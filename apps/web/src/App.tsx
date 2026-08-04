@@ -9,6 +9,7 @@ import {
   HEADER_DISTANCE_POINTS,
   LIST_INDENT_POINTS,
   listDocumentTemplates,
+  MAX_IMAGE_DIMENSION_POINTS,
 } from "@document-playground/domain";
 import {
   createLexicalEditor,
@@ -582,12 +583,16 @@ export function App() {
     setAssetError(null);
     try {
       const bitmap = await createImageBitmap(file);
+      const intrinsicWidth = bitmap.width * (72 / 96);
+      const intrinsicHeight = bitmap.height * (72 / 96);
       const scale = Math.min(
         1,
-        DOCUMENT_CONTENT_WIDTH_POINTS / (bitmap.width * (72 / 96)),
+        DOCUMENT_CONTENT_WIDTH_POINTS / intrinsicWidth,
+        MAX_IMAGE_DIMENSION_POINTS / intrinsicWidth,
+        MAX_IMAGE_DIMENSION_POINTS / intrinsicHeight,
       );
-      const width = Math.max(1, bitmap.width * (72 / 96) * scale);
-      const height = Math.max(1, bitmap.height * (72 / 96) * scale);
+      const width = Math.max(1, intrinsicWidth * scale);
+      const height = Math.max(1, intrinsicHeight * scale);
       const asset = await putImageAsset(assetStorage, file, { width, height });
       assetUrls.current.set(asset.assetId, URL.createObjectURL(file));
       activeEditorRef.current.insertImage({
