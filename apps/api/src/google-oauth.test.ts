@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -38,6 +38,30 @@ describe("Google OAuth service", () => {
     await expect(
       oauth.completeAuthorization("code", "unknown"),
     ).rejects.toThrow("state is invalid");
+  });
+
+  it("rejects a callback at the exact state expiration deadline", async () => {
+    const fetchImpl = vi.fn();
+    const clock = vi.spyOn(Date, "now").mockReturnValue(1_000);
+    const oauth = new GoogleOAuthService({
+      clientId: "client",
+      clientSecret: "secret",
+      redirectUri: "callback",
+      stateFactory: () => "expiring-state",
+      fetchImpl,
+    });
+
+    try {
+      oauth.startAuthorization();
+      clock.mockReturnValue(601_000);
+
+      await expect(
+        oauth.completeAuthorization("code", "expiring-state"),
+      ).rejects.toThrow("state is invalid");
+      expect(fetchImpl).not.toHaveBeenCalled();
+    } finally {
+      clock.mockRestore();
+    }
   });
 
   it("restores a persisted token and saves a newly exchanged token", async () => {
@@ -247,6 +271,54 @@ describe("Google OAuth service", () => {
         accessToken: "token",
         refreshToken: "refresh",
       });
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an incomplete token fixture without exposing its values", () => {
+    const path = join(
+      process.cwd(),
+      "fixtures/malformed-google-oauth-token.json",
+    );
+
+    expect(() => new FileOAuthTokenStore(path).load()).toThrow(
+      "OAuth token file",
+    );
+    try {
+      new FileOAuthTokenStore(path).load();
+    } catch (error) {
+      expect(String(error)).not.toContain("fixture-refresh-only");
+    }
+  });
+
+  it("clears persisted and in-memory authorization after bounded saves", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "document-playground-oauth-"));
+    const path = join(directory, "token.json");
+    try {
+      const store = new FileOAuthTokenStore(path);
+      await Promise.all(
+        Array.from({ length: 32 }, (_, index) =>
+          Promise.resolve().then(() =>
+            store.save({
+              accessToken: `token-${index}`,
+              refreshToken: `refresh-${index}`,
+            }),
+          ),
+        ),
+      );
+      const oauth = new GoogleOAuthService({
+        clientId: "client",
+        clientSecret: "secret",
+        redirectUri: "callback",
+        tokenStore: store,
+      });
+
+      expect(oauth.hasAccessToken()).toBe(true);
+      oauth.clearAuthorization();
+      expect(oauth.hasAccessToken()).toBe(false);
+      expect(existsSync(path)).toBe(false);
+      expect(store.load()).toBeUndefined();
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }

@@ -36,6 +36,22 @@ describe("Google provider client", () => {
     );
   });
 
+  it("rejects a malformed successful batch update response", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ replies: "not-an-array" }), {
+        status: 200,
+      }),
+    );
+    const provider = createGoogleProviderClient({
+      accessToken: "token",
+      fetchImpl,
+    });
+
+    await expect(provider.batchUpdate("doc-1", [])).rejects.toThrow(
+      "Google returned an invalid batch update response.",
+    );
+  });
+
   it("fails clearly when no access token is configured", async () => {
     const provider = createGoogleProviderClient({ accessToken: undefined });
 

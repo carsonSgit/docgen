@@ -59,6 +59,9 @@ function mapInlineChildren(
 }
 
 function formatMarks(format: number): DocumentMark[] {
+  if (!Number.isInteger(format) || format < 0) {
+    throw new Error("Invalid Lexical text format bitmask");
+  }
   const marks: DocumentMark[] = [];
   if (format & 1) marks.push({ type: "bold" });
   if (format & 2) marks.push({ type: "italic" });
@@ -74,6 +77,9 @@ function formatMarks(format: number): DocumentMark[] {
   }
   if (format & 64) {
     throw new Error("Unsupported Lexical text format 'superscript'");
+  }
+  if (format > 127) {
+    throw new Error(`Unsupported Lexical text format bit ${format}`);
   }
   return marks;
 }
@@ -190,6 +196,9 @@ export function fromLexicalDocument(input: unknown): DocumentNode {
   const root = (input as { root: unknown }).root;
   if (!root || typeof root !== "object" || !("type" in root)) {
     throw new Error("Lexical serialized document has an invalid root node");
+  }
+  if ((root as { type: unknown }).type !== "root") {
+    throw new Error("Lexical serialized document root must have type 'root'");
   }
   return mapNode(root as LexicalSerializedNode, "root");
 }
