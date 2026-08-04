@@ -303,4 +303,53 @@ describe("pagination adapter", () => {
       result.pages.every((page) => page.content[0]?.type === "bulletList"),
     ).toBe(true);
   });
+
+  it("splits an oversized list item without dropping nested content", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Long item ".repeat(900) }],
+                },
+                {
+                  type: "bulletList",
+                  content: [
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [{ type: "text", text: "Nested item" }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = paginateDocument(document);
+    const nestedItems = result.pages.flatMap((page) =>
+      page.content.flatMap(
+        (list) => list.content?.flatMap((item) => item.content ?? []) ?? [],
+      ),
+    );
+
+    expect(result.pages.length).toBeGreaterThan(1);
+    expect(nestedItems).toContainEqual(
+      expect.objectContaining({ type: "bulletList" }),
+    );
+  });
 });

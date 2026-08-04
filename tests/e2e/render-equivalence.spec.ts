@@ -379,3 +379,74 @@ test("splits an oversized list item across pages like native pagination", async 
     )
     .toBe(true);
 });
+
+test("keeps a list item with nested content within the page body", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "document-playground:document",
+      JSON.stringify({
+        version: 2,
+        title: "Nested oversized item",
+        page: {
+          size: "letter",
+          width: 612,
+          height: 792,
+          margins: { top: 72, right: 72, bottom: 72, left: 72 },
+        },
+        content: {
+          type: "doc",
+          content: [
+            {
+              type: "bulletList",
+              content: [
+                {
+                  type: "listItem",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        { type: "text", text: "Long item ".repeat(900) },
+                      ],
+                    },
+                    {
+                      type: "bulletList",
+                      content: [
+                        {
+                          type: "listItem",
+                          content: [
+                            {
+                              type: "paragraph",
+                              content: [{ type: "text", text: "Nested item" }],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        header: null,
+        footer: null,
+      }),
+    );
+  });
+  await page.goto("/");
+  await expect(page.getByLabel("Document title")).toHaveValue(
+    "Nested oversized item",
+  );
+  await expect
+    .poll(() =>
+      page.locator(".page-body-editor .editor").evaluateAll((editors) =>
+        editors.every((editor) => {
+          const body = editor.querySelector<HTMLElement>(".ProseMirror");
+          return (body?.scrollHeight ?? 0) <= (editor.clientHeight ?? 0) + 1;
+        }),
+      ),
+    )
+    .toBe(true);
+});
