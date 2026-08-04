@@ -32,6 +32,19 @@ const ExportRequestSchema = z
           })
           .strict(),
       )
+      .superRefine((assets, context) => {
+        const seen = new Set<string>();
+        assets.forEach((asset, index) => {
+          if (seen.has(asset.assetId)) {
+            context.addIssue({
+              code: "custom",
+              message: "assetId must be unique",
+              path: [index, "assetId"],
+            });
+          }
+          seen.add(asset.assetId);
+        });
+      })
       .default([]),
   })
   .strict();

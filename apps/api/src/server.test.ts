@@ -1,4 +1,7 @@
-import { createBlankDocument } from "@document-playground/domain";
+import {
+  createBlankDocument,
+  createImageNode,
+} from "@document-playground/domain";
 import type { GoogleProviderClient } from "@document-playground/export-service";
 import { describe, expect, it } from "vitest";
 import { GoogleOAuthService } from "./google-oauth";
@@ -106,6 +109,63 @@ describe("API", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       error: expect.stringContaining("table"),
+    });
+  });
+
+  it("rejects duplicate asset ids before requesting a provider", async () => {
+    const provider: GoogleProviderClient = {
+      createDocument: async () => {
+        throw new Error("provider should not be called");
+      },
+      batchUpdate: async () => {
+        throw new Error("provider should not be called");
+      },
+    };
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        createImageNode({
+          assetId: "asset_01J4N7R8Q2M4K6P8T0V2X4Z6B8",
+          alt: "",
+          width: 240,
+          height: 120,
+        }),
+      ],
+    };
+
+    const response = await handleRequest(
+      new Request("http://localhost/api/export", {
+        method: "POST",
+        body: JSON.stringify({
+          document,
+          assets: [
+            {
+              assetId: "asset_01J4N7R8Q2M4K6P8T0V2X4Z6B8",
+              mimeType: "image/png",
+              data: "AA==",
+            },
+            {
+              assetId: "asset_01J4N7R8Q2M4K6P8T0V2X4Z6B8",
+              mimeType: "image/png",
+              data: "AQ==",
+            },
+          ],
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+      provider,
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "Invalid export request",
+      issues: expect.arrayContaining([
+        expect.objectContaining({
+          path: ["assets", 1, "assetId"],
+          message: "assetId must be unique",
+        }),
+      ]),
     });
   });
 });
