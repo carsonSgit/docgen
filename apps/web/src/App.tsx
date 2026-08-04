@@ -16,8 +16,6 @@ import {
   type LexicalEditorAdapter,
 } from "@document-playground/editor";
 import {
-  PAGE_FRAGMENT_ATTR,
-  PAGE_VISUAL_FRAGMENT_ATTR,
   type PaginationPage,
   paginateDocument,
 } from "@document-playground/pagination";
@@ -41,6 +39,7 @@ import {
   type ExportRequestAsset,
   requestExport,
 } from "./export";
+import { flattenPages } from "./page-content";
 
 type CoreEditor = LexicalEditorAdapter;
 
@@ -67,61 +66,6 @@ function collectImageAssetIds(node: DocumentNode, assetIds: Set<string>): void {
   }
   node.content?.forEach((child) => {
     collectImageAssetIds(child, assetIds);
-  });
-}
-
-function flattenPages(pages: PaginationPage[]): DocumentNode[] {
-  const content: DocumentNode[] = [];
-
-  for (const [pageIndex, page] of pages.entries()) {
-    if (page.number > 1 && page.breakBefore) {
-      content.push({ type: "pageBreak" });
-    }
-
-    for (const [nodeIndex, node] of page.content.entries()) {
-      const fragmentId = node.attrs?.[PAGE_FRAGMENT_ATTR];
-      const previous = content.at(-1);
-      const previousFragmentId = previous?.attrs?.[PAGE_FRAGMENT_ATTR];
-      const previousPage = pages[pageIndex - 1];
-      const previousPageLastNode = previousPage?.content.at(-1);
-      const crossesPageBoundary =
-        pageIndex > 0 &&
-        nodeIndex === 0 &&
-        (Boolean(fragmentId) ||
-          Boolean(previousPageLastNode?.attrs?.[PAGE_FRAGMENT_ATTR]));
-
-      if (
-        (crossesPageBoundary ||
-          (fragmentId && fragmentId === previousFragmentId)) &&
-        previous?.type === node.type
-      ) {
-        const visualBreak =
-          node.attrs?.[PAGE_VISUAL_FRAGMENT_ATTR] &&
-          previous.content?.at(-1)?.type !== "hardBreak"
-            ? [{ type: "hardBreak" as const }]
-            : [];
-        previous.content = [
-          ...(previous.content ?? []),
-          ...visualBreak,
-          ...(node.content ?? []),
-        ];
-      } else {
-        content.push({ ...node });
-      }
-    }
-  }
-
-  return content.map((node) => {
-    if (!node.attrs?.[PAGE_FRAGMENT_ATTR]) return node;
-    const {
-      [PAGE_FRAGMENT_ATTR]: _fragmentId,
-      [PAGE_VISUAL_FRAGMENT_ATTR]: _visualFragment,
-      ...attrs
-    } = node.attrs;
-    return {
-      ...node,
-      ...(Object.keys(attrs).length ? { attrs } : { attrs: undefined }),
-    };
   });
 }
 
