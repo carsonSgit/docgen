@@ -25,15 +25,20 @@ function headingMetrics(node: TiptapNode) {
   };
 }
 
-function paragraphStyle(node: TiptapNode) {
+function paragraphStyle(node: TiptapNode, listType?: "bullet" | "ordered") {
   if (node.type !== "heading") {
+    const spacingMode =
+      node.type === "listItem" && listType ? "COLLAPSE_LISTS" : undefined;
     return {
       paragraphStyle: {
         lineSpacing: DOCUMENT_TYPOGRAPHY.lineSpacingPercent,
         spaceAbove: { magnitude: 0, unit: "PT" },
         spaceBelow: { magnitude: 0, unit: "PT" },
+        ...(spacingMode ? { spacingMode } : {}),
       },
-      fields: "lineSpacing,spaceAbove,spaceBelow",
+      fields: spacingMode
+        ? "lineSpacing,spaceAbove,spaceBelow,spacingMode"
+        : "lineSpacing,spaceAbove,spaceBelow",
     };
   }
   const { level, metrics } = headingMetrics(node);
@@ -281,7 +286,12 @@ function compileNode(
     state.index += 1;
     const range = { startIndex, endIndex: state.index };
 
-    requests.push({ updateParagraphStyle: { range, ...paragraphStyle(node) } });
+    requests.push({
+      updateParagraphStyle: {
+        range,
+        ...paragraphStyle(node, listType),
+      },
+    });
     if (node.type !== "listItem") {
       requests.push({ updateTextStyle: { range, ...textStyle(node) } });
     }
