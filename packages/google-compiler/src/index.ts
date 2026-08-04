@@ -331,10 +331,12 @@ function compileNode(
     node.type === "heading" ||
     node.type === "listItem"
   ) {
-    requests.push({
-      insertText: { location: { index: state.index }, text: "\n" },
-    });
-    state.index += 1;
+    if (node.type !== "listItem") {
+      requests.push({
+        insertText: { location: { index: state.index }, text: "\n" },
+      });
+      state.index += 1;
+    }
     const range = { startIndex, endIndex: state.index };
 
     requests.push({

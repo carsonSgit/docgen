@@ -402,15 +402,6 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       },
     },
     {
-      "insertText": {
-        "location": {
-          "index": 352,
-        },
-        "text": "
-",
-      },
-    },
-    {
       "updateParagraphStyle": {
         "fields": "lineSpacing,spaceAbove,spaceBelow,spacingMode,indentStart,indentFirstLine",
         "paragraphStyle": {
@@ -434,7 +425,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
           "spacingMode": "COLLAPSE_LISTS",
         },
         "range": {
-          "endIndex": 353,
+          "endIndex": 352,
           "startIndex": 340,
         },
       },
@@ -443,7 +434,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       "createParagraphBullets": {
         "bulletPreset": "BULLET_DISC_CIRCLE_SQUARE",
         "range": {
-          "endIndex": 353,
+          "endIndex": 352,
           "startIndex": 340,
         },
       },
@@ -451,7 +442,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 353,
+          "index": 352,
         },
         "text": "Second bullet item",
       },
@@ -459,7 +450,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 371,
+          "index": 370,
         },
         "text": "
 ",
@@ -480,8 +471,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
           },
         },
         "range": {
-          "endIndex": 372,
-          "startIndex": 353,
+          "endIndex": 371,
+          "startIndex": 352,
         },
       },
     },
@@ -489,8 +480,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       "updateTextStyle": {
         "fields": "weightedFontFamily,fontSize",
         "range": {
-          "endIndex": 372,
-          "startIndex": 353,
+          "endIndex": 371,
+          "startIndex": 352,
         },
         "textStyle": {
           "fontSize": {
@@ -501,15 +492,6 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
             "fontFamily": "Arial",
           },
         },
-      },
-    },
-    {
-      "insertText": {
-        "location": {
-          "index": 372,
-        },
-        "text": "
-",
       },
     },
     {
@@ -536,8 +518,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
           "spacingMode": "COLLAPSE_LISTS",
         },
         "range": {
-          "endIndex": 373,
-          "startIndex": 353,
+          "endIndex": 371,
+          "startIndex": 352,
         },
       },
     },
@@ -545,17 +527,120 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       "createParagraphBullets": {
         "bulletPreset": "BULLET_DISC_CIRCLE_SQUARE",
         "range": {
-          "endIndex": 373,
-          "startIndex": 353,
+          "endIndex": 371,
+          "startIndex": 352,
         },
       },
     },
     {
       "insertText": {
         "location": {
-          "index": 373,
+          "index": 371,
         },
         "text": "Ordered item",
+      },
+    },
+    {
+      "insertText": {
+        "location": {
+          "index": 383,
+        },
+        "text": "
+",
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow",
+        "paragraphStyle": {
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+        },
+        "range": {
+          "endIndex": 384,
+          "startIndex": 371,
+        },
+      },
+    },
+    {
+      "updateTextStyle": {
+        "fields": "weightedFontFamily,fontSize",
+        "range": {
+          "endIndex": 384,
+          "startIndex": 371,
+        },
+        "textStyle": {
+          "fontSize": {
+            "magnitude": 11,
+            "unit": "PT",
+          },
+          "weightedFontFamily": {
+            "fontFamily": "Arial",
+          },
+        },
+      },
+    },
+    {
+      "updateParagraphStyle": {
+        "fields": "lineSpacing,spaceAbove,spaceBelow,spacingMode,indentStart,indentFirstLine",
+        "paragraphStyle": {
+          "indentFirstLine": {
+            "magnitude": -18,
+            "unit": "PT",
+          },
+          "indentStart": {
+            "magnitude": 27,
+            "unit": "PT",
+          },
+          "lineSpacing": 115,
+          "spaceAbove": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spaceBelow": {
+            "magnitude": 0,
+            "unit": "PT",
+          },
+          "spacingMode": "COLLAPSE_LISTS",
+        },
+        "range": {
+          "endIndex": 384,
+          "startIndex": 371,
+        },
+      },
+    },
+    {
+      "createParagraphBullets": {
+        "bulletPreset": "NUMBERED_DECIMAL_ALPHA_ROMAN",
+        "range": {
+          "endIndex": 384,
+          "startIndex": 371,
+        },
+      },
+    },
+    {
+      "insertInlineImage": {
+        "location": {
+          "index": 384,
+        },
+        "objectSize": {
+          "height": {
+            "magnitude": 120,
+            "unit": "PT",
+          },
+          "width": {
+            "magnitude": 240,
+            "unit": "PT",
+          },
+        },
+        "uri": "https://fixture.invalid/hero.svg",
       },
     },
     {
@@ -583,7 +668,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
         },
         "range": {
           "endIndex": 386,
-          "startIndex": 373,
+          "startIndex": 384,
         },
       },
     },
@@ -592,119 +677,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
         "fields": "weightedFontFamily,fontSize",
         "range": {
           "endIndex": 386,
-          "startIndex": 373,
-        },
-        "textStyle": {
-          "fontSize": {
-            "magnitude": 11,
-            "unit": "PT",
-          },
-          "weightedFontFamily": {
-            "fontFamily": "Arial",
-          },
-        },
-      },
-    },
-    {
-      "insertText": {
-        "location": {
-          "index": 386,
-        },
-        "text": "
-",
-      },
-    },
-    {
-      "updateParagraphStyle": {
-        "fields": "lineSpacing,spaceAbove,spaceBelow,spacingMode,indentStart,indentFirstLine",
-        "paragraphStyle": {
-          "indentFirstLine": {
-            "magnitude": -18,
-            "unit": "PT",
-          },
-          "indentStart": {
-            "magnitude": 27,
-            "unit": "PT",
-          },
-          "lineSpacing": 115,
-          "spaceAbove": {
-            "magnitude": 0,
-            "unit": "PT",
-          },
-          "spaceBelow": {
-            "magnitude": 0,
-            "unit": "PT",
-          },
-          "spacingMode": "COLLAPSE_LISTS",
-        },
-        "range": {
-          "endIndex": 387,
-          "startIndex": 373,
-        },
-      },
-    },
-    {
-      "createParagraphBullets": {
-        "bulletPreset": "NUMBERED_DECIMAL_ALPHA_ROMAN",
-        "range": {
-          "endIndex": 387,
-          "startIndex": 373,
-        },
-      },
-    },
-    {
-      "insertInlineImage": {
-        "location": {
-          "index": 387,
-        },
-        "objectSize": {
-          "height": {
-            "magnitude": 120,
-            "unit": "PT",
-          },
-          "width": {
-            "magnitude": 240,
-            "unit": "PT",
-          },
-        },
-        "uri": "https://fixture.invalid/hero.svg",
-      },
-    },
-    {
-      "insertText": {
-        "location": {
-          "index": 388,
-        },
-        "text": "
-",
-      },
-    },
-    {
-      "updateParagraphStyle": {
-        "fields": "lineSpacing,spaceAbove,spaceBelow",
-        "paragraphStyle": {
-          "lineSpacing": 115,
-          "spaceAbove": {
-            "magnitude": 0,
-            "unit": "PT",
-          },
-          "spaceBelow": {
-            "magnitude": 0,
-            "unit": "PT",
-          },
-        },
-        "range": {
-          "endIndex": 389,
-          "startIndex": 387,
-        },
-      },
-    },
-    {
-      "updateTextStyle": {
-        "fields": "weightedFontFamily,fontSize",
-        "range": {
-          "endIndex": 389,
-          "startIndex": 387,
+          "startIndex": 384,
         },
         "textStyle": {
           "fontSize": {
@@ -720,14 +693,14 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertPageBreak": {
         "location": {
-          "index": 389,
+          "index": 386,
         },
       },
     },
     {
       "insertText": {
         "location": {
-          "index": 390,
+          "index": 387,
         },
         "text": "After the explicit manual page break. ",
       },
@@ -735,7 +708,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 428,
+          "index": 425,
         },
         "text": "
 ",
@@ -744,7 +717,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 429,
+          "index": 426,
         },
         "text": "The following stable paragraph forces an automatic break after this page has accumulated enough measured content. ",
       },
@@ -752,7 +725,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 543,
+          "index": 540,
         },
         "text": "Measured pagination remains deterministic and observable across repeated captures. ",
       },
@@ -760,7 +733,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 626,
+          "index": 623,
         },
         "text": "Measured pagination remains deterministic and observable across repeated captures. ",
       },
@@ -768,7 +741,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 709,
+          "index": 706,
         },
         "text": "Measured pagination remains deterministic and observable across repeated captures.",
       },
@@ -776,7 +749,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 791,
+          "index": 788,
         },
         "text": "
 ",
@@ -797,8 +770,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
           },
         },
         "range": {
-          "endIndex": 792,
-          "startIndex": 390,
+          "endIndex": 789,
+          "startIndex": 387,
         },
       },
     },
@@ -806,8 +779,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       "updateTextStyle": {
         "fields": "weightedFontFamily,fontSize",
         "range": {
-          "endIndex": 792,
-          "startIndex": 390,
+          "endIndex": 789,
+          "startIndex": 387,
         },
         "textStyle": {
           "fontSize": {
@@ -823,7 +796,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 792,
+          "index": 789,
         },
         "text": "Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content. Automatic pagination boundary content.",
       },
@@ -831,7 +804,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 1376,
+          "index": 1373,
         },
         "text": "
 ",
@@ -852,8 +825,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
           },
         },
         "range": {
-          "endIndex": 1377,
-          "startIndex": 792,
+          "endIndex": 1374,
+          "startIndex": 789,
         },
       },
     },
@@ -861,8 +834,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       "updateTextStyle": {
         "fields": "weightedFontFamily,fontSize",
         "range": {
-          "endIndex": 1377,
-          "startIndex": 792,
+          "endIndex": 1374,
+          "startIndex": 789,
         },
         "textStyle": {
           "fontSize": {
@@ -878,7 +851,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 1377,
+          "index": 1374,
         },
         "text": "Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content. Additional automatic pagination content.",
       },
@@ -886,7 +859,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 1991,
+          "index": 1988,
         },
         "text": "
 ",
@@ -907,8 +880,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
           },
         },
         "range": {
-          "endIndex": 1992,
-          "startIndex": 1377,
+          "endIndex": 1989,
+          "startIndex": 1374,
         },
       },
     },
@@ -916,8 +889,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       "updateTextStyle": {
         "fields": "weightedFontFamily,fontSize",
         "range": {
-          "endIndex": 1992,
-          "startIndex": 1377,
+          "endIndex": 1989,
+          "startIndex": 1374,
         },
         "textStyle": {
           "fontSize": {
@@ -933,7 +906,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 1992,
+          "index": 1989,
         },
         "text": "Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content. Final automatic pagination content.",
       },
@@ -941,7 +914,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 2531,
+          "index": 2528,
         },
         "text": "
 ",
@@ -962,8 +935,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
           },
         },
         "range": {
-          "endIndex": 2532,
-          "startIndex": 1992,
+          "endIndex": 2529,
+          "startIndex": 1989,
         },
       },
     },
@@ -971,8 +944,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       "updateTextStyle": {
         "fields": "weightedFontFamily,fontSize",
         "range": {
-          "endIndex": 2532,
-          "startIndex": 1992,
+          "endIndex": 2529,
+          "startIndex": 1989,
         },
         "textStyle": {
           "fontSize": {
@@ -988,7 +961,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 2532,
+          "index": 2529,
         },
         "text": "Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content.",
       },
@@ -996,7 +969,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 2996,
+          "index": 2993,
         },
         "text": "
 ",
@@ -1017,8 +990,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
           },
         },
         "range": {
-          "endIndex": 2997,
-          "startIndex": 2532,
+          "endIndex": 2994,
+          "startIndex": 2529,
         },
       },
     },
@@ -1026,8 +999,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       "updateTextStyle": {
         "fields": "weightedFontFamily,fontSize",
         "range": {
-          "endIndex": 2997,
-          "startIndex": 2532,
+          "endIndex": 2994,
+          "startIndex": 2529,
         },
         "textStyle": {
           "fontSize": {
@@ -1043,7 +1016,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 2997,
+          "index": 2994,
         },
         "text": "Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content.",
       },
@@ -1051,7 +1024,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 3461,
+          "index": 3458,
         },
         "text": "
 ",
@@ -1072,8 +1045,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
           },
         },
         "range": {
-          "endIndex": 3462,
-          "startIndex": 2997,
+          "endIndex": 3459,
+          "startIndex": 2994,
         },
       },
     },
@@ -1081,8 +1054,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       "updateTextStyle": {
         "fields": "weightedFontFamily,fontSize",
         "range": {
-          "endIndex": 3462,
-          "startIndex": 2997,
+          "endIndex": 3459,
+          "startIndex": 2994,
         },
         "textStyle": {
           "fontSize": {
@@ -1098,7 +1071,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 3462,
+          "index": 3459,
         },
         "text": "Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content. Overflow verification content.",
       },
@@ -1106,7 +1079,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 3926,
+          "index": 3923,
         },
         "text": "
 ",
@@ -1127,8 +1100,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
           },
         },
         "range": {
-          "endIndex": 3927,
-          "startIndex": 3462,
+          "endIndex": 3924,
+          "startIndex": 3459,
         },
       },
     },
@@ -1136,8 +1109,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       "updateTextStyle": {
         "fields": "weightedFontFamily,fontSize",
         "range": {
-          "endIndex": 3927,
-          "startIndex": 3462,
+          "endIndex": 3924,
+          "startIndex": 3459,
         },
         "textStyle": {
           "fontSize": {
@@ -1153,7 +1126,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 3927,
+          "index": 3924,
         },
         "text": "Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout.",
       },
@@ -1161,7 +1134,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 4454,
+          "index": 4451,
         },
         "text": "
 ",
@@ -1182,8 +1155,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
           },
         },
         "range": {
-          "endIndex": 4455,
-          "startIndex": 3927,
+          "endIndex": 4452,
+          "startIndex": 3924,
         },
       },
     },
@@ -1191,8 +1164,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       "updateTextStyle": {
         "fields": "weightedFontFamily,fontSize",
         "range": {
-          "endIndex": 4455,
-          "startIndex": 3927,
+          "endIndex": 4452,
+          "startIndex": 3924,
         },
         "textStyle": {
           "fontSize": {
@@ -1208,7 +1181,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 4455,
+          "index": 4452,
         },
         "text": "Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout.",
       },
@@ -1216,7 +1189,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 4982,
+          "index": 4979,
         },
         "text": "
 ",
@@ -1237,8 +1210,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
           },
         },
         "range": {
-          "endIndex": 4983,
-          "startIndex": 4455,
+          "endIndex": 4980,
+          "startIndex": 4452,
         },
       },
     },
@@ -1246,8 +1219,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       "updateTextStyle": {
         "fields": "weightedFontFamily,fontSize",
         "range": {
-          "endIndex": 4983,
-          "startIndex": 4455,
+          "endIndex": 4980,
+          "startIndex": 4452,
         },
         "textStyle": {
           "fontSize": {
@@ -1263,7 +1236,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 4983,
+          "index": 4980,
         },
         "text": "Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout.",
       },
@@ -1271,7 +1244,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 5510,
+          "index": 5507,
         },
         "text": "
 ",
@@ -1292,8 +1265,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
           },
         },
         "range": {
-          "endIndex": 5511,
-          "startIndex": 4983,
+          "endIndex": 5508,
+          "startIndex": 4980,
         },
       },
     },
@@ -1301,8 +1274,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       "updateTextStyle": {
         "fields": "weightedFontFamily,fontSize",
         "range": {
-          "endIndex": 5511,
-          "startIndex": 4983,
+          "endIndex": 5508,
+          "startIndex": 4980,
         },
         "textStyle": {
           "fontSize": {
@@ -1318,7 +1291,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 5511,
+          "index": 5508,
         },
         "text": "Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout.",
       },
@@ -1326,7 +1299,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 6038,
+          "index": 6035,
         },
         "text": "
 ",
@@ -1347,8 +1320,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
           },
         },
         "range": {
-          "endIndex": 6039,
-          "startIndex": 5511,
+          "endIndex": 6036,
+          "startIndex": 5508,
         },
       },
     },
@@ -1356,8 +1329,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       "updateTextStyle": {
         "fields": "weightedFontFamily,fontSize",
         "range": {
-          "endIndex": 6039,
-          "startIndex": 5511,
+          "endIndex": 6036,
+          "startIndex": 5508,
         },
         "textStyle": {
           "fontSize": {
@@ -1373,7 +1346,7 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
     {
       "insertText": {
         "location": {
-          "index": 6039,
+          "index": 6036,
         },
         "text": "Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout. Automatic boundary sample text repeated for deterministic layout.",
       },
@@ -1393,8 +1366,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
           },
         },
         "range": {
-          "endIndex": 6567,
-          "startIndex": 6039,
+          "endIndex": 6564,
+          "startIndex": 6036,
         },
       },
     },
@@ -1402,8 +1375,8 @@ exports[`Core Editor Slice render-equivalence fixture > compiles the canonical e
       "updateTextStyle": {
         "fields": "weightedFontFamily,fontSize",
         "range": {
-          "endIndex": 6567,
-          "startIndex": 6039,
+          "endIndex": 6564,
+          "startIndex": 6036,
         },
         "textStyle": {
           "fontSize": {
