@@ -395,4 +395,55 @@ describe("pagination adapter", () => {
 
     expect(result.pages.length).toBeGreaterThan(1);
   });
+
+  it("does not duplicate a parent paragraph across nested list pages", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Parent" }],
+                },
+                {
+                  type: "bulletList",
+                  content: [
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [
+                            { type: "text", text: "Nested item ".repeat(900) },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = paginateDocument(document);
+    const parentCount = result.pages
+      .flatMap((page) => page.content)
+      .flatMap((list) => list.content ?? [])
+      .flatMap((item) => item.content ?? [])
+      .filter((node) => node.type === "paragraph")
+      .flatMap((paragraph) => paragraph.content ?? [])
+      .filter((node) => node.text === "Parent").length;
+
+    expect(result.pages.length).toBeGreaterThan(1);
+    expect(parentCount).toBe(1);
+  });
 });

@@ -409,14 +409,19 @@ function splitListToFit(
           childFragments.map((fragment) => [...prefix, fragment]),
         );
       }
-      for (const trailing of trailingFragments) {
+      for (const [trailingIndex, trailing] of trailingFragments.entries()) {
+        const parentParagraph =
+          paragraphFragments.length > 1 ||
+          (fragmentIndex === 0 && trailingIndex === 0)
+            ? paragraphFragment
+            : { ...paragraphFragment, content: [] };
         fragments.push({
           ...node,
           attrs: { ...node.attrs, [PAGE_FRAGMENT_ATTR]: fragmentId },
           content: [
             {
               ...item,
-              content: [paragraphFragment, ...trailing],
+              content: [parentParagraph, ...trailing],
             },
           ],
         });
