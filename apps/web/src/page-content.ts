@@ -133,9 +133,16 @@ export function flattenPages(pages: PaginationPage[]): DocumentNode[] {
         nodeIndex === 0 &&
         (Boolean(fragmentId) ||
           Boolean(previousPageLastNode?.attrs?.[PAGE_FRAGMENT_ATTR]));
+      const isList = node.type === "bulletList" || node.type === "orderedList";
+      const startsWithContinuation =
+        isList &&
+        node.content?.[0]?.attrs?.[PAGE_LIST_ITEM_CONTINUATION_ATTR] === true;
+      const sameListFragment =
+        Boolean(fragmentId) && fragmentId === previousFragmentId;
       if (
-        (crossesPageBoundary ||
-          (fragmentId && fragmentId === previousFragmentId)) &&
+        (isList
+          ? sameListFragment || startsWithContinuation
+          : crossesPageBoundary || sameListFragment) &&
         previous?.type === node.type
       ) {
         content[content.length - 1] = mergeFragmentNodes(previous, node);
