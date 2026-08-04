@@ -21,6 +21,7 @@ export type PaginatedDocument = {
 export type NodeMeasurement = (node: TiptapNode) => number;
 
 export const PAGE_FRAGMENT_ATTR = "data-page-fragment";
+export const PAGE_VISUAL_FRAGMENT_ATTR = "data-page-visual-fragment";
 
 function containsImage(node: TiptapNode): boolean {
   return (
@@ -51,7 +52,14 @@ function defaultMeasure(node: TiptapNode): number {
 
   const lineCount = (current: TiptapNode): number => {
     if (current.type === "hardBreak") return 1;
-    if (current.text) return Math.max(1, Math.ceil(current.text.length / 90));
+    if (current.text) {
+      return current.text
+        .split("\n")
+        .reduce(
+          (lines, line) => lines + Math.max(1, Math.ceil(line.length / 90)),
+          0,
+        );
+    }
     return (
       current.content?.reduce((lines, child) => lines + lineCount(child), 0) ??
       0
@@ -87,6 +95,49 @@ function defaultMeasure(node: TiptapNode): number {
   );
 }
 
+function splitVisualFragment(fragment: TiptapNode): TiptapNode[] {
+  if (
+    !fragment.content?.some(
+      (child) => child.type === "hardBreak" || child.text?.includes("\n"),
+    )
+  ) {
+    return [fragment];
+  }
+  const visualFragments: TiptapNode[] = [];
+  let visualContent: TiptapNode[] = [];
+  const pushVisualFragment = () => {
+    if (visualContent.length === 0) return;
+    visualFragments.push({
+      ...fragment,
+      attrs: {
+        ...fragment.attrs,
+        [PAGE_VISUAL_FRAGMENT_ATTR]: true,
+      },
+      content: visualContent,
+    });
+    visualContent = [];
+  };
+  for (const child of fragment.content) {
+    if (child.type === "hardBreak") {
+      pushVisualFragment();
+      continue;
+    }
+    const textLines = child.text?.split("\n");
+    if (!textLines || textLines.length === 1) {
+      visualContent.push(child);
+      continue;
+    }
+    for (const [lineIndex, line] of textLines.entries()) {
+      if (line.length > 0) visualContent.push({ ...child, text: line });
+      if (lineIndex < textLines.length - 1) {
+        pushVisualFragment();
+      }
+    }
+  }
+  pushVisualFragment();
+  return visualFragments;
+}
+
 function splitNodeToFit(node: TiptapNode, maxHeight: number): TiptapNode[] {
   if (node.type !== "paragraph" || !node.content?.length) return [node];
 
@@ -96,8 +147,23 @@ function splitNodeToFit(node: TiptapNode, maxHeight: number): TiptapNode[] {
   const fragments: TiptapNode[] = [];
   let content: TiptapNode[] = [];
   let lines = 0;
+  const countLines = (current: TiptapNode): number => {
+    if (current.type === "hardBreak") return 1;
+    if (current.text) {
+      return current.text
+        .split("\n")
+        .reduce(
+          (total, line) => total + Math.max(1, Math.ceil(line.length / 90)),
+          0,
+        );
+    }
+    return (
+      current.content?.reduce((total, child) => total + countLines(child), 0) ??
+      1
+    );
+  };
   for (const child of node.content) {
-    const childLines = Math.max(1, Math.ceil((child.text?.length ?? 0) / 90));
+    const childLines = countLines(child);
     const nextLines =
       child.type === "hardBreak" ? lines + 1 : lines + childLines;
     if (content.length > 0 && nextLines > maxLines) {
@@ -109,7 +175,13 @@ function splitNodeToFit(node: TiptapNode, maxHeight: number): TiptapNode[] {
     lines += child.type === "hardBreak" ? 1 : childLines;
   }
   if (content.length > 0) fragments.push({ ...node, content });
-  return fragments.length > 0 ? fragments : [node];
+  if (fragments.length === 0) return [node];
+
+  // A split paragraph is rendered by multiple editor instances and must
+  // expose its visual hard-break lines as separate paragraphs. The shared
+  // fragment id lets flattenPages merge these display fragments back into the
+  // original canonical paragraph, including the hard-break nodes.
+  return fragments.flatMap(splitVisualFragment);
 }
 
 function splitTextNode(
@@ -125,51 +197,60 @@ function splitTextNode(
     return [node];
   }
 
-  const textLength = node.content.reduce(
-    (length, child) => length + (child.text?.length ?? 0),
-    0,
-  );
-  const maxCharacters = Math.max(
-    1,
-    Math.floor((maxHeight / DEFAULT_BLOCK_HEIGHT) * 90),
-  );
-  if (textLength <= maxCharacters) return [node];
+  const maxLines = Math.max(1, Math.floor(maxHeight / DEFAULT_BLOCK_HEIGHT));
+  const visualLines = (text: string) =>
+    text
+      .split("\n")
+      .reduce(
+        (lines, line) => lines + Math.max(1, Math.ceil(line.length / 90)),
+        0,
+      );
+  if (
+    node.content.reduce(
+      (lines, child) => lines + visualLines(child.text ?? ""),
+      0,
+    ) <= maxLines
+  )
+    return [node];
 
   const fragments: TiptapNode[] = [];
   let current: TiptapNode[] = [];
-  let currentLength = 0;
-
-  for (const child of node.content) {
-    const childText = child.text ?? "";
-    let offset = 0;
-    while (offset < childText.length) {
-      const remaining = maxCharacters - currentLength;
-      const chunk = childText.slice(offset, offset + remaining);
-      current.push({ ...child, text: chunk });
-      currentLength += chunk.length;
-      offset += chunk.length;
-
-      if (currentLength === maxCharacters) {
-        fragments.push({
-          ...node,
-          attrs: { ...node.attrs, [PAGE_FRAGMENT_ATTR]: fragmentId },
-          content: current,
-        });
-        current = [];
-        currentLength = 0;
-      }
-    }
-  }
-
-  if (current.length) {
+  let currentLines = 0;
+  const pushFragment = () => {
+    if (current.length === 0) return;
     fragments.push({
       ...node,
       attrs: { ...node.attrs, [PAGE_FRAGMENT_ATTR]: fragmentId },
       content: current,
     });
-  }
+    current = [];
+    currentLines = 0;
+  };
 
-  return fragments;
+  for (const child of node.content) {
+    const childText = child.text ?? "";
+    const logicalLines = childText.split("\n");
+    for (const [lineIndex, logicalLine] of logicalLines.entries()) {
+      const chunks = logicalLine.match(/.{1,90}/g) ?? [""];
+      for (const [chunkIndex, chunk] of chunks.entries()) {
+        if (currentLines >= maxLines) pushFragment();
+        const separator = lineIndex > 0 && chunkIndex === 0 ? "\n" : "";
+        const previous = current.at(-1);
+        if (previous?.type === "text" && separator) {
+          current[current.length - 1] = {
+            ...previous,
+            text: `${previous.text ?? ""}${separator}${chunk}`,
+          };
+        } else {
+          current.push({ ...child, text: `${separator}${chunk}` });
+        }
+        currentLines += 1;
+      }
+    }
+  }
+  pushFragment();
+
+  return fragments.flatMap(splitVisualFragment);
 }
 
 export function paginateDocument(
@@ -189,6 +270,18 @@ export function paginateDocument(
     }
 
     const nextNode = document.content.content?.[nodeIndex + 1];
+    // Lexical inserts an image after the initial empty paragraph. Treat that
+    // placeholder as the image's inline insertion point so a near-full-page
+    // image stays on the first page instead of being pushed by an empty line.
+    if (
+      node.type === "paragraph" &&
+      !node.content?.length &&
+      nextNode &&
+      containsImage(nextNode) &&
+      !pages.at(-1)?.content.length
+    ) {
+      continue;
+    }
     const keepsNextTogether =
       node.type === "heading" &&
       nextNode &&
@@ -210,11 +303,12 @@ export function paginateDocument(
         remainingHeight,
         String(nodeIndex),
       );
-      const fragments: TiptapNode[] =
+      const fragmentCandidates: TiptapNode[] =
         textFragments.length === 1 &&
         measureNode(textFragments[0] ?? remainingNode) > remainingHeight
           ? splitNodeToFit(remainingNode, remainingHeight)
           : textFragments;
+      const fragments = fragmentCandidates;
       const fragment = fragments[0];
       if (!fragment) break;
       const height = Math.max(1, measureNode(fragment));
