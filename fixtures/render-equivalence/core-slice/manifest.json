@@ -4,9 +4,9 @@
   "templateVersion": 1,
   "assets": [
     {
-      "filename": "assets/hero.svg",
+      "filename": "assets/hero.png",
       "assetId": "asset_core_slice_hero",
-      "sha256": "039da23c6e26545e38047381e168a74462162c5c0340b91976f497990d162b5a"
+      "sha256": "874eec1dce33734d70f5d6189ff113c6c21ad54acd9e7f38865d2992f1366184"
     }
   ],
   "expected": {
@@ -24,7 +24,20 @@
       "headerDistancePoints": 36,
       "footerDistancePoints": 36
     },
-    "typography": { "fontFamily": "Arial", "bodyFontSizePoints": 11 }
+    "typography": { "fontFamily": "Arial", "bodyFontSizePoints": 11 },
+    "features": {
+      "nodeTypes": [
+        "heading",
+        "paragraph",
+        "bulletList",
+        "orderedList",
+        "listItem",
+        "image",
+        "pageBreak",
+        "hardBreak"
+      ],
+      "marks": ["bold", "italic", "underline", "link"]
+    }
   },
   "compilerSnapshot": "packages/google-compiler/src/__snapshots__/render-equivalence.test.ts.snap",
   "capture": {
