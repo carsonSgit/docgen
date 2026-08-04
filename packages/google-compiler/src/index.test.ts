@@ -822,4 +822,85 @@ describe("native list render metrics", () => {
       ]),
     );
   });
+
+  it("keeps one native marker range per logical list while separating adjacent lists", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "orderedList",
+          attrs: { start: 3 },
+          content: [
+            {
+              type: "listItem",
+              content: [
+                { type: "paragraph", content: [{ type: "text", text: "One" }] },
+              ],
+            },
+            {
+              type: "listItem",
+              content: [
+                { type: "paragraph", content: [{ type: "text", text: "Two" }] },
+              ],
+            },
+          ],
+        },
+        {
+          type: "orderedList",
+          attrs: { start: 9 },
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Restart" }],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Separate" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const markerRequests = compileDocument(document).requests.filter(
+      (request) => "createParagraphBullets" in request,
+    );
+
+    expect(markerRequests).toEqual([
+      {
+        createParagraphBullets: {
+          range: { startIndex: 1, endIndex: 9 },
+          bulletPreset: "NUMBERED_DECIMAL_ALPHA_ROMAN",
+        },
+      },
+      {
+        createParagraphBullets: {
+          range: { startIndex: 9, endIndex: 17 },
+          bulletPreset: "NUMBERED_DECIMAL_ALPHA_ROMAN",
+        },
+      },
+      {
+        createParagraphBullets: {
+          range: { startIndex: 17, endIndex: 26 },
+          bulletPreset: "BULLET_DISC_CIRCLE_SQUARE",
+        },
+      },
+    ]);
+  });
 });
