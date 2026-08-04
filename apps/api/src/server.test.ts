@@ -108,4 +108,53 @@ describe("API", () => {
       error: expect.stringContaining("table"),
     });
   });
+
+  it("rejects malformed base64 assets before requesting Google authorization", async () => {
+    const oauth = new GoogleOAuthService({
+      clientId: "client",
+      clientSecret: "secret",
+      redirectUri: "http://localhost/callback",
+      stateFactory: () => "state",
+    });
+    const response = await handleRequest(
+      new Request("http://localhost/api/export", {
+        method: "POST",
+        body: JSON.stringify({
+          document: createBlankDocument(),
+          assets: [
+            { assetId: "asset_unused", mimeType: "image/png", data: "A" },
+          ],
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+      undefined,
+      oauth,
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Image asset asset_unused has invalid base64 data.",
+    });
+  });
+
+  it("rejects duplicate asset IDs at the API boundary", async () => {
+    const response = await handleRequest(
+      new Request("http://localhost/api/export", {
+        method: "POST",
+        body: JSON.stringify({
+          document: createBlankDocument(),
+          assets: [
+            { assetId: "asset_duplicate", mimeType: "image/png", data: "YQ==" },
+            { assetId: "asset_duplicate", mimeType: "image/png", data: "Yg==" },
+          ],
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Duplicate image asset asset_duplicate.",
+    });
+  });
 });
