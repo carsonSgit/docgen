@@ -241,6 +241,11 @@ export class GoogleOAuthService {
     return this.tokens.accessToken;
   }
 
+  clearAuthorization(): void {
+    this.tokens = undefined;
+    this.options.tokenStore?.clear?.();
+  }
+
   provider(): GoogleProviderClient {
     return createGoogleProviderClient({
       accessToken: this.tokens?.accessToken,
