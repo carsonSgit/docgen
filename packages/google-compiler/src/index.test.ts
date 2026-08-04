@@ -415,6 +415,26 @@ describe("Google Docs compiler", () => {
     });
   });
 
+  it("rejects unsupported paragraph alignment before producing requests", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          attrs: { textAlign: "start" },
+          content: [{ type: "text", text: "Unsupported alignment" }],
+        },
+      ],
+    };
+
+    expect(() => compileDocument(document)).toThrow(UnsupportedContentError);
+    expect(() => compileDocument(document)).toThrow(
+      "content.content[0].attrs.textAlign",
+    );
+    expect(() => compileDocument(document)).toThrow("start");
+  });
+
   it("rejects unsupported header content before section compilation", () => {
     const document = createBlankDocument();
     document.header = { type: "doc", content: [{ type: "table" }] };
