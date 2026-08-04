@@ -1,4 +1,8 @@
-import { createBlankDocument } from "@document-playground/domain";
+import {
+  createBlankDocument,
+  type DocumentNode,
+} from "@document-playground/domain";
+import { $getRoot, $isTextNode } from "lexical";
 import { describe, expect, it } from "vitest";
 import {
   createCoreEditor,
@@ -57,6 +61,35 @@ describe("Lexical editor adapter", () => {
       ],
     });
     unsubscribe();
+    editor.destroy();
+  });
+
+  it("propagates a user edit through the canonical boundary", async () => {
+    const host = document.createElement("div");
+    const editor = createLexicalEditor(host, {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Draft" }] },
+      ],
+    });
+    const changes: DocumentNode[] = [];
+    editor.onChange((nextDocument) => changes.push(nextDocument));
+
+    editor.lexical.update(() => {
+      const text = $getRoot().getFirstDescendant();
+      if ($isTextNode(text)) text.setTextContent("Edited");
+    });
+    await new Promise((resolve) => queueMicrotask(resolve));
+
+    expect(changes.at(-1)).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Edited" }],
+        },
+      ],
+    });
     editor.destroy();
   });
 });

@@ -467,6 +467,16 @@ button:disabled {
   line-height: 1.15;
 }
 
+.editor > [contenteditable="true"] {
+  min-height: 100%;
+  outline: 0;
+  cursor: text;
+  color: #202124;
+  font-family: Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.15;
+}
+
 .section-editor > .ProseMirror {
   min-height: 1em;
   outline: 0;
@@ -475,6 +485,27 @@ button:disabled {
   font-family: Arial, sans-serif;
   font-size: 11pt;
   line-height: 1.15;
+}
+
+.section-editor > [contenteditable="true"] {
+  min-height: 1em;
+  outline: 0;
+  cursor: text;
+  color: #202124;
+  font-family: Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.15;
+}
+
+.editor [data-page-break="true"] {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px dashed #9aa0a6;
+}
+
+.editor img,
+.section-editor img {
+  max-width: 100%;
 }
 
 .editor > .ProseMirror p,

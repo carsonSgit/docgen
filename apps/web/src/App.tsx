@@ -1,13 +1,15 @@
 import {
   createBlankDocument,
-  createImageNode,
   type DocumentEnvelope,
+  type DocumentNode,
   type DocumentSection,
   type DocumentTemplateId,
   listDocumentTemplates,
-  type TiptapNode,
 } from "@document-playground/domain";
-import { createCoreEditor, saveDocument } from "@document-playground/editor";
+import {
+  createLexicalEditor,
+  type LexicalEditorAdapter,
+} from "@document-playground/editor";
 import {
   PAGE_FRAGMENT_ATTR,
   type PaginationPage,
@@ -27,14 +29,14 @@ import {
   requestExport,
 } from "./export";
 
-type CoreEditor = ReturnType<typeof createCoreEditor>;
+type CoreEditor = LexicalEditorAdapter;
 
 type BodyEditorChange = {
   cursorAtEnd: boolean;
 };
 
-function flattenPages(pages: PaginationPage[]): TiptapNode[] {
-  const content: TiptapNode[] = [];
+function flattenPages(pages: PaginationPage[]): DocumentNode[] {
+  const content: DocumentNode[] = [];
 
   for (const [pageIndex, page] of pages.entries()) {
     if (page.number > 1 && page.breakBefore) {
@@ -105,7 +107,7 @@ type PageEditorProps = {
   resolveImageSource: (assetId: string) => string | undefined;
   onChange: (
     pageNumber: number,
-    content: TiptapNode[],
+    content: DocumentNode[],
     change?: BodyEditorChange,
   ) => void;
   onEditorReady: (pageNumber: number, editor: CoreEditor) => void;
@@ -134,7 +136,7 @@ function BodyEditor({
 
   useEffect(() => {
     if (!host.current) return;
-    const editor = createCoreEditor(
+    const editor = createLexicalEditor(
       host.current,
       {
         type: "doc",
@@ -145,21 +147,15 @@ function BodyEditor({
     editorRef.current = editor;
     onEditorReady(page.number, editor);
     const handleFocus = () => onFocusRef.current(editor);
-    const handleUpdate = () => {
-      const saved = saveDocument(editor, createBlankDocument());
-      const selection = editor.state.selection;
-      const change: BodyEditorChange = {
-        cursorAtEnd:
-          selection.empty &&
-          selection.anchor >= editor.state.doc.content.size - 1,
-      };
-      onChange(page.number, saved.content.content ?? [], change);
-    };
-    editor.on("focus", handleFocus);
-    editor.on("update", handleUpdate);
+    const unsubscribe = editor.onChange((content) => {
+      onChange(page.number, content.content ?? [], {
+        cursorAtEnd: editor.isCursorAtEnd(),
+      });
+    });
+    host.current.addEventListener("focusin", handleFocus);
     return () => {
-      editor.off("focus", handleFocus);
-      editor.off("update", handleUpdate);
+      unsubscribe();
+      host.current?.removeEventListener("focusin", handleFocus);
       editor.destroy();
       editorRef.current = null;
     };
@@ -168,18 +164,9 @@ function BodyEditor({
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
-    const current = JSON.stringify(editor.getJSON().content ?? []);
+    const current = JSON.stringify(editor.getDocument().content ?? []);
     if (current !== serializedContent) {
-      const { anchor, head } = editor.state.selection;
-      editor.commands.setContent(
-        { type: "doc", content: page.content },
-        { emitUpdate: false },
-      );
-      const maxPosition = editor.state.doc.content.size;
-      editor.commands.setTextSelection({
-        from: Math.min(anchor, maxPosition),
-        to: Math.min(head, maxPosition),
-      });
+      editor.loadDocument({ type: "doc", content: page.content });
     }
   }, [page.content, serializedContent]);
 
@@ -207,16 +194,16 @@ function SectionEditor({
 
   useEffect(() => {
     if (!host.current) return;
-    const editor = createCoreEditor(host.current, content);
+    const editor = createLexicalEditor(host.current, content);
     editorRef.current = editor;
     const handleFocus = () => onFocusRef.current(editor);
-    const handleUpdate = () =>
-      onChangeRef.current(saveDocument(editor, createBlankDocument()).content);
-    editor.on("focus", handleFocus);
-    editor.on("update", handleUpdate);
+    const unsubscribe = editor.onChange((nextContent) =>
+      onChangeRef.current(nextContent),
+    );
+    host.current.addEventListener("focusin", handleFocus);
     return () => {
-      editor.off("focus", handleFocus);
-      editor.off("update", handleUpdate);
+      unsubscribe();
+      host.current?.removeEventListener("focusin", handleFocus);
       editor.destroy();
       editorRef.current = null;
     };
@@ -224,8 +211,8 @@ function SectionEditor({
 
   useEffect(() => {
     const editor = editorRef.current;
-    if (editor && JSON.stringify(editor.getJSON()) !== serializedContent) {
-      editor.commands.setContent(content, { emitUpdate: false });
+    if (editor && JSON.stringify(editor.getDocument()) !== serializedContent) {
+      editor.loadDocument(content);
     }
   }, [content, serializedContent]);
 
@@ -351,14 +338,18 @@ export function App() {
     const editor = pageEditorsRef.current.get(pageNumber);
     if (!editor) return;
     requestAnimationFrame(() => {
-      editor.commands.focus("start");
+      editor.focus("start");
       activeEditorRef.current = editor;
       pendingPageFocusRef.current = null;
     });
   }, [pages]);
 
   const updatePageContent = useCallback(
-    (pageNumber: number, content: TiptapNode[], change?: BodyEditorChange) => {
+    (
+      pageNumber: number,
+      content: DocumentNode[],
+      change?: BodyEditorChange,
+    ) => {
       const currentPages = paginateDocument(documentRef.current).pages;
       const nextPages = currentPages.map((page) =>
         page.number === pageNumber ? { ...page, content } : page,
@@ -430,11 +421,8 @@ export function App() {
   }
 
   function insertPageBreak() {
-    activeEditorRef.current
-      ?.chain()
-      .focus()
-      .insertContent({ type: "pageBreak" })
-      .run();
+    activeEditorRef.current?.focus();
+    activeEditorRef.current?.insertPageBreak();
   }
 
   async function insertImage(file: File | undefined) {
@@ -447,18 +435,12 @@ export function App() {
       const height = Math.max(1, bitmap.height * (72 / 96) * scale);
       const asset = await putImageAsset(assetStorage, file, { width, height });
       assetUrls.current.set(asset.assetId, URL.createObjectURL(file));
-      activeEditorRef.current
-        .chain()
-        .focus()
-        .insertContent(
-          createImageNode({
-            assetId: asset.assetId,
-            alt: file.name,
-            width,
-            height,
-          }),
-        )
-        .run();
+      activeEditorRef.current.insertImage({
+        assetId: asset.assetId,
+        alt: file.name,
+        width,
+        height,
+      });
       bitmap.close();
     } catch (error) {
       setAssetError(
@@ -473,10 +455,10 @@ export function App() {
     const href = window.prompt("Link URL");
     if (href === null) return;
     if (href.trim() === "") {
-      editor.chain().focus().unsetLink().run();
+      editor.setLink(null);
       return;
     }
-    editor.chain().focus().setLink({ href: href.trim() }).run();
+    editor.setLink(href.trim());
   }
 
   async function exportCurrentDocument() {
@@ -634,34 +616,22 @@ export function App() {
           <ToolbarButton
             label="Bold"
             mark="B"
-            onClick={() =>
-              activeEditorRef.current?.chain().focus().toggleBold().run()
-            }
+            onClick={() => activeEditorRef.current?.toggleFormat("bold")}
           />
           <ToolbarButton
             label="Italic"
             mark="I"
-            onClick={() =>
-              activeEditorRef.current?.chain().focus().toggleItalic().run()
-            }
+            onClick={() => activeEditorRef.current?.toggleFormat("italic")}
           />
           <ToolbarButton
             label="Underline"
             mark="U"
-            onClick={() =>
-              activeEditorRef.current?.chain().focus().toggleUnderline().run()
-            }
+            onClick={() => activeEditorRef.current?.toggleFormat("underline")}
           />
           <ToolbarButton
             label="Heading"
             mark="H2"
-            onClick={() =>
-              activeEditorRef.current
-                ?.chain()
-                .focus()
-                .toggleHeading({ level: 2 })
-                .run()
-            }
+            onClick={() => activeEditorRef.current?.setHeading(2)}
           />
         </fieldset>
         <div className="toolbar-divider" aria-hidden="true" />
@@ -669,16 +639,12 @@ export function App() {
           <ToolbarButton
             label="Bulleted list"
             mark="•"
-            onClick={() =>
-              activeEditorRef.current?.chain().focus().toggleBulletList().run()
-            }
+            onClick={() => activeEditorRef.current?.toggleList("bullet")}
           />
           <ToolbarButton
             label="Numbered list"
             mark="1."
-            onClick={() =>
-              activeEditorRef.current?.chain().focus().toggleOrderedList().run()
-            }
+            onClick={() => activeEditorRef.current?.toggleList("number")}
           />
         </fieldset>
         <div className="toolbar-divider" aria-hidden="true" />
@@ -686,24 +652,12 @@ export function App() {
           <ToolbarButton
             label="Align left"
             mark="≡"
-            onClick={() =>
-              activeEditorRef.current
-                ?.chain()
-                .focus()
-                .setTextAlign("left")
-                .run()
-            }
+            onClick={() => activeEditorRef.current?.setAlignment("left")}
           />
           <ToolbarButton
             label="Align center"
             mark="≣"
-            onClick={() =>
-              activeEditorRef.current
-                ?.chain()
-                .focus()
-                .setTextAlign("center")
-                .run()
-            }
+            onClick={() => activeEditorRef.current?.setAlignment("center")}
           />
           <ToolbarButton label="Link" mark="↗" onClick={setLink} />
           <ToolbarButton
@@ -735,16 +689,12 @@ export function App() {
           <ToolbarButton
             label="Undo"
             mark="↶"
-            onClick={() =>
-              activeEditorRef.current?.chain().focus().undo().run()
-            }
+            onClick={() => activeEditorRef.current?.undo()}
           />
           <ToolbarButton
             label="Redo"
             mark="↷"
-            onClick={() =>
-              activeEditorRef.current?.chain().focus().redo().run()
-            }
+            onClick={() => activeEditorRef.current?.redo()}
           />
         </fieldset>
       </section>
