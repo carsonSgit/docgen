@@ -273,4 +273,34 @@ describe("pagination adapter", () => {
       attrs: { level: 2 },
     });
   });
+
+  it("splits an oversized list item across pages", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Long item ".repeat(900) }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = paginateDocument(document);
+
+    expect(result.pages.length).toBeGreaterThan(1);
+    expect(
+      result.pages.every((page) => page.content[0]?.type === "bulletList"),
+    ).toBe(true);
+  });
 });
