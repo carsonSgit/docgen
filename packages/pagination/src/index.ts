@@ -280,6 +280,7 @@ function splitTextNode(
   node: TiptapNode,
   maxHeight: number,
   fragmentId: string,
+  textCharsPerLine = 90,
 ): TiptapNode[] {
   if (
     !["paragraph", "heading"].includes(node.type) ||
@@ -292,7 +293,7 @@ function splitTextNode(
   const { lineHeight, charsPerLine } =
     node.type === "heading"
       ? headingLineMetrics(node)
-      : { lineHeight: DEFAULT_BLOCK_HEIGHT, charsPerLine: 90 };
+      : { lineHeight: DEFAULT_BLOCK_HEIGHT, charsPerLine: textCharsPerLine };
   const maxLines = Math.max(1, Math.floor(maxHeight / lineHeight));
   const visualLines = (text: string) =>
     text
@@ -352,6 +353,45 @@ function splitTextNode(
   return fragments.flatMap(splitVisualFragment);
 }
 
+function splitListToFit(
+  node: TiptapNode,
+  maxHeight: number,
+  fragmentId: string,
+): TiptapNode[] {
+  if (
+    !["bulletList", "orderedList"].includes(node.type) ||
+    !node.content?.length ||
+    node.content.some(
+      (item) =>
+        item.type !== "listItem" ||
+        item.content?.length !== 1 ||
+        item.content[0]?.type !== "paragraph",
+    )
+  ) {
+    return [node];
+  }
+
+  const fragments: TiptapNode[] = [];
+  for (const item of node.content) {
+    const paragraph = item.content?.[0];
+    if (!paragraph) return [node];
+    const paragraphFragments = splitTextNode(
+      paragraph,
+      maxHeight,
+      fragmentId,
+      listCharsPerLine(1),
+    );
+    for (const paragraphFragment of paragraphFragments) {
+      fragments.push({
+        ...node,
+        attrs: { ...node.attrs, [PAGE_FRAGMENT_ATTR]: fragmentId },
+        content: [{ ...item, content: [paragraphFragment] }],
+      });
+    }
+  }
+  return fragments.length > 1 ? fragments : [node];
+}
+
 export function paginateDocument(
   document: DocumentEnvelope,
   measureNode: NodeMeasurement = defaultMeasure,
@@ -397,6 +437,20 @@ export function paginateDocument(
 
     let remainingNode: TiptapNode | null = node;
     while (remainingNode) {
+      if (
+        (remainingNode.type === "bulletList" ||
+          remainingNode.type === "orderedList") &&
+        pages.at(-1)?.content.length &&
+        measureNode(remainingNode) > remainingHeight
+      ) {
+        pages.push({
+          number: pages.length + 1,
+          content: [],
+          breakBefore: false,
+        });
+        remainingHeight = CONTENT_HEIGHT;
+        continue;
+      }
       const textFragments = splitTextNode(
         remainingNode,
         remainingHeight,
@@ -405,7 +459,10 @@ export function paginateDocument(
       const fragmentCandidates: TiptapNode[] =
         textFragments.length === 1 &&
         measureNode(textFragments[0] ?? remainingNode) > remainingHeight
-          ? splitNodeToFit(remainingNode, remainingHeight, String(nodeIndex))
+          ? remainingNode.type === "bulletList" ||
+            remainingNode.type === "orderedList"
+            ? splitListToFit(remainingNode, remainingHeight, String(nodeIndex))
+            : splitNodeToFit(remainingNode, remainingHeight, String(nodeIndex))
           : textFragments;
       const fragments = fragmentCandidates;
       const fragment = fragments[0];

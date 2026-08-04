@@ -323,3 +323,59 @@ test("accounts for nested list indentation when paginating wrapped items", async
     )
     .toBe(true);
 });
+
+test("splits an oversized list item across pages like native pagination", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "document-playground:document",
+      JSON.stringify({
+        version: 2,
+        title: "Long list item",
+        page: {
+          size: "letter",
+          width: 612,
+          height: 792,
+          margins: { top: 72, right: 72, bottom: 72, left: 72 },
+        },
+        content: {
+          type: "doc",
+          content: [
+            {
+              type: "bulletList",
+              content: [
+                {
+                  type: "listItem",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        { type: "text", text: "Long item ".repeat(900) },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        header: null,
+        footer: null,
+      }),
+    );
+  });
+  await page.goto("/");
+  await expect(page.getByLabel("Document title")).toHaveValue("Long list item");
+  await expect.poll(() => page.locator(".page").count()).toBeGreaterThan(1);
+  await expect
+    .poll(() =>
+      page.locator(".page-body-editor .editor").evaluateAll((editors) =>
+        editors.every((editor) => {
+          const body = editor.querySelector<HTMLElement>(".ProseMirror");
+          return (body?.scrollHeight ?? 0) <= editor.clientHeight + 1;
+        }),
+      ),
+    )
+    .toBe(true);
+});
