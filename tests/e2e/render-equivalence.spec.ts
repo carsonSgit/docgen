@@ -186,3 +186,63 @@ test("captures the Core Editor Slice with deterministic local assertions", async
     ),
   );
 });
+
+test("reserves browser list indentation during pagination", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "document-playground:document",
+      JSON.stringify({
+        version: 2,
+        title: "List wrap",
+        page: {
+          size: "letter",
+          width: 612,
+          height: 792,
+          margins: { top: 72, right: 72, bottom: 72, left: 72 },
+        },
+        content: {
+          type: "doc",
+          content: [
+            ...Array.from({ length: 50 }, () => ({ type: "paragraph" })),
+            {
+              type: "bulletList",
+              content: [
+                {
+                  type: "listItem",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: "W".repeat(90),
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        header: null,
+        footer: null,
+      }),
+    );
+  });
+  await page.goto("/");
+  await expect(page.getByLabel("Document title")).toHaveValue("List wrap");
+  await expect(page.locator(".page")).toHaveCount(2);
+  await expect
+    .poll(() =>
+      page.locator(".page-body-editor .editor").evaluateAll((editors) =>
+        editors.every((editor) => {
+          const body = editor.querySelector<HTMLElement>(".ProseMirror");
+          return (body?.scrollHeight ?? 0) <= editor.clientHeight + 1;
+        }),
+      ),
+    )
+    .toBe(true);
+});
