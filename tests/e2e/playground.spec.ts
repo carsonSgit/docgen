@@ -44,6 +44,15 @@ test("aligns a paragraph to the right through the editor toolbar", async ({
   await expect(editor.locator("p").first()).toHaveCSS("text-align", "right");
 });
 
+test("justifies a paragraph through the editor toolbar", async ({ page }) => {
+  await page.goto("/");
+  const editor = page.locator(".ProseMirror").first();
+  await editor.click();
+  await page.getByRole("button", { name: "Justify" }).click();
+
+  await expect(editor.locator("p").first()).toHaveCSS("text-align", "justify");
+});
+
 test("preserves right alignment when a heading crosses the editor boundary", async ({
   page,
 }) => {
