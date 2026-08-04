@@ -13,6 +13,8 @@ import { FileOAuthTokenStore, GoogleOAuthService } from "./google-oauth";
 import { createGoogleProviderClient } from "./google-provider";
 
 const port = Number(process.env.PORT ?? 3000);
+const EXPORT_FAILURE_MESSAGE =
+  "Google export failed. Your local document was not changed; retry when the provider is available.";
 
 const ExportRequestSchema = z
   .object({
@@ -186,13 +188,8 @@ export async function handleRequest(
           assets,
         )
           .then((result) => Response.json(result))
-          .catch((error: unknown) =>
-            Response.json(
-              {
-                error: error instanceof Error ? error.message : "Export failed",
-              },
-              { status: 502 },
-            ),
+          .catch(() =>
+            Response.json({ error: EXPORT_FAILURE_MESSAGE }, { status: 502 }),
           );
       })
       .catch(() =>
