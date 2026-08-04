@@ -247,6 +247,93 @@ describe("flattenPages", () => {
     expect(list?.content?.[0]?.content?.[1]?.content).toHaveLength(2);
   });
 
+  it("does not merge distinct nested ordered-list starts", () => {
+    const pages = [
+      {
+        number: 1,
+        breakBefore: false,
+        content: [
+          {
+            type: "bulletList" as const,
+            attrs: { "data-page-fragment": "outer" },
+            content: [
+              {
+                type: "listItem" as const,
+                content: [
+                  { type: "paragraph" as const, content: [] },
+                  {
+                    type: "orderedList" as const,
+                    attrs: {
+                      "data-page-fragment": "nested-first",
+                      start: 3,
+                    },
+                    content: [
+                      {
+                        type: "listItem" as const,
+                        content: [
+                          {
+                            type: "paragraph" as const,
+                            content: [{ type: "text" as const, text: "First" }],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        number: 2,
+        breakBefore: false,
+        content: [
+          {
+            type: "bulletList" as const,
+            attrs: { "data-page-fragment": "outer" },
+            content: [
+              {
+                type: "listItem" as const,
+                attrs: { "data-page-list-item-continuation": true },
+                content: [
+                  { type: "paragraph" as const, content: [] },
+                  {
+                    type: "orderedList" as const,
+                    attrs: {
+                      "data-page-fragment": "nested-second",
+                      start: 9,
+                    },
+                    content: [
+                      {
+                        type: "listItem" as const,
+                        content: [
+                          {
+                            type: "paragraph" as const,
+                            content: [
+                              { type: "text" as const, text: "Second" },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const [list] = flattenPages(pages);
+    const nested = list?.content?.[0]?.content?.filter(
+      (node) => node.type === "orderedList",
+    );
+    expect(nested).toHaveLength(2);
+    expect(nested?.map((node) => node.attrs?.start)).toEqual([3, 9]);
+  });
+
   it("merges a non-empty list item paragraph continuation", () => {
     const pages = [
       {
