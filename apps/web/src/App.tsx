@@ -725,6 +725,11 @@ export function App() {
             mark="≣"
             onClick={() => activeEditorRef.current?.setAlignment("center")}
           />
+          <ToolbarButton
+            label="Align right"
+            mark="≡"
+            onClick={() => activeEditorRef.current?.setAlignment("right")}
+          />
           <ToolbarButton label="Link" mark="↗" onClick={setLink} />
           <ToolbarButton
             label="Page break"
