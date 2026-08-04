@@ -1,6 +1,6 @@
 import {
+  DOCUMENT_CONTENT_WIDTH_POINTS,
   type DocumentNode,
-  MAX_IMAGE_DIMENSION_POINTS,
   validateImageDimensions,
 } from "@document-playground/domain";
 import { LinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
@@ -159,7 +159,7 @@ export class ImageNode extends ElementNode {
     const moveImage = (event: MouseEvent) => {
       if (!dragging) return;
       const width = Math.min(
-        MAX_IMAGE_DIMENSION_POINTS,
+        DOCUMENT_CONTENT_WIDTH_POINTS,
         Math.max(12, startWidth + (event.clientX - startX) * (72 / 96)),
       );
       wrapper.dispatchEvent(

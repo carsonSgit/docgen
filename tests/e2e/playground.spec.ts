@@ -264,6 +264,65 @@ test("exports inserted image dimensions in document points", async ({
   expect(hasPageBreak(requestBody?.document?.content?.content)).toBe(false);
 });
 
+test("keeps resized images within the fixed body width", async ({ page }) => {
+  let requestBody: { document?: { content?: { content?: unknown[] } } } | null =
+    null;
+  await page.route("**/api/export", async (route) => {
+    requestBody = route.request().postDataJSON() as typeof requestBody;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        documentId: "bounded-image-doc",
+        url: "https://docs.google.com/document/d/bounded-image-doc/edit",
+      }),
+    });
+  });
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "createImageBitmap", {
+      configurable: true,
+      value: async () => ({ width: 1000, height: 500, close() {} }),
+    });
+  });
+  await page.goto("/");
+  await page.locator(".ProseMirror").first().click();
+  await page.getByLabel("Choose image file").setInputFiles({
+    name: "wide.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("image"),
+  });
+  const handle = page.getByRole("slider", { name: "Resize image" });
+  const box = await handle.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+  await page.mouse.move(box.x + 2, box.y + 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 1000, box.y + 2);
+  await page.mouse.up();
+
+  await page.getByRole("button", { name: "Export to Google Docs" }).click();
+  await expect(page.getByText("Export complete.")).toBeVisible();
+
+  const findImage = (
+    nodes: unknown[] | undefined,
+  ): { attrs?: { width?: number; height?: number } } | undefined => {
+    for (const node of nodes ?? []) {
+      if (!node || typeof node !== "object") continue;
+      const typed = node as {
+        type?: unknown;
+        attrs?: { width?: number; height?: number };
+        content?: unknown[];
+      };
+      if (typed.type === "image") return typed;
+      const nested = findImage(typed.content);
+      if (nested) return nested;
+    }
+    return undefined;
+  };
+  const image = findImage(requestBody?.document?.content?.content);
+  expect(image?.attrs).toMatchObject({ width: 468, height: 234 });
+});
+
 test("paginates a near-full-page inline image like Google Docs", async ({
   page,
 }) => {

@@ -1,5 +1,6 @@
 import {
   createBlankDocument,
+  DOCUMENT_CONTENT_WIDTH_POINTS,
   type DocumentEnvelope,
   type DocumentNode,
   type DocumentSection,
@@ -506,7 +507,10 @@ export function App() {
     setAssetError(null);
     try {
       const bitmap = await createImageBitmap(file);
-      const scale = Math.min(1, 468 / (bitmap.width * (72 / 96)));
+      const scale = Math.min(
+        1,
+        DOCUMENT_CONTENT_WIDTH_POINTS / (bitmap.width * (72 / 96)),
+      );
       const width = Math.max(1, bitmap.width * (72 / 96) * scale);
       const height = Math.max(1, bitmap.height * (72 / 96) * scale);
       const asset = await putImageAsset(assetStorage, file, { width, height });
