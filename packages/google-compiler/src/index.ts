@@ -249,15 +249,19 @@ function markerRebase(
   range: Range,
   removedTabs: ReadonlyArray<{ position: number; count: number }>,
 ): Range {
-  const removedBefore = removedTabs
-    .filter(({ position }) => position < range.startIndex)
-    .reduce((total, { count }) => total + count, 0);
-  return removedBefore === 0
+  const rebaseIndex = (index: number) =>
+    index -
+    removedTabs
+      .filter(({ position }) => position < index)
+      .reduce((total, { count }) => total + count, 0);
+  const startIndex = rebaseIndex(range.startIndex);
+  const endIndex = rebaseIndex(range.endIndex);
+  return startIndex === range.startIndex && endIndex === range.endIndex
     ? range
     : {
         ...range,
-        startIndex: range.startIndex - removedBefore,
-        endIndex: range.endIndex - removedBefore,
+        startIndex,
+        endIndex,
       };
 }
 
