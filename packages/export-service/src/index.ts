@@ -41,6 +41,35 @@ export class ExportServiceError extends Error {
   }
 }
 
+function validateImageAsset(
+  assetId: string,
+  asset: ExportImageAsset | undefined,
+): asserts asset is ExportImageAsset {
+  if (!asset) {
+    throw new ExportServiceError(
+      `Image asset ${assetId} is missing. Restore the image locally and retry export.`,
+    );
+  }
+  if (asset.assetId !== assetId) {
+    throw new ExportServiceError(
+      `Image asset ${assetId} has mismatched asset identity; restore the image locally and retry export.`,
+    );
+  }
+  if (
+    !EXPORT_IMAGE_MIME_TYPES.includes(asset.mimeType) ||
+    asset.blob.type !== asset.mimeType
+  ) {
+    throw new ExportServiceError(
+      `Image asset ${assetId} has an unsupported image format (${asset.mimeType}).`,
+    );
+  }
+  if (asset.size !== asset.blob.size || asset.size > EXPORT_IMAGE_MAX_BYTES) {
+    throw new ExportServiceError(
+      `Image asset ${assetId} is invalid or exceeds the 10 MB size limit.`,
+    );
+  }
+}
+
 function collectImageIds(document: DocumentEnvelope): string[] {
   const imageIds: string[] = [];
   const collectImages = (node: DocumentEnvelope["content"]): void => {

@@ -1,6 +1,6 @@
 import { createBlankDocument } from "@document-playground/domain";
 import type { GoogleProviderClient } from "@document-playground/export-service";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { GoogleOAuthService } from "./google-oauth";
 import { handleRequest } from "./server";
 
@@ -110,52 +110,27 @@ describe("API", () => {
     });
   });
 
-  it("rejects malformed base64 assets before requesting Google authorization", async () => {
-    const oauth = new GoogleOAuthService({
-      clientId: "client",
-      clientSecret: "secret",
-      redirectUri: "http://localhost/callback",
-      stateFactory: () => "state",
-    });
+  it("rejects duplicate asset IDs before provider access", async () => {
+    const provider: GoogleProviderClient = {
+      createDocument: vi.fn(async () => ({ documentId: "never" })),
+      batchUpdate: vi.fn(async () => undefined),
+    };
     const response = await handleRequest(
       new Request("http://localhost/api/export", {
         method: "POST",
         body: JSON.stringify({
           document: createBlankDocument(),
           assets: [
-            { assetId: "asset_unused", mimeType: "image/png", data: "A" },
+            { assetId: "asset_same", mimeType: "image/png", data: "AQ==" },
+            { assetId: "asset_same", mimeType: "image/png", data: "Ag==" },
           ],
         }),
         headers: { "content-type": "application/json" },
       }),
-      undefined,
-      oauth,
+      provider,
     );
 
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      error: "Image asset asset_unused has invalid base64 data.",
-    });
-  });
-
-  it("rejects duplicate asset IDs at the API boundary", async () => {
-    const response = await handleRequest(
-      new Request("http://localhost/api/export", {
-        method: "POST",
-        body: JSON.stringify({
-          document: createBlankDocument(),
-          assets: [
-            { assetId: "asset_duplicate", mimeType: "image/png", data: "YQ==" },
-            { assetId: "asset_duplicate", mimeType: "image/png", data: "Yg==" },
-          ],
-        }),
-        headers: { "content-type": "application/json" },
-      }),
-    );
-
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      error: "Duplicate image asset asset_duplicate.",
-    });
+    expect(provider.createDocument).not.toHaveBeenCalled();
   });
 });

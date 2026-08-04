@@ -171,7 +171,7 @@ describe("export service", () => {
         },
       ],
     };
-    const mismatchedAsset = {
+    const asset = {
       assetId: "asset_storage",
       blob: new Blob(["image"], { type: "image/png" }),
       mimeType: "image/png" as const,
@@ -179,11 +179,7 @@ describe("export service", () => {
     };
 
     await expect(
-      exportDocument(
-        document,
-        provider,
-        new Map([["asset_document", mismatchedAsset]]),
-      ),
+      exportDocument(document, provider, new Map([["asset_document", asset]])),
     ).rejects.toThrow("mismatched asset identity");
     expect(provider.uploadImage).not.toHaveBeenCalled();
     expect(provider.createDocument).not.toHaveBeenCalled();

@@ -28,16 +28,25 @@ function memoryStorage(): Storage {
   };
 }
 
+function readBlobBytes(blob: Blob): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
 describe("local document persistence", () => {
   it("stores supported image files behind an asset boundary", async () => {
     const storage = new MemoryAssetStorage();
-    const file = new File([new Uint8Array([1, 2, 3])], "diagram.png", {
+    const file = new Blob([new Uint8Array([1, 2, 3])], {
       type: "image/png",
     });
 
     const asset = await putImageAsset(storage, file, {
-      width: 240,
-      height: 120,
+      widthPoints: 240,
+      heightPoints: 120,
     });
 
     expect(asset.assetId).toMatch(/^asset_/);
@@ -45,7 +54,14 @@ describe("local document persistence", () => {
     expect(await storage.get(asset.assetId)).toMatchObject({
       assetId: asset.assetId,
       size: 3,
+      intrinsicWidthPoints: 240,
+      intrinsicHeightPoints: 120,
     });
+
+    const restored = await storage.get(asset.assetId);
+    expect(restored && (await readBlobBytes(restored.blob))).toEqual(
+      new Uint8Array([1, 2, 3]),
+    );
   });
 
   it("rejects unsupported formats and oversized assets", async () => {
@@ -54,7 +70,7 @@ describe("local document persistence", () => {
       putImageAsset(
         storage,
         new File(["text"], "notes.txt", { type: "text/plain" }),
-        { width: 10, height: 10 },
+        { widthPoints: 10, heightPoints: 10 },
       ),
     ).rejects.toBeInstanceOf(ImageAssetError);
 
@@ -64,7 +80,10 @@ describe("local document persistence", () => {
       { type: "image/png" },
     );
     await expect(
-      putImageAsset(storage, oversized, { width: 10, height: 10 }),
+      putImageAsset(storage, oversized, {
+        widthPoints: 10,
+        heightPoints: 10,
+      }),
     ).rejects.toBeInstanceOf(ImageAssetError);
   });
 
@@ -86,6 +105,48 @@ describe("local document persistence", () => {
       blob: new Blob(["bad"], { type: "text/plain" }),
       mimeType: "image/png",
       size: 3,
+      intrinsicWidthPoints: 10,
+      intrinsicHeightPoints: 10,
+    });
+    expect(await restoreImageAsset(storage, image)).toMatchObject({
+      kind: "corrupt",
+      assetId: image.assetId,
+    });
+
+    await storage.put({
+      assetId: image.assetId,
+      blob: new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" }),
+      mimeType: "image/png",
+      size: 3,
+      intrinsicWidthPoints: 10,
+      intrinsicHeightPoints: 10,
+    });
+    // A storage adapter can return a record whose payload identity is stale;
+    // the document reference must not silently accept it.
+    const mismatchedStorage: import("./index").AssetStorage = {
+      put: async () => undefined,
+      get: async () => ({
+        assetId: "asset_other",
+        blob: new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" }),
+        mimeType: "image/png",
+        size: 3,
+        intrinsicWidthPoints: 10,
+        intrinsicHeightPoints: 10,
+      }),
+      delete: async () => undefined,
+    };
+    expect(await restoreImageAsset(mismatchedStorage, image)).toMatchObject({
+      kind: "corrupt",
+      assetId: image.assetId,
+    });
+
+    await storage.put({
+      assetId: image.assetId,
+      blob: new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" }),
+      mimeType: "image/png",
+      size: 3,
+      intrinsicWidthPoints: -1,
+      intrinsicHeightPoints: 10,
     });
     expect(await restoreImageAsset(storage, image)).toMatchObject({
       kind: "corrupt",

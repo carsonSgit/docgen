@@ -537,7 +537,10 @@ export function App() {
       );
       const width = Math.max(1, intrinsicWidth * scale);
       const height = Math.max(1, intrinsicHeight * scale);
-      const asset = await putImageAsset(assetStorage, file, { width, height });
+      const asset = await putImageAsset(assetStorage, file, {
+        widthPoints: width,
+        heightPoints: height,
+      });
       assetUrls.current.set(asset.assetId, URL.createObjectURL(file));
       activeEditorRef.current.insertImage({
         assetId: asset.assetId,
