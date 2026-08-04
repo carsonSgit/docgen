@@ -475,8 +475,15 @@ test("uses the native list indent for nested lists", async ({ page }) => {
     .evaluateAll((lists) =>
       lists.map((list) => getComputedStyle(list).paddingLeft),
     );
+  const listIndent = await page
+    .locator(".page")
+    .first()
+    .evaluate((currentPage) =>
+      getComputedStyle(currentPage).getPropertyValue("--document-list-indent"),
+    );
 
   expect(listPadding).toEqual(["36px", "36px"]);
+  expect(listIndent).toBe("36px");
 });
 
 test("uses the native link color in repeated sections", async ({ page }) => {
