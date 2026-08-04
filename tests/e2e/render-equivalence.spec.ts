@@ -7,6 +7,22 @@ type RenderFixture = {
   content: { content?: Array<{ type: string }> };
 };
 
+type FixtureManifest = {
+  expected: {
+    pageCount: number;
+    manualBreaks: number[];
+    automaticBreaks: number[];
+    page: { widthPoints: number; heightPoints: number };
+    headerFooter: {
+      header: string;
+      footer: string;
+      headerDistancePoints: number;
+      footerDistancePoints: number;
+    };
+    typography: { fontFamily: string; bodyFontSizePoints: number };
+  };
+};
+
 const fixturePath = "fixtures/render-equivalence/core-slice/document.json";
 const manifestPath = "fixtures/render-equivalence/core-slice/manifest.json";
 
@@ -16,34 +32,56 @@ test("captures the Core Editor Slice with deterministic local assertions", async
   const fixture = JSON.parse(
     await readFile(fixturePath, "utf8"),
   ) as RenderFixture;
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
-    expected: {
-      pageCount: number;
-      manualBreaks: number[];
-      automaticBreaks: number[];
-      page: { widthPoints: number; heightPoints: number };
-      headerFooter: {
-        header: string;
-        footer: string;
-        headerDistancePoints: number;
-        footerDistancePoints: number;
-      };
-      typography: { fontFamily: string };
-    };
-  };
+  const manifest = JSON.parse(
+    await readFile(manifestPath, "utf8"),
+  ) as FixtureManifest;
+  const assetBytes = await readFile(
+    "fixtures/render-equivalence/core-slice/assets/hero.png",
+  );
 
   await page.addInitScript(
-    ({ document }) => {
+    async ({ document, assetBase64 }) => {
       window.localStorage.setItem(
         "document-playground:document",
         JSON.stringify(document),
       );
+      const database = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("document-playground-assets", 1);
+        request.onupgradeneeded = () =>
+          request.result.createObjectStore("images");
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      await new Promise<void>((resolve, reject) => {
+        const bytes = Uint8Array.from(atob(assetBase64), (character) =>
+          character.charCodeAt(0),
+        );
+        const request = database
+          .transaction("images", "readwrite")
+          .objectStore("images")
+          .put(
+            {
+              assetId: "asset_core_slice_hero",
+              blob: new Blob([bytes], { type: "image/png" }),
+              mimeType: "image/png",
+              size: bytes.byteLength,
+              intrinsicWidthPoints: 240,
+              intrinsicHeightPoints: 120,
+            },
+            "asset_core_slice_hero",
+          );
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
     },
-    { document: fixture },
+    { document: fixture, assetBase64: assetBytes.toString("base64") },
   );
   await page.goto("/");
   await expect(page.getByLabel("Document title")).toHaveValue(fixture.title);
   await expect(page.locator(".page")).toHaveCount(manifest.expected.pageCount);
+  await expect(
+    page.locator("img[data-asset-id='asset_core_slice_hero']"),
+  ).toHaveJSProperty("naturalWidth", 320);
 
   const metrics = await page.locator(".page").evaluateAll((pages) =>
     pages.map((currentPage) => {
@@ -154,6 +192,12 @@ test("captures the Core Editor Slice with deterministic local assertions", async
   expect(metrics.find((metric) => metric.image)).toMatchObject({
     image: { width: 320, height: 160 },
   });
+  expect(await page.locator("h1, h2").count()).toBeGreaterThan(0);
+  expect(await page.locator("ul, ol, li").count()).toBeGreaterThan(0);
+  expect(await page.locator("strong, em, u, a").count()).toBeGreaterThan(0);
+  await expect
+    .poll(() => page.evaluate(() => document.fonts.check("11pt Arial")))
+    .toBe(true);
 
   const outputDir = testInfo.outputPath("render-equivalence");
   await mkdir(outputDir, { recursive: true });
