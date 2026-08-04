@@ -364,8 +364,8 @@ function splitListToFit(
     node.content.some(
       (item) =>
         item.type !== "listItem" ||
-        item.content?.length !== 1 ||
-        item.content[0]?.type !== "paragraph",
+        item.content?.length === 0 ||
+        item.content?.[0]?.type !== "paragraph",
     )
   ) {
     return [node];
@@ -373,7 +373,8 @@ function splitListToFit(
 
   const fragments: TiptapNode[] = [];
   for (const item of node.content) {
-    const paragraph = item.content?.[0];
+    const itemContent = item.content ?? [];
+    const paragraph = itemContent[0];
     if (!paragraph) return [node];
     const paragraphFragments = splitTextNode(
       paragraph,
@@ -381,11 +382,23 @@ function splitListToFit(
       fragmentId,
       listCharsPerLine(1),
     );
-    for (const paragraphFragment of paragraphFragments) {
+    for (const [
+      fragmentIndex,
+      paragraphFragment,
+    ] of paragraphFragments.entries()) {
+      const isFinalFragment = fragmentIndex === paragraphFragments.length - 1;
       fragments.push({
         ...node,
         attrs: { ...node.attrs, [PAGE_FRAGMENT_ATTR]: fragmentId },
-        content: [{ ...item, content: [paragraphFragment] }],
+        content: [
+          {
+            ...item,
+            content: [
+              paragraphFragment,
+              ...(isFinalFragment ? itemContent.slice(1) : []),
+            ],
+          },
+        ],
       });
     }
   }
