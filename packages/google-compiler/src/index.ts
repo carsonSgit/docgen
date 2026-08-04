@@ -214,7 +214,15 @@ function markStyle(mark: {
   if (mark.type === "italic") return { italic: true };
   if (mark.type === "underline") return { underline: true };
   if (mark.type === "link" && typeof mark.attrs?.href === "string") {
-    return { link: { url: mark.attrs.href } };
+    return {
+      link: { url: mark.attrs.href },
+      foregroundColor: {
+        color: {
+          rgbColor: { red: 17 / 255, green: 85 / 255, blue: 204 / 255 },
+        },
+      },
+      underline: true,
+    };
   }
   throw new UnsupportedContentError("mark", mark.type);
 }
