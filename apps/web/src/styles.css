@@ -464,6 +464,7 @@ button:disabled {
   font-family: Arial, sans-serif;
   font-size: 11pt;
   line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .editor > [contenteditable="true"] {
@@ -474,6 +475,7 @@ button:disabled {
   font-family: Arial, sans-serif;
   font-size: 11pt;
   line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .section-editor > .ProseMirror {
@@ -484,6 +486,7 @@ button:disabled {
   font-family: Arial, sans-serif;
   font-size: 11pt;
   line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .section-editor > [contenteditable="true"] {
@@ -494,6 +497,7 @@ button:disabled {
   font-family: Arial, sans-serif;
   font-size: 11pt;
   line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .editor [data-page-break="true"] {
