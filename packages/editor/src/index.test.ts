@@ -346,6 +346,33 @@ describe("core editor adapter", () => {
     editor.destroy();
   });
 
+  it("preserves paragraph alignment when changing the block to a heading", async () => {
+    const host = document.createElement("div");
+    const editor = createLexicalEditor(host, {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Aligned" }] },
+      ],
+    });
+
+    editor.focus("end");
+    editor.setAlignment("right");
+    editor.setHeading(2);
+    await new Promise((resolve) => queueMicrotask(resolve));
+
+    expect(editor.getDocument()).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 2, textAlign: "right" },
+          content: [{ type: "text", text: "Aligned" }],
+        },
+      ],
+    });
+    editor.destroy();
+  });
+
   it("round-trips canonical content through a Lexical-neutral shape", () => {
     const canonical = {
       type: "doc" as const,
