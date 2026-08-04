@@ -1,9 +1,12 @@
 import { randomUUID } from "node:crypto";
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import type { GoogleProviderClient } from "@document-playground/export-service";
 import { z } from "zod";
 import { createGoogleProviderClient } from "./google-provider";
 
 const TokenResponseSchema = z.object({ access_token: z.string().min(1) });
+const PersistedTokenSchema = z.object({ accessToken: z.string().min(1) });
 const GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const SCOPES = [
@@ -22,7 +25,58 @@ type GoogleOAuthOptions = {
   redirectUri: string;
   fetchImpl?: FetchLike;
   stateFactory?: () => string;
+  tokenStore?: OAuthTokenStore;
 };
+
+type OAuthTokenStore = {
+  load: () => string | undefined;
+  save: (accessToken: string) => void;
+};
+
+export class FileOAuthTokenStore implements OAuthTokenStore {
+  constructor(private readonly path: string) {}
+
+  load(): string | undefined {
+    let raw: string;
+    try {
+      raw = readFileSync(this.path, "utf8");
+    } catch (error) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === "ENOENT"
+      ) {
+        return undefined;
+      }
+      throw new Error(`Could not read OAuth token file '${this.path}'.`, {
+        cause: error,
+      });
+    }
+    let value: unknown;
+    try {
+      value = JSON.parse(raw);
+    } catch (error) {
+      throw new Error(`OAuth token file '${this.path}' is malformed.`, {
+        cause: error,
+      });
+    }
+    const parsed = PersistedTokenSchema.safeParse(value);
+    if (!parsed.success) {
+      throw new Error(`OAuth token file '${this.path}' is invalid.`);
+    }
+    return parsed.data.accessToken;
+  }
+
+  save(accessToken: string): void {
+    mkdirSync(dirname(this.path), { recursive: true, mode: 0o700 });
+    writeFileSync(this.path, JSON.stringify({ accessToken }), {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+    chmodSync(this.path, 0o600);
+  }
+}
 
 export class GoogleOAuthService {
   private accessToken: string | undefined;
@@ -33,6 +87,7 @@ export class GoogleOAuthService {
   constructor(private readonly options: GoogleOAuthOptions) {
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.stateFactory = options.stateFactory ?? randomUUID;
+    this.accessToken = options.tokenStore?.load();
   }
 
   isConfigured(): boolean {
@@ -87,6 +142,7 @@ export class GoogleOAuthService {
     if (!parsed.success)
       throw new Error("Google returned an invalid OAuth token.");
     this.accessToken = parsed.data.access_token;
+    this.options.tokenStore?.save(this.accessToken);
   }
 
   provider(): GoogleProviderClient {

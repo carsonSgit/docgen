@@ -9,7 +9,7 @@ import {
   preflightExport,
 } from "@document-playground/export-service";
 import { z } from "zod";
-import { GoogleOAuthService } from "./google-oauth";
+import { FileOAuthTokenStore, GoogleOAuthService } from "./google-oauth";
 import { createGoogleProviderClient } from "./google-provider";
 
 const port = Number(process.env.PORT ?? 3000);
@@ -45,6 +45,9 @@ const oauthService = new GoogleOAuthService({
   redirectUri:
     process.env.GOOGLE_REDIRECT_URI ??
     `http://localhost:${port}/api/auth/google/callback`,
+  tokenStore: new FileOAuthTokenStore(
+    process.env.GOOGLE_OAUTH_TOKEN_PATH ?? ".data/google-oauth-token.json",
+  ),
 });
 
 export async function handleRequest(
