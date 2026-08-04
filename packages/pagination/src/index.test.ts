@@ -308,6 +308,58 @@ describe("pagination adapter", () => {
     ).toBe(true);
   });
 
+  it("continues ordered-list numbering after a page split", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "orderedList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "First item ".repeat(900) }],
+                },
+              ],
+            },
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Second item" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const pages = paginateDocument(document).pages;
+
+    expect(pages.length).toBeGreaterThan(1);
+    expect(
+      pages
+        .flatMap((page) => page.content)
+        .find(
+          (node) =>
+            node.type === "orderedList" &&
+            node.content?.some((item) =>
+              item.content?.some((child) =>
+                child.content?.some((text) => text.text === "Second item"),
+              ),
+            ),
+        ),
+    ).toMatchObject({
+      type: "orderedList",
+      attrs: { start: 2 },
+    });
+  });
+
   it("marks non-empty list item continuations for canonical flattening", () => {
     const document = createBlankDocument();
     document.content = {

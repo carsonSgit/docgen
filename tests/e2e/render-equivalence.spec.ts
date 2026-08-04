@@ -465,3 +465,61 @@ test("keeps a list item with nested content within the page body", async ({
     )
     .toBe(true);
 });
+
+test("continues ordered-list numbering across paginated editor pages", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "document-playground:document",
+      JSON.stringify({
+        version: 2,
+        title: "Ordered list continuation",
+        page: {
+          size: "letter",
+          width: 612,
+          height: 792,
+          margins: { top: 72, right: 72, bottom: 72, left: 72 },
+        },
+        content: {
+          type: "doc",
+          content: [
+            {
+              type: "orderedList",
+              content: [
+                {
+                  type: "listItem",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        { type: "text", text: "First item ".repeat(900) },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: "listItem",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [{ type: "text", text: "Second item" }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        header: null,
+        footer: null,
+      }),
+    );
+  });
+
+  await page.goto("/");
+  await expect.poll(() => page.locator(".page").count()).toBeGreaterThan(1);
+  await expect(
+    page.locator(".page ol").filter({ hasText: "Second item" }),
+  ).toHaveAttribute("start", "2");
+});
