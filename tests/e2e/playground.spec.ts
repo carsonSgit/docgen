@@ -122,6 +122,28 @@ test("renders an inserted image in a repeated header", async ({ page }) => {
   await expect(page.locator(".page-header img")).toHaveCount(1);
 });
 
+test("inserts a tall image within the document dimension limit", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "createImageBitmap", {
+      configurable: true,
+      value: async () => ({ width: 100, height: 4000, close() {} }),
+    });
+  });
+  await page.goto("/");
+  await page.locator(".ProseMirror").first().click();
+  await page.getByLabel("Choose image file").setInputFiles({
+    name: "tall.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("image"),
+  });
+
+  const image = page.locator(".image-node-view-image");
+  await expect(image).toBeVisible();
+  await expect(image).toHaveAttribute("height", "1920");
+});
+
 test("restores an inserted image source after refresh", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, "createImageBitmap", {
