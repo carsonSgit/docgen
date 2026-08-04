@@ -143,4 +143,30 @@ describe("Google provider client", () => {
     );
     expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
+
+  it("refreshes the token once after an unauthorized response", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("expired", { status: 401 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ documentId: "doc-1" }), { status: 200 }),
+      );
+    const provider = createGoogleProviderClient({
+      accessToken: "expired",
+      fetchImpl,
+      refreshAccessToken: vi.fn(async () => "refreshed"),
+      retryDelayMs: 0,
+    });
+
+    await expect(provider.createDocument("Title")).resolves.toEqual({
+      documentId: "doc-1",
+    });
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      2,
+      "https://docs.googleapis.com/v1/documents",
+      expect.objectContaining({
+        headers: expect.objectContaining({ authorization: "Bearer refreshed" }),
+      }),
+    );
+  });
 });
