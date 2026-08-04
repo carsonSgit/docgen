@@ -16,7 +16,9 @@ type FetchLike = (
 
 export function createGoogleProviderClient(options: {
   accessToken: string | undefined;
-  refreshAccessToken?: () => Promise<string | undefined>;
+  refreshAccessToken?: (
+    expectedAccessToken?: string,
+  ) => Promise<string | undefined>;
   fetchImpl?: FetchLike;
   retryDelayMs?: number;
 }): GoogleProviderClient {
@@ -61,7 +63,7 @@ export function createGoogleProviderClient(options: {
       if (response.ok) return body;
       if (response.status === 401 && !refreshed && options.refreshAccessToken) {
         refreshed = true;
-        const nextToken = await options.refreshAccessToken();
+        const nextToken = await options.refreshAccessToken(accessToken);
         if (nextToken) {
           accessToken = nextToken;
           continue;
