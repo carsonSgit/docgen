@@ -1,10 +1,13 @@
 import {
   DOCUMENT_TYPOGRAPHY,
   type DocumentEnvelope,
+  FOOTER_DISTANCE_POINTS,
+  HEADER_DISTANCE_POINTS,
+  isEmptyDocumentSection,
   type TiptapNode,
 } from "@document-playground/domain";
 
-const CONTENT_HEIGHT = 648;
+export const CONTENT_HEIGHT = 648;
 const DEFAULT_BLOCK_HEIGHT = 11 * 1.15;
 
 export type PaginationPage = {
@@ -14,11 +17,37 @@ export type PaginationPage = {
 };
 
 export type PaginatedDocument = {
-  pageHeight: typeof CONTENT_HEIGHT;
+  pageHeight: number;
   pages: PaginationPage[];
 };
 
 export type NodeMeasurement = (node: TiptapNode) => number;
+
+export function measureDocumentSection(
+  section: DocumentEnvelope["header"],
+  measureNode: NodeMeasurement = defaultMeasure,
+): number {
+  if (!section || isEmptyDocumentSection(section)) return 0;
+  return (section.content ?? []).reduce(
+    (height, node) => height + Math.max(0, measureNode(node)),
+    0,
+  );
+}
+
+/** Body capacity is shared by every page; absent sections reserve nothing. */
+export function getUsableBodyHeight(
+  document: DocumentEnvelope,
+  measureNode: NodeMeasurement = defaultMeasure,
+): number {
+  const header = measureDocumentSection(document.header, measureNode);
+  const footer = measureDocumentSection(document.footer, measureNode);
+  return Math.max(
+    1,
+    CONTENT_HEIGHT -
+      (header ? header + HEADER_DISTANCE_POINTS : 0) -
+      (footer ? footer + FOOTER_DISTANCE_POINTS : 0),
+  );
+}
 
 export const PAGE_FRAGMENT_ATTR = "data-page-fragment";
 
@@ -179,12 +208,13 @@ export function paginateDocument(
   const pages: PaginationPage[] = [
     { number: 1, content: [], breakBefore: false },
   ];
-  let remainingHeight = CONTENT_HEIGHT;
+  const bodyHeight = getUsableBodyHeight(document, measureNode);
+  let remainingHeight = bodyHeight;
 
   for (const [nodeIndex, node] of (document.content.content ?? []).entries()) {
     if (node.type === "pageBreak") {
       pages.push({ number: pages.length + 1, content: [], breakBefore: true });
-      remainingHeight = CONTENT_HEIGHT;
+      remainingHeight = bodyHeight;
       continue;
     }
 
@@ -200,7 +230,7 @@ export function paginateDocument(
         content: [],
         breakBefore: false,
       });
-      remainingHeight = CONTENT_HEIGHT;
+      remainingHeight = bodyHeight;
     }
 
     let remainingNode: TiptapNode | null = node;
@@ -225,7 +255,7 @@ export function paginateDocument(
           content: [],
           breakBefore: false,
         });
-        remainingHeight = CONTENT_HEIGHT;
+        remainingHeight = bodyHeight;
         continue;
       }
 
@@ -253,5 +283,5 @@ export function paginateDocument(
     pages.push({ number: 2, content: [], breakBefore: false });
   }
 
-  return { pageHeight: CONTENT_HEIGHT, pages };
+  return { pageHeight: bodyHeight, pages };
 }

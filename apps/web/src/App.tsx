@@ -4,6 +4,7 @@ import {
   type DocumentEnvelope,
   type DocumentSection,
   type DocumentTemplateId,
+  isEmptyDocumentSection,
   listDocumentTemplates,
   type TiptapNode,
 } from "@document-playground/domain";
@@ -100,6 +101,7 @@ function ToolbarButton({ label, mark, onClick }: ToolbarButtonProps) {
 
 type PageEditorProps = {
   page: PaginationPage;
+  bodyHeightPoints: number;
   header: DocumentSection | null;
   footer: DocumentSection | null;
   resolveImageSource: (assetId: string) => string | undefined;
@@ -234,6 +236,7 @@ function SectionEditor({
 
 function PageEditor({
   page,
+  bodyHeightPoints,
   header,
   footer,
   resolveImageSource,
@@ -246,13 +249,15 @@ function PageEditor({
     type: "doc" as const,
     content: [{ type: "paragraph" as const }],
   };
+  const activeHeader = isEmptyDocumentSection(header) ? null : header;
+  const activeFooter = isEmptyDocumentSection(footer) ? null : footer;
   return (
     <article className="page" aria-label={`Page ${page.number}`}>
       <section className="page-header" aria-label="Page header">
-        {header ? (
+        {activeHeader ? (
           <SectionEditor
             section="header"
-            content={header}
+            content={activeHeader}
             onChange={(content) => onSectionChange("header", content)}
             onFocus={onFocus}
           />
@@ -265,7 +270,11 @@ function PageEditor({
           </button>
         )}
       </section>
-      <section className="page-body-editor" aria-label="Page body">
+      <section
+        className="page-body-editor"
+        aria-label="Page body"
+        style={{ height: `${bodyHeightPoints * (96 / 72)}px` }}
+      >
         <BodyEditor
           page={page}
           onChange={onChange}
@@ -275,10 +284,10 @@ function PageEditor({
         />
       </section>
       <section className="page-footer" aria-label="Page footer">
-        {footer ? (
+        {activeFooter ? (
           <SectionEditor
             section="footer"
-            content={footer}
+            content={activeFooter}
             onChange={(content) => onSectionChange("footer", content)}
             onFocus={onFocus}
           />
@@ -343,7 +352,8 @@ export function App() {
     };
   }, [persister]);
 
-  const pages = paginateDocument(document).pages;
+  const paginated = paginateDocument(document);
+  const pages = paginated.pages;
 
   useEffect(() => {
     const pageNumber = pendingPageFocusRef.current;
@@ -395,7 +405,10 @@ export function App() {
 
   const updateSection = useCallback(
     (section: "header" | "footer", content: DocumentSection) => {
-      const nextDocument = { ...documentRef.current, [section]: content };
+      const nextDocument = {
+        ...documentRef.current,
+        [section]: isEmptyDocumentSection(content) ? null : content,
+      };
       documentRef.current = nextDocument;
       setDocument(nextDocument);
       setSaveStatus("Saving…");
@@ -753,6 +766,7 @@ export function App() {
           <PageEditor
             key={page.number}
             page={page}
+            bodyHeightPoints={paginated.pageHeight}
             resolveImageSource={resolveImageSource}
             header={document.header}
             footer={document.footer}

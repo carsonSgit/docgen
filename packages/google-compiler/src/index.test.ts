@@ -3,6 +3,17 @@ import { describe, expect, it } from "vitest";
 import { compileDocument, UnsupportedContentError } from "./index";
 
 describe("Google Docs compiler", () => {
+  it("omits empty sections instead of creating empty Google segments", () => {
+    const document = createBlankDocument();
+    document.header = { type: "doc", content: [{ type: "paragraph" }] };
+    document.footer = { type: "doc", content: [{ type: "paragraph" }] };
+
+    expect(compileDocument(document).sections).toEqual({
+      header: null,
+      footer: null,
+    });
+  });
+
   it("uses the document's structural trailing newline for the final paragraph", () => {
     const document = createBlankDocument();
     document.content = {

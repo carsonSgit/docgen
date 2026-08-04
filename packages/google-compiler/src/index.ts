@@ -3,6 +3,7 @@ import {
   type DocumentEnvelope,
   FOOTER_DISTANCE_POINTS,
   HEADER_DISTANCE_POINTS,
+  isEmptyDocumentSection,
   parseDocumentEnvelope,
   type TiptapNode,
 } from "@document-playground/domain";
@@ -381,7 +382,7 @@ export function compileDocument(
   compileNode(document.content, requests, { index: 1 }, imageUris);
   removeFinalBodyParagraphBreak(requests, document.content.content?.at(-1));
   const compileSection = (section: TiptapNode | null) => {
-    if (!section) return null;
+    if (!section || isEmptyDocumentSection(section)) return null;
     const sectionRequests: GoogleDocsRequest[] = [];
     compileNode(section, sectionRequests, { index: 0 }, imageUris);
     return sectionRequests;

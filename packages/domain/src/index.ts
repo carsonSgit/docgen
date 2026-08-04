@@ -340,6 +340,19 @@ export function createDocumentFromTemplate(
 }
 export type DocumentSection = z.infer<typeof DocumentSectionSchema>;
 
+/** A section with no renderable nodes is equivalent to an absent section. */
+export function isEmptyDocumentSection(
+  section: DocumentSection | null | undefined,
+): boolean {
+  if (!section) return true;
+  const hasContent = (node: DocumentNode): boolean => {
+    if (node.type === "text") return Boolean(node.text);
+    if (["image", "pageBreak"].includes(node.type)) return true;
+    return node.content?.some(hasContent) ?? false;
+  };
+  return !hasContent(section);
+}
+
 export function createBlankDocument(): DocumentEnvelope {
   return {
     version: DOCUMENT_VERSION,

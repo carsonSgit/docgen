@@ -5,6 +5,7 @@ import {
   createDocumentFromTemplate,
   createImageNode,
   DOCUMENT_VERSION,
+  isEmptyDocumentSection,
   listDocumentTemplates,
   parseDocumentEnvelope,
   parseDocumentTemplate,
@@ -221,5 +222,32 @@ describe("document envelope", () => {
     const firstText = firstParagraph?.content?.[0];
     if (firstText) firstText.text = "Changed";
     expect(secondParagraph?.content?.[0]?.text).not.toBe("Changed");
+  });
+});
+
+describe("document sections", () => {
+  it("treats missing, null, and empty paragraph sections as absent", () => {
+    expect(isEmptyDocumentSection(null)).toBe(true);
+    expect(isEmptyDocumentSection(undefined)).toBe(true);
+    expect(
+      isEmptyDocumentSection({
+        type: "doc",
+        content: [{ type: "paragraph" }],
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps meaningful section content present", () => {
+    expect(
+      isEmptyDocumentSection({
+        type: "doc",
+        content: [
+          { type: "paragraph", content: [{ type: "text", text: "Header" }] },
+        ],
+      }),
+    ).toBe(false);
+    expect(
+      isEmptyDocumentSection({ type: "doc", content: [{ type: "image" }] }),
+    ).toBe(false);
   });
 });

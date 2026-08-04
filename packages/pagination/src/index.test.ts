@@ -1,8 +1,34 @@
 import { createBlankDocument } from "@document-playground/domain";
 import { describe, expect, it } from "vitest";
-import { paginateDocument } from "./index";
+import { getUsableBodyHeight, paginateDocument } from "./index";
 
 describe("pagination adapter", () => {
+  it("reserves repeated section height and section distances", () => {
+    const document = createBlankDocument();
+    document.header = {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Header" }] },
+      ],
+    };
+    document.footer = {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Footer" }] },
+      ],
+    };
+
+    expect(getUsableBodyHeight(document, () => 20)).toBe(536);
+  });
+
+  it("does not reserve space for empty sections", () => {
+    const document = createBlankDocument();
+    document.header = { type: "doc", content: [{ type: "paragraph" }] };
+    document.footer = { type: "doc", content: [{ type: "paragraph" }] };
+
+    expect(getUsableBodyHeight(document, () => 20)).toBe(648);
+  });
+
   it("flows long content onto another fixed-layout page", () => {
     const document = createBlankDocument();
     document.content = {
