@@ -3,7 +3,11 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@document-playground/domain": "workspace:*"
+    "@document-playground/domain": "workspace:*",
+    "@lexical/link": "^0.49.0",
+    "@lexical/list": "^0.49.0",
+    "@lexical/rich-text": "^0.49.0",
+    "lexical": "^0.49.0"
   },
   "exports": {
     ".": "./src/index.ts"
