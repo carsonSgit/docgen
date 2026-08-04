@@ -35,12 +35,19 @@ function mergeListItemContinuation(
   }
   const previousNested = previousContent.at(-1);
   const currentNested = currentContent.at(-1);
+  const previousNestedFragmentId = previousNested?.attrs?.[PAGE_FRAGMENT_ATTR];
+  const currentNestedFragmentId = currentNested?.attrs?.[PAGE_FRAGMENT_ATTR];
+  const hasDistinctNestedFragmentIdentity =
+    Boolean(previousNestedFragmentId) &&
+    Boolean(currentNestedFragmentId) &&
+    previousNestedFragmentId !== currentNestedFragmentId;
   if (
     previousNested &&
     currentNested &&
     previousNested?.type === currentNested?.type &&
     (currentNested?.type === "bulletList" ||
-      currentNested?.type === "orderedList")
+      currentNested?.type === "orderedList") &&
+    !hasDistinctNestedFragmentIdentity
   ) {
     const mergedNested = mergeFragmentNodes(previousNested, currentNested);
     return {
