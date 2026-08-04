@@ -115,6 +115,17 @@ export async function handleRequest(
           );
         }
 
+        const assetIds = new Set<string>();
+        for (const asset of parsed.data.assets) {
+          if (assetIds.has(asset.assetId)) {
+            return Response.json(
+              { error: `Duplicate image asset ${asset.assetId}` },
+              { status: 400 },
+            );
+          }
+          assetIds.add(asset.assetId);
+        }
+
         let document: DocumentEnvelope;
         try {
           document = parseDocumentEnvelope(parsed.data.document);

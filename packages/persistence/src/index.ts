@@ -20,6 +20,9 @@ export type ImageAssetRecord = {
   blob: Blob;
   mimeType: (typeof IMAGE_ASSET_LIMITS.mimeTypes)[number];
   size: number;
+  /** Intrinsic dimensions decoded from the source image, in document points. */
+  intrinsicWidthPoints: number;
+  intrinsicHeightPoints: number;
 };
 
 export interface AssetStorage {
@@ -44,7 +47,7 @@ function createAssetId(): string {
 export async function putImageAsset(
   storage: AssetStorage,
   file: Blob,
-  dimensions: Pick<ImageAttributes, "width" | "height">,
+  dimensions: { widthPoints: number; heightPoints: number },
 ): Promise<Omit<ImageAssetRecord, "blob">> {
   if (
     !IMAGE_ASSET_LIMITS.mimeTypes.includes(
@@ -59,7 +62,7 @@ export async function putImageAsset(
     throw new ImageAssetError("Image exceeds the 10 MB size limit.");
   }
   try {
-    validateImageDimensions(dimensions.width, dimensions.height);
+    validateImageDimensions(dimensions.widthPoints, dimensions.heightPoints);
   } catch {
     throw new ImageAssetError(
       "Image dimensions are outside the supported range.",
@@ -71,9 +74,17 @@ export async function putImageAsset(
     blob: file,
     mimeType: file.type as ImageAssetRecord["mimeType"],
     size: file.size,
+    intrinsicWidthPoints: dimensions.widthPoints,
+    intrinsicHeightPoints: dimensions.heightPoints,
   };
   await storage.put(asset);
-  return { assetId: asset.assetId, mimeType: asset.mimeType, size: asset.size };
+  return {
+    assetId: asset.assetId,
+    mimeType: asset.mimeType,
+    size: asset.size,
+    intrinsicWidthPoints: asset.intrinsicWidthPoints,
+    intrinsicHeightPoints: asset.intrinsicHeightPoints,
+  };
 }
 
 export class MemoryAssetStorage implements AssetStorage {
@@ -103,11 +114,22 @@ export async function restoreImageAsset(
 ): Promise<AssetRecovery> {
   const asset = await storage.get(image.assetId);
   if (!asset) return { kind: "missing", assetId: image.assetId };
+  let validIntrinsicDimensions = true;
+  try {
+    validateImageDimensions(
+      asset.intrinsicWidthPoints,
+      asset.intrinsicHeightPoints,
+    );
+  } catch {
+    validIntrinsicDimensions = false;
+  }
   if (
+    asset.assetId !== image.assetId ||
     !IMAGE_ASSET_LIMITS.mimeTypes.includes(asset.mimeType) ||
     asset.blob.type !== asset.mimeType ||
     asset.size !== asset.blob.size ||
-    asset.size > IMAGE_ASSET_LIMITS.maxBytes
+    asset.size > IMAGE_ASSET_LIMITS.maxBytes ||
+    !validIntrinsicDimensions
   ) {
     return {
       kind: "corrupt",
