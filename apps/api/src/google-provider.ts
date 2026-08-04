@@ -6,6 +6,10 @@ import { z } from "zod";
 
 const CreatedDocumentSchema = z.object({ documentId: z.string().min(1) });
 const DriveFileSchema = z.object({ id: z.string().min(1) });
+const BatchUpdateResponseSchema = z.object({
+  documentId: z.string().optional(),
+  replies: z.array(z.unknown()).optional(),
+});
 const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 const MAX_RETRIES = 2;
 
@@ -99,10 +103,14 @@ export function createGoogleProviderClient(options: {
       return parsed.data;
     },
     async batchUpdate(documentId, requests) {
-      return googleRequest(
+      const body = await googleRequest(
         `https://docs.googleapis.com/v1/documents/${encodeURIComponent(documentId)}:batchUpdate`,
         { method: "POST", body: JSON.stringify({ requests }) },
       );
+      const parsed = BatchUpdateResponseSchema.safeParse(body);
+      if (!parsed.success)
+        throw new Error("Google returned an invalid batch update response.");
+      return parsed.data;
     },
     async uploadImage(asset: ExportImageAsset) {
       const boundary = "document-playground-image";
