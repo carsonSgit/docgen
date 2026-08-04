@@ -30,7 +30,7 @@ export type VerificationReport = {
   artifacts: {
     pdf: string;
     snapshot: string;
-    requests: string;
+    compilerPreviewRequests: string;
     report: string;
   };
   snapshot: unknown;
@@ -132,7 +132,7 @@ export async function verifyGoogleExport(options: {
     provider.exportPdf(result.documentId),
     provider.getDocument(result.documentId),
   ]);
-  const requestsPath = resolve(outputDir, "compiled-requests.json");
+  const requestsPath = resolve(outputDir, "compiler-preview-requests.json");
   const snapshotPath = resolve(outputDir, "google-doc-snapshot.json");
   const pdfPath = resolve(outputDir, "google-document.pdf");
   const reportPath = resolve(outputDir, "report.json");
@@ -153,7 +153,7 @@ export async function verifyGoogleExport(options: {
     artifacts: {
       pdf: relativeArtifact(pdfPath),
       snapshot: relativeArtifact(snapshotPath),
-      requests: relativeArtifact(requestsPath),
+      compilerPreviewRequests: relativeArtifact(requestsPath),
       report: relativeArtifact(reportPath),
     },
     snapshot: sanitizeDocumentSnapshot(snapshot),
@@ -180,11 +180,13 @@ export async function verifyGoogleExport(options: {
 
 if (import.meta.main) {
   try {
+    const outputDir = resolve(DEFAULT_OUTPUT_DIR);
     const report = await verifyGoogleExport({
       accessToken: process.env.GOOGLE_ACCESS_TOKEN,
+      outputDir,
     });
     console.log(
-      `Google verification complete. Artifacts: ${resolve(report.artifacts.report)}`,
+      `Google verification complete. Report: ${resolve(outputDir, report.artifacts.report)}`,
     );
   } catch (error) {
     console.error(
