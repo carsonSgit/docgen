@@ -11,6 +11,8 @@ const DEFAULT_BLOCK_HEIGHT = 11 * 1.15;
 const HEADING_WRAP_WIDTH_FACTOR = 1.6;
 // Lists lose 27pt of the 468pt content width to their marker indent.
 const LIST_CHARS_PER_LINE = 85;
+// Nested list markers and proportional text make the width estimate less exact.
+const NESTED_LIST_CHAR_COST = 5;
 
 function listCharsPerLine(depth: number): number {
   return Math.max(
@@ -18,7 +20,8 @@ function listCharsPerLine(depth: number): number {
     Math.floor(
       (LIST_CHARS_PER_LINE *
         (DOCUMENT_CONTENT_WIDTH_POINTS - LIST_INDENT_POINTS * (depth - 1))) /
-        DOCUMENT_CONTENT_WIDTH_POINTS,
+        DOCUMENT_CONTENT_WIDTH_POINTS -
+        NESTED_LIST_CHAR_COST * Math.max(0, depth - 1),
     ),
   );
 }
@@ -357,6 +360,8 @@ function splitListToFit(
   node: TiptapNode,
   maxHeight: number,
   fragmentId: string,
+  depth = 1,
+  measureNode: NodeMeasurement = defaultMeasure,
 ): TiptapNode[] {
   if (
     !["bulletList", "orderedList"].includes(node.type) ||
@@ -380,26 +385,42 @@ function splitListToFit(
       paragraph,
       maxHeight,
       fragmentId,
-      listCharsPerLine(1),
+      listCharsPerLine(depth),
     );
     for (const [
       fragmentIndex,
       paragraphFragment,
     ] of paragraphFragments.entries()) {
       const isFinalFragment = fragmentIndex === paragraphFragments.length - 1;
-      fragments.push({
-        ...node,
-        attrs: { ...node.attrs, [PAGE_FRAGMENT_ATTR]: fragmentId },
-        content: [
-          {
-            ...item,
-            content: [
-              paragraphFragment,
-              ...(isFinalFragment ? itemContent.slice(1) : []),
-            ],
-          },
-        ],
-      });
+      const trailingContent = isFinalFragment ? itemContent.slice(1) : [];
+      let trailingFragments: TiptapNode[][] = [[]];
+      for (const child of trailingContent) {
+        const childFragments =
+          child.type === "bulletList" || child.type === "orderedList"
+            ? splitListToFit(
+                child,
+                Math.max(1, maxHeight - measureNode(paragraphFragment)),
+                fragmentId,
+                depth + 1,
+                measureNode,
+              )
+            : [child];
+        trailingFragments = trailingFragments.flatMap((prefix) =>
+          childFragments.map((fragment) => [...prefix, fragment]),
+        );
+      }
+      for (const trailing of trailingFragments) {
+        fragments.push({
+          ...node,
+          attrs: { ...node.attrs, [PAGE_FRAGMENT_ATTR]: fragmentId },
+          content: [
+            {
+              ...item,
+              content: [paragraphFragment, ...trailing],
+            },
+          ],
+        });
+      }
     }
   }
   return fragments.length > 1 ? fragments : [node];
@@ -474,7 +495,13 @@ export function paginateDocument(
         measureNode(textFragments[0] ?? remainingNode) > remainingHeight
           ? remainingNode.type === "bulletList" ||
             remainingNode.type === "orderedList"
-            ? splitListToFit(remainingNode, remainingHeight, String(nodeIndex))
+            ? splitListToFit(
+                remainingNode,
+                remainingHeight,
+                String(nodeIndex),
+                1,
+                measureNode,
+              )
             : splitNodeToFit(remainingNode, remainingHeight, String(nodeIndex))
           : textFragments;
       const fragments = fragmentCandidates;
