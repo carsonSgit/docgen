@@ -23,7 +23,14 @@ import {
   resetDocumentFromTemplate,
   restoreDocument,
 } from "@document-playground/persistence";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ExportAuthorizationRequiredError,
   type ExportRequestAsset,
@@ -111,6 +118,7 @@ function ToolbarButton({ label, mark, onClick }: ToolbarButtonProps) {
 
 type PageEditorProps = {
   page: PaginationPage;
+  layout: DocumentEnvelope["page"];
   header: DocumentSection | null;
   footer: DocumentSection | null;
   resolveImageSource: (assetId: string) => string | undefined;
@@ -258,6 +266,7 @@ function SectionEditor({
 
 function PageEditor({
   page,
+  layout,
   header,
   footer,
   resolveImageSource,
@@ -274,6 +283,16 @@ function PageEditor({
     <article
       className="page"
       aria-label={`Page ${page.number}`}
+      style={
+        {
+          "--document-page-width": `${(layout.width * 96) / 72}px`,
+          "--document-page-height": `${(layout.height * 96) / 72}px`,
+          "--document-page-margin-top": `${(layout.margins.top * 96) / 72}px`,
+          "--document-page-margin-right": `${(layout.margins.right * 96) / 72}px`,
+          "--document-page-margin-bottom": `${(layout.margins.bottom * 96) / 72}px`,
+          "--document-page-margin-left": `${(layout.margins.left * 96) / 72}px`,
+        } as CSSProperties
+      }
       data-break-before={
         page.number > 1 ? (page.breakBefore ? "manual" : "automatic") : "none"
       }
@@ -746,6 +765,7 @@ export function App() {
           <PageEditor
             key={page.number}
             page={page}
+            layout={document.page}
             resolveImageSource={resolveImageSource}
             header={document.header}
             footer={document.footer}
