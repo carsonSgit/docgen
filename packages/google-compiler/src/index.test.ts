@@ -445,6 +445,38 @@ describe("Google Docs compiler", () => {
 });
 
 describe("native list render metrics", () => {
+  it("does not add a blank native paragraph after a list item", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "One item" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const insertedText = compileDocument(document).requests.filter(
+      (request) => "insertText" in request,
+    );
+
+    expect(insertedText).toEqual([
+      { insertText: { location: { index: 1 }, text: "One item" } },
+      { insertText: { location: { index: 9 }, text: "\n" } },
+    ]);
+  });
+
   it("sets list spacing mode explicitly for native Docs", () => {
     const document = createBlankDocument();
     document.content = {
@@ -477,7 +509,7 @@ describe("native list render metrics", () => {
 
     expect(paragraph).toEqual({
       updateParagraphStyle: {
-        range: { startIndex: 1, endIndex: 13 },
+        range: { startIndex: 1, endIndex: 12 },
         paragraphStyle: {
           lineSpacing: 115,
           spaceAbove: { magnitude: 0, unit: "PT" },
