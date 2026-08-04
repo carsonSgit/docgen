@@ -2,6 +2,7 @@ import { createBlankDocument } from "@document-playground/domain";
 import { describe, expect, it } from "vitest";
 import {
   createCoreEditor,
+  createLexicalEditor,
   fromLexicalDocument,
   fromLexicalSection,
   removeImage,
@@ -10,6 +11,55 @@ import {
   toLexicalDocument,
   toLexicalSection,
 } from "./index";
+
+describe("Lexical editor adapter", () => {
+  it("loads and saves the canonical DocumentNode boundary through a real Lexical editor", () => {
+    const host = document.createElement("div");
+    const content = {
+      type: "doc" as const,
+      content: [
+        {
+          type: "paragraph" as const,
+          content: [{ type: "text" as const, text: "Hello" }],
+        },
+        { type: "pageBreak" as const },
+      ],
+    };
+    const editor = createLexicalEditor(host, content);
+
+    expect(editor.getDocument()).toEqual(content);
+    expect(editor.getLexicalState().root.type).toBe("root");
+
+    editor.destroy();
+  });
+
+  it("notifies consumers with canonical content when Lexical state changes", async () => {
+    const host = document.createElement("div");
+    const editor = createLexicalEditor(host, {
+      type: "doc",
+      content: [{ type: "paragraph" }],
+    });
+    const changes: unknown[] = [];
+    const unsubscribe = editor.onChange((document) => changes.push(document));
+
+    editor.loadDocument({
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Updated" }] },
+      ],
+    });
+    await new Promise((resolve) => queueMicrotask(resolve));
+
+    expect(changes.at(-1)).toEqual({
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Updated" }] },
+      ],
+    });
+    unsubscribe();
+    editor.destroy();
+  });
+});
 
 describe("core editor adapter", () => {
   it("maps supported Lexical nodes and marks to canonical document content", () => {
