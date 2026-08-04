@@ -6,6 +6,7 @@ import {
   type DocumentTemplateId,
   FOOTER_DISTANCE_POINTS,
   HEADER_DISTANCE_POINTS,
+  LIST_INDENT_POINTS,
   listDocumentTemplates,
 } from "@document-playground/domain";
 import {
@@ -299,6 +300,7 @@ function PageEditor({
           "--document-page-margin-left": `${(layout.margins.left * 96) / 72}px`,
           "--document-header-distance": `${(HEADER_DISTANCE_POINTS * 96) / 72}px`,
           "--document-footer-distance": `${(FOOTER_DISTANCE_POINTS * 96) / 72}px`,
+          "--document-list-indent": `${(LIST_INDENT_POINTS * 96) / 72}px`,
         } as CSSProperties
       }
       data-break-before={

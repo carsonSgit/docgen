@@ -573,7 +573,7 @@ button:disabled {
 .section-editor > .ProseMirror ul,
 .section-editor > .ProseMirror ol {
   margin: 0;
-  padding-left: 36px;
+  padding-left: var(--document-list-indent);
 }
 
 .editor > .ProseMirror ul ul,
@@ -584,7 +584,7 @@ button:disabled {
 .section-editor > .ProseMirror ul ol,
 .section-editor > .ProseMirror ol ul,
 .section-editor > .ProseMirror ol ol {
-  padding-left: 36px;
+  padding-left: var(--document-list-indent);
 }
 
 .editor > .ProseMirror a,
