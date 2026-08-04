@@ -16,11 +16,13 @@ import {
 } from "@lexical/rich-text";
 import {
   $createParagraphNode,
+  $createRangeSelection,
   $createTextNode,
   $getNodeByKey,
   $getRoot,
   $getSelection,
   $isRangeSelection,
+  $setSelection,
   createEditor,
   type EditorState,
   type EditorThemeClasses,
@@ -226,7 +228,7 @@ export type LexicalEditorAdapter = {
   readonly lexical: LexicalEditor;
   getLexicalState(): LexicalSerializedDocument;
   getDocument(): DocumentNode;
-  loadDocument(document: DocumentNode): void;
+  loadDocument(document: DocumentNode, options?: { notify?: boolean }): void;
   onChange(listener: (document: DocumentNode) => void): () => void;
   isCursorAtEnd(): boolean;
   focus(position?: "start" | "end"): void;
@@ -318,16 +320,69 @@ export function createLexicalEditor(
     }
   };
 
-  const loadDocument = (nextDocument: DocumentNode) => {
+  const loadDocument = (
+    nextDocument: DocumentNode,
+    options: { notify?: boolean } = {},
+  ) => {
+    const suppressChange = options.notify === false;
+    const cursorOffset = lexical.getEditorState().read(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection) || !selection.isCollapsed())
+        return null;
+      const anchorNode = selection.anchor.getNode();
+      const textNodes = $getRoot().getAllTextNodes();
+      let offset = selection.anchor.offset;
+      for (const textNode of textNodes) {
+        if (textNode.getKey() === anchorNode.getKey()) break;
+        offset += textNode.getTextContentSize();
+      }
+      return offset;
+    });
     const state = lexical.parseEditorState(
       JSON.stringify(toLexicalDocument(nextDocument)),
     );
-    lexical.setEditorState(state, { tag: "document-playground-load" });
+    lexical.setEditorState(
+      state,
+      suppressChange ? { tag: "document-playground-load" } : undefined,
+    );
+    if (cursorOffset !== null) {
+      lexical.update(
+        () => {
+          const textNodes = $getRoot().getAllTextNodes();
+          let remaining = cursorOffset;
+          const target =
+            textNodes.find((textNode) => {
+              const size = textNode.getTextContentSize();
+              if (remaining <= size) return true;
+              remaining -= size;
+              return false;
+            }) ?? textNodes.at(-1);
+          if (!target) return;
+          const selection = $createRangeSelection();
+          selection.setTextNodeRange(
+            target,
+            Math.min(remaining, target.getTextContentSize()),
+            target,
+            Math.min(remaining, target.getTextContentSize()),
+          );
+          $setSelection(selection);
+        },
+        suppressChange ? { tag: "document-playground-load" } : undefined,
+      );
+      lexical.focus();
+    }
     renderImageSources();
   };
 
   lexical.registerUpdateListener(
-    ({ editorState }: { editorState: EditorState }) => {
+    ({
+      editorState,
+      tags,
+    }: {
+      editorState: EditorState;
+      tags: Set<string>;
+    }) => {
+      if (tags.has("document-playground-load")) return;
       const serialized =
         editorState.toJSON() as unknown as LexicalSerializedDocument;
       const nextDocument = fromLexicalDocument(serialized);
@@ -357,9 +412,19 @@ export function createLexicalEditor(
         const root = $getRoot();
         const lastBlock = root.getLastChild();
         const anchorNode = selection.anchor.getNode();
+        const atLastBlock =
+          lastBlock !== null &&
+          anchorNode.getTopLevelElementOrThrow() === lastBlock;
+        if (
+          atLastBlock &&
+          lastBlock instanceof ElementNode &&
+          lastBlock.getLastChild()?.getType() === "linebreak"
+        ) {
+          return true;
+        }
         return (
           lastBlock !== null &&
-          anchorNode.getTopLevelElementOrThrow() === lastBlock &&
+          atLastBlock &&
           selection.anchor.offset >= anchorNode.getTextContentSize()
         );
       });

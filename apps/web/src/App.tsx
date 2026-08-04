@@ -12,6 +12,7 @@ import {
 } from "@document-playground/editor";
 import {
   PAGE_FRAGMENT_ATTR,
+  PAGE_VISUAL_FRAGMENT_ATTR,
   type PaginationPage,
   paginateDocument,
 } from "@document-playground/pagination";
@@ -60,8 +61,12 @@ function flattenPages(pages: PaginationPage[]): DocumentNode[] {
           (fragmentId && fragmentId === previousFragmentId)) &&
         previous?.type === node.type
       ) {
+        const visualBreak = node.attrs?.[PAGE_VISUAL_FRAGMENT_ATTR]
+          ? [{ type: "hardBreak" as const }]
+          : [];
         previous.content = [
           ...(previous.content ?? []),
+          ...visualBreak,
           ...(node.content ?? []),
         ];
       } else {
@@ -72,7 +77,11 @@ function flattenPages(pages: PaginationPage[]): DocumentNode[] {
 
   return content.map((node) => {
     if (!node.attrs?.[PAGE_FRAGMENT_ATTR]) return node;
-    const { [PAGE_FRAGMENT_ATTR]: _fragmentId, ...attrs } = node.attrs;
+    const {
+      [PAGE_FRAGMENT_ATTR]: _fragmentId,
+      [PAGE_VISUAL_FRAGMENT_ATTR]: _visualFragment,
+      ...attrs
+    } = node.attrs;
     return {
       ...node,
       ...(Object.keys(attrs).length ? { attrs } : { attrs: undefined }),
@@ -167,22 +176,22 @@ function BodyEditor({
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
-    // Pagination updates the prop value while the focused Lexical instance
-    // already contains the user's edit. Reloading here would replace its
-    // selection and send the next keystroke to a different position.
-    if (host.current?.contains(host.current.ownerDocument.activeElement)) {
-      return;
-    }
-    const current = JSON.stringify(editor.getDocument().content ?? []);
-    if (current !== serializedContent) {
-      editor.loadDocument({
-        type: "doc",
-        content:
-          page.content.length > 0
-            ? page.content
-            : [{ type: "paragraph" as const }],
-      });
-    }
+    const timeout = window.setTimeout(() => {
+      const current = JSON.stringify(editor.getDocument().content ?? []);
+      if (current !== serializedContent) {
+        editor.loadDocument(
+          {
+            type: "doc",
+            content:
+              page.content.length > 0
+                ? page.content
+                : [{ type: "paragraph" as const }],
+          },
+          { notify: false },
+        );
+      }
+    });
+    return () => window.clearTimeout(timeout);
   }, [page.content, serializedContent]);
 
   return (
@@ -388,11 +397,8 @@ export function App() {
         content: { type: "doc" as const, content: nextContent },
       };
       const reflowedPages = paginateDocument(nextDocument).pages;
-      const endsWithHardBreak =
-        content.at(-1)?.type === "paragraph" &&
-        content.at(-1)?.content?.some((node) => node.type === "hardBreak");
       if (
-        (change?.cursorAtEnd || endsWithHardBreak) &&
+        change?.cursorAtEnd &&
         reflowedPages.some((page) => page.number === pageNumber + 1)
       ) {
         pendingPageFocusRef.current = pageNumber + 1;
