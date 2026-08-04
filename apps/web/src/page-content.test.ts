@@ -1,7 +1,68 @@
+import { createBlankDocument } from "@document-playground/domain";
+import { paginateDocument } from "@document-playground/pagination";
 import { describe, expect, it } from "vitest";
 import { flattenPages } from "./page-content";
 
 describe("flattenPages", () => {
+  it("preserves mixed nested list identity when the nested ordered list splits", () => {
+    const document = createBlankDocument();
+    document.content = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Parent" }],
+                },
+                {
+                  type: "orderedList",
+                  attrs: { start: 3 },
+                  content: [
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [
+                            { type: "text", text: "Nested long ".repeat(900) },
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      type: "listItem",
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [{ type: "text", text: "Nested second" }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const pages = paginateDocument(document).pages;
+    const [list] = flattenPages(pages);
+    const nested = list?.content?.[0]?.content?.[1];
+    expect(nested?.type).toBe("orderedList");
+    expect(nested?.attrs?.start).toBe(3);
+    expect(nested?.content).toHaveLength(2);
+    expect(nested?.content?.[1]?.content?.[0]?.content?.[0]?.text).toBe(
+      "Nested second",
+    );
+  });
+
   it("merges a nested-list continuation into its parent list item", () => {
     const pages = [
       {

@@ -78,12 +78,34 @@ function mergeFragmentNodes(
         (firstCurrent.content?.[0]?.type === "paragraph" &&
           firstCurrent.content[0].content?.length === 0))
     ) {
+      let mergedLastItem = mergeListItemContinuation(
+        lastPrevious,
+        firstCurrent,
+      );
+      let consumedItems = 1;
+      while (consumedItems < currentItems.length) {
+        const continuation = currentItems[consumedItems];
+        const continuationParagraph = continuation?.content?.[0];
+        if (
+          continuation?.type !== "listItem" ||
+          continuation.attrs?.[PAGE_LIST_ITEM_CONTINUATION_ATTR] !== true ||
+          continuationParagraph?.type !== "paragraph" ||
+          continuationParagraph.content?.length
+        ) {
+          break;
+        }
+        mergedLastItem = mergeListItemContinuation(
+          mergedLastItem,
+          continuation,
+        );
+        consumedItems += 1;
+      }
       return {
         ...previous,
         content: [
           ...previousItems.slice(0, -1),
-          mergeListItemContinuation(lastPrevious, firstCurrent),
-          ...currentItems.slice(1),
+          mergedLastItem,
+          ...currentItems.slice(consumedItems),
         ],
       };
     }
