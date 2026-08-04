@@ -6,6 +6,7 @@ import {
   type ExportImageAsset,
   exportDocument,
   type GoogleProviderClient,
+  preflightExport,
 } from "@document-playground/export-service";
 import { z } from "zod";
 import { GoogleOAuthService } from "./google-oauth";
@@ -132,6 +133,20 @@ export async function handleRequest(
             mimeType: asset.mimeType,
             size: bytes.byteLength,
           });
+        }
+
+        try {
+          preflightExport(document, assets);
+        } catch (error) {
+          return Response.json(
+            {
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "The document could not be exported",
+            },
+            { status: 400 },
+          );
         }
 
         if (

@@ -41,11 +41,7 @@ export class ExportServiceError extends Error {
   }
 }
 
-export async function exportDocument(
-  document: DocumentEnvelope,
-  provider: GoogleProviderClient,
-  assets: ReadonlyMap<string, ExportImageAsset> = new Map(),
-): Promise<ExportResult> {
+function collectImageIds(document: DocumentEnvelope): string[] {
   const imageIds: string[] = [];
   const collectImages = (node: DocumentEnvelope["content"]): void => {
     if (node.type === "image") {
@@ -59,6 +55,60 @@ export async function exportDocument(
   collectImages(document.content);
   if (document.header) collectImages(document.header);
   if (document.footer) collectImages(document.footer);
+  return imageIds;
+}
+
+/** Validate content and local assets before authorization or provider writes. */
+export function preflightExport(
+  document: DocumentEnvelope,
+  assets: ReadonlyMap<string, ExportImageAsset> = new Map(),
+): void {
+  const imageIds = collectImageIds(document);
+  for (const assetId of imageIds) {
+    const asset = assets.get(assetId);
+    if (!asset) {
+      throw new ExportServiceError(
+        `Image asset ${assetId} is missing. Restore the image locally and retry export.`,
+      );
+    }
+    if (
+      !EXPORT_IMAGE_MIME_TYPES.includes(asset.mimeType) ||
+      asset.blob.type !== asset.mimeType
+    ) {
+      throw new ExportServiceError(
+        `Image asset ${assetId} has an unsupported image format (${asset.mimeType}).`,
+      );
+    }
+    if (asset.size !== asset.blob.size || asset.size > EXPORT_IMAGE_MAX_BYTES) {
+      throw new ExportServiceError(
+        `Image asset ${assetId} is invalid or exceeds the 10 MB size limit.`,
+      );
+    }
+  }
+
+  try {
+    compileDocument(
+      document,
+      new Map(
+        imageIds.map((assetId) => [assetId, "https://placeholder.invalid"]),
+      ),
+    );
+  } catch (error) {
+    throw new ExportServiceError(
+      error instanceof Error
+        ? error.message
+        : "The document could not be compiled for export.",
+      { cause: error },
+    );
+  }
+}
+
+export async function exportDocument(
+  document: DocumentEnvelope,
+  provider: GoogleProviderClient,
+  assets: ReadonlyMap<string, ExportImageAsset> = new Map(),
+): Promise<ExportResult> {
+  const imageIds = collectImageIds(document);
 
   for (const assetId of imageIds) {
     const asset = assets.get(assetId);
@@ -87,21 +137,7 @@ export async function exportDocument(
     }
   }
 
-  try {
-    compileDocument(
-      document,
-      new Map(
-        imageIds.map((assetId) => [assetId, "https://placeholder.invalid"]),
-      ),
-    );
-  } catch (error) {
-    throw new ExportServiceError(
-      error instanceof Error
-        ? error.message
-        : "The document could not be compiled for export.",
-      { cause: error },
-    );
-  }
+  preflightExport(document, assets);
 
   const imageUris = new Map<string, string>();
   if (imageIds.length > 0) {
