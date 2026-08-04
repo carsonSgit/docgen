@@ -47,6 +47,28 @@ type BodyEditorChange = {
   cursorAtEnd: boolean;
 };
 
+function refreshImageSources(
+  host: HTMLElement | null,
+  resolveImageSource: (assetId: string) => string | undefined,
+): void {
+  for (const image of host?.querySelectorAll<HTMLImageElement>(
+    "img[data-asset-id]",
+  ) ?? []) {
+    const assetId = image.dataset.assetId;
+    const source = assetId ? resolveImageSource(assetId) : undefined;
+    if (source) image.src = source;
+  }
+}
+
+function collectImageAssetIds(node: DocumentNode, assetIds: Set<string>): void {
+  if (node.type === "image" && typeof node.attrs?.assetId === "string") {
+    assetIds.add(node.attrs.assetId);
+  }
+  node.content?.forEach((child) => {
+    collectImageAssetIds(child, assetIds);
+  });
+}
+
 function flattenPages(pages: PaginationPage[]): DocumentNode[] {
   const content: DocumentNode[] = [];
 
@@ -127,6 +149,7 @@ type PageEditorProps = {
   layout: DocumentEnvelope["page"];
   header: DocumentSection | null;
   footer: DocumentSection | null;
+  assetRevision: number;
   resolveImageSource: (assetId: string) => string | undefined;
   onChange: (
     pageNumber: number,
@@ -143,13 +166,19 @@ type PageEditorProps = {
 
 function BodyEditor({
   page,
+  assetRevision,
   onChange,
   onEditorReady,
   onFocus,
   resolveImageSource,
 }: Pick<
   PageEditorProps,
-  "page" | "onChange" | "onEditorReady" | "onFocus" | "resolveImageSource"
+  | "page"
+  | "onChange"
+  | "onEditorReady"
+  | "onFocus"
+  | "resolveImageSource"
+  | "assetRevision"
 >) {
   const host = useRef<HTMLDivElement>(null);
   const editorRef = useRef<CoreEditor | null>(null);
@@ -208,6 +237,10 @@ function BodyEditor({
     return () => window.clearTimeout(timeout);
   }, [page.content, serializedContent]);
 
+  useEffect(() => {
+    refreshImageSources(host.current, resolveImageSource);
+  }, [assetRevision, resolveImageSource]);
+
   return (
     <div className="editor">
       <div
@@ -223,12 +256,14 @@ function BodyEditor({
 function SectionEditor({
   section,
   content,
+  assetRevision,
   onChange,
   onFocus,
   resolveImageSource,
 }: {
   section: "header" | "footer";
   content: DocumentSection;
+  assetRevision: number;
   onChange: (content: DocumentSection) => void;
   onFocus: (editor: CoreEditor) => void;
   resolveImageSource: (assetId: string) => string | undefined;
@@ -267,6 +302,10 @@ function SectionEditor({
     }
   }, [content, serializedContent]);
 
+  useEffect(() => {
+    refreshImageSources(host.current, resolveImageSource);
+  }, [assetRevision, resolveImageSource]);
+
   return (
     <div className={`section-editor ${section}-editor`}>
       <div ref={host} className="ProseMirror" />
@@ -279,6 +318,7 @@ function PageEditor({
   layout,
   header,
   footer,
+  assetRevision,
   resolveImageSource,
   onChange,
   onSectionChange,
@@ -317,6 +357,7 @@ function PageEditor({
             content={header}
             onChange={(content) => onSectionChange("header", content)}
             onFocus={onFocus}
+            assetRevision={assetRevision}
             resolveImageSource={resolveImageSource}
           />
         ) : (
@@ -334,6 +375,7 @@ function PageEditor({
           onChange={onChange}
           onEditorReady={onEditorReady}
           onFocus={onFocus}
+          assetRevision={assetRevision}
           resolveImageSource={resolveImageSource}
         />
       </section>
@@ -344,6 +386,7 @@ function PageEditor({
             content={footer}
             onChange={(content) => onSectionChange("footer", content)}
             onFocus={onFocus}
+            assetRevision={assetRevision}
             resolveImageSource={resolveImageSource}
           />
         ) : (
@@ -375,6 +418,7 @@ export function App() {
   const [selectedTemplateId, setSelectedTemplateId] =
     useState<DocumentTemplateId>("blank");
   const [assetError, setAssetError] = useState<string | null>(null);
+  const [assetRevision, setAssetRevision] = useState(0);
   const assetUrls = useRef(new Map<string, string>());
   const imageInputRef = useRef<HTMLInputElement>(null);
   const documentRef = useRef(document);
@@ -388,6 +432,37 @@ export function App() {
   const assetStorage = useMemo(() => new BrowserAssetStorage(), []);
   const resolveImageSource = useCallback(
     (assetId: string) => assetUrls.current.get(assetId),
+    [],
+  );
+
+  useEffect(() => {
+    const assetIds = new Set<string>();
+    collectImageAssetIds(document.content, assetIds);
+    if (document.header) collectImageAssetIds(document.header, assetIds);
+    if (document.footer) collectImageAssetIds(document.footer, assetIds);
+    const missingAssetIds = [...assetIds].filter(
+      (assetId) => !assetUrls.current.has(assetId),
+    );
+    if (missingAssetIds.length === 0) return;
+    let active = true;
+    void Promise.all(
+      missingAssetIds.map(async (assetId) => {
+        const asset = await assetStorage.get(assetId);
+        if (!active || !asset) return;
+        assetUrls.current.set(assetId, URL.createObjectURL(asset.blob));
+      }),
+    ).then(() => {
+      if (active) setAssetRevision((revision) => revision + 1);
+    });
+    return () => {
+      active = false;
+    };
+  }, [assetStorage, document]);
+
+  useEffect(
+    () => () => {
+      for (const url of assetUrls.current.values()) URL.revokeObjectURL(url);
+    },
     [],
   );
 
@@ -800,6 +875,7 @@ export function App() {
             key={page.number}
             page={page}
             layout={document.page}
+            assetRevision={assetRevision}
             resolveImageSource={resolveImageSource}
             header={document.header}
             footer={document.footer}
