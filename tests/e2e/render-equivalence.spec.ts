@@ -20,8 +20,23 @@ type FixtureManifest = {
       footerDistancePoints: number;
     };
     typography: { fontFamily: string; bodyFontSizePoints: number };
+    features: { nodeTypes: string[]; marks: string[] };
   };
 };
+
+type PdfInspection = {
+  pageCount: number;
+  mediaBoxes: Array<{ width: number; height: number }>;
+};
+
+function inspectPdf(pdf: Buffer): PdfInspection {
+  const source = pdf.toString("latin1");
+  const pageCount = (source.match(/\/Type\s*\/Page\b/g) ?? []).length;
+  const mediaBoxes = Array.from(
+    source.matchAll(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/g),
+  ).map((match) => ({ width: Number(match[1]), height: Number(match[2]) }));
+  return { pageCount, mediaBoxes };
+}
 
 const fixturePath = "fixtures/render-equivalence/core-slice/document.json";
 const manifestPath = "fixtures/render-equivalence/core-slice/manifest.json";
@@ -82,6 +97,25 @@ test("captures the Core Editor Slice with deterministic local assertions", async
   await expect(
     page.locator("img[data-asset-id='asset_core_slice_hero']"),
   ).toHaveJSProperty("naturalWidth", 320);
+  await expect
+    .poll(() => page.evaluate(() => document.fonts.check("11pt Arial")))
+    .toBe(true);
+  await page.locator("img").evaluateAll((images) =>
+    Promise.all(
+      images.map((image) =>
+        image.complete
+          ? Promise.resolve()
+          : new Promise<void>((resolve, reject) => {
+              image.addEventListener("load", () => resolve(), {
+                once: true,
+              });
+              image.addEventListener("error", () => reject(image.src), {
+                once: true,
+              });
+            }),
+      ),
+    ),
+  );
 
   const metrics = await page.locator(".page").evaluateAll((pages) =>
     pages.map((currentPage) => {
@@ -192,14 +226,34 @@ test("captures the Core Editor Slice with deterministic local assertions", async
   expect(metrics.find((metric) => metric.image)).toMatchObject({
     image: { width: 320, height: 160 },
   });
-  expect(await page.locator("h1, h2").count()).toBeGreaterThan(0);
-  expect(await page.locator("ul, ol, li").count()).toBeGreaterThan(0);
-  expect(await page.locator("strong, em, u, a").count()).toBeGreaterThan(0);
-  await expect
-    .poll(() => page.evaluate(() => document.fonts.check("11pt Arial")))
-    .toBe(true);
+  const semanticSelectors: Record<string, string> = {
+    heading: "h1, h2, h3, h4, h5, h6",
+    paragraph: "p",
+    bulletList: "ul",
+    orderedList: "ol",
+    listItem: "li",
+    image: "img[data-asset-id='asset_core_slice_hero']",
+    hardBreak: "br",
+  };
+  for (const nodeType of manifest.expected.features.nodeTypes) {
+    if (nodeType === "pageBreak") {
+      expect(
+        fixture.content.content?.filter((node) => node.type === nodeType),
+      ).not.toHaveLength(0);
+      continue;
+    }
+    expect(
+      await page
+        .locator(semanticSelectors[nodeType] ?? `[data-type='${nodeType}']`)
+        .count(),
+    ).toBeGreaterThan(0);
+  }
+  for (const mark of manifest.expected.features.marks) {
+    expect(JSON.stringify(fixture.content)).toContain(`"type":"${mark}"`);
+  }
+  expect(await page.locator("[data-lexical-text]").count()).toBeGreaterThan(0);
 
-  const outputDir = testInfo.outputPath("render-equivalence");
+  const outputDir = testInfo.outputPath("render-equivalence/core-editor-slice");
   await mkdir(outputDir, { recursive: true });
   for (const [index, currentPage] of (
     await page.locator(".page").all()
@@ -208,11 +262,25 @@ test("captures the Core Editor Slice with deterministic local assertions", async
       path: join(outputDir, `page-${index + 1}.png`),
     });
   }
+  const pdfPath = join(outputDir, "local.pdf");
   await page.pdf({
-    path: join(outputDir, "local.pdf"),
-    format: "Letter",
+    path: pdfPath,
+    width: `${manifest.expected.page.widthPoints / 72}in`,
+    height: `${manifest.expected.page.heightPoints / 72}in`,
+    margin: { top: "0in", right: "0in", bottom: "0in", left: "0in" },
+    preferCSSPageSize: false,
     printBackground: true,
   });
+  const pdfInspection = inspectPdf(await readFile(pdfPath));
+  expect(pdfInspection.pageCount).toBe(manifest.expected.pageCount);
+  expect(pdfInspection.mediaBoxes).toHaveLength(manifest.expected.pageCount);
+  expect(
+    pdfInspection.mediaBoxes.every(
+      ({ width, height }) =>
+        width === manifest.expected.page.widthPoints &&
+        height === manifest.expected.page.heightPoints,
+    ),
+  ).toBe(true);
   await writeFile(
     join(outputDir, "geometry.json"),
     JSON.stringify(metrics, null, 2),
@@ -224,6 +292,10 @@ test("captures the Core Editor Slice with deterministic local assertions", async
         fixtureId: "core-editor-slice",
         browser: page.context().browser()?.version(),
         metrics,
+        pdf: {
+          path: "render-equivalence/core-editor-slice/local.pdf",
+          ...pdfInspection,
+        },
       },
       null,
       2,
