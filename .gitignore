@@ -87,6 +87,9 @@ out
 # Nuxt.js build / generate output
 .nuxt
 dist
+
+# Playwright artifacts (including local render-equivalence PDFs)
+/test-results/
 .output
 
 # Gatsby files
