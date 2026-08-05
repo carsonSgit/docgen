@@ -1,9 +1,5 @@
 import { GoogleOAuthService } from "../apps/api/src/google-oauth";
-import { parseDocumentEnvelope } from "../packages/domain/src/index";
-import {
-  type ExportImageAsset,
-  exportDocument,
-} from "../packages/export-service/src/index";
+import { DEFAULT_OUTPUT_DIR, verifyGoogleExport } from "./verify-google-export";
 
 const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -90,23 +86,12 @@ const callback = await new Promise<{ code: string; state: string }>(
 );
 
 await oauth.completeAuthorization(callback.code, callback.state);
-const fixture = await Bun.file(
-  "fixtures/render-equivalence/core-slice/document.json",
-).json();
-const document = parseDocumentEnvelope(fixture);
-const image = await Bun.file(
-  "fixtures/render-equivalence/core-slice/assets/hero.png",
-).arrayBuffer();
-const asset: ExportImageAsset = {
-  assetId: "asset_core_slice_hero",
-  blob: new Blob([image], { type: "image/png" }),
-  mimeType: "image/png",
-  size: image.byteLength,
-};
-const result = await exportDocument(
-  document,
-  oauth.provider(),
-  new Map([[asset.assetId, asset]]),
-);
+const report = await verifyGoogleExport({
+  outputDir: DEFAULT_OUTPUT_DIR,
+  provider: oauth.provider(),
+});
 
-console.log(`Created Google Doc: ${result.url}`);
+console.log(`Created Google Doc: ${report.document.url}`);
+console.log(
+  `Google verification complete. Report: ${DEFAULT_OUTPUT_DIR}/report.json`,
+);
