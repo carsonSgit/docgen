@@ -388,6 +388,36 @@ button:disabled {
   font-size: 0.75rem;
 }
 
+@media print {
+  body {
+    background: white;
+  }
+
+  .topbar,
+  .toolbar,
+  .document-context {
+    display: none;
+  }
+
+  .pages {
+    display: block;
+    padding: 0;
+    background: white;
+    overflow: visible;
+  }
+
+  .page {
+    margin: 0;
+    box-shadow: none;
+    break-after: page;
+    break-inside: avoid;
+  }
+
+  .page:last-child {
+    break-after: auto;
+  }
+}
+
 .context-divider {
   width: 1px;
   height: 0.75rem;
