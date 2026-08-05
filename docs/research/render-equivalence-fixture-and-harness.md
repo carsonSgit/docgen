@@ -10,18 +10,23 @@ explicit integration/manual lane and are never faked by local tests.
 
 `fixtures/render-equivalence/core-slice/` contains the validated envelope,
 deterministic local assets, a manifest of expected semantics and geometry, and
-regeneration notes. Local runs write PNGs for each `.page`, a Chromium PDF,
-`geometry.json`, and `report.json` to the Playwright test output directory.
-PDF bytes are not compared: rendered page geometry and appearance are the
+regeneration notes. Local runs write PNGs for each `.page`, a Chromium PDF at
+`render-equivalence/core-editor-slice/local.pdf`, `geometry.json`, and
+`report.json` below the Playwright test output directory. The capture sets the
+fixture's point dimensions explicitly, uses zero PDF margins, prints
+backgrounds, and waits for fonts and images before writing the artifact. PDF
+bytes are not compared: rendered page geometry and appearance are the
 contract. Same-environment local screenshots use a zero pixel diff budget;
 cross-render tolerances must be fixture-specific and recorded with their
 reason.
 
-The local lane asserts page count, page labels, manual and automatic break
-markers, repeated header/footer presence, page dimensions, overflow, image
-bounds, and computed typography. It also compares compiler output to the
-committed Vitest snapshot. Reports identify the first divergent page and
-category and retain the local PDF/PNGs for review.
+The local lane asserts DOM page count and PDF page count, PDF media-box
+dimensions, page labels, manual and automatic break markers, repeated
+header/footer presence, page dimensions, overflow, image bounds, computed
+typography, and every node type and mark listed by the fixture manifest. It
+also compares compiler output to the committed Vitest snapshot. Reports
+identify the first divergent page and category and retain the local PDF/PNGs
+for review.
 
 ## Environment
 
