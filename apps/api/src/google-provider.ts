@@ -84,6 +84,26 @@ export function createGoogleProviderClient(options: {
     }
   }
 
+  async function googleBinaryRequest(
+    input: RequestInfo | URL,
+    init: RequestInit,
+  ): Promise<ArrayBuffer> {
+    const response = await fetchImpl(input, {
+      ...init,
+      headers: {
+        authorization: `Bearer ${options.accessToken}`,
+        ...init.headers,
+      },
+    });
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      throw new Error(
+        `Google API request failed (${response.status})${detail ? `: ${detail}` : "."}`,
+      );
+    }
+    return response.arrayBuffer();
+  }
+
   return {
     async createDocument(title) {
       const body = await googleRequest(
@@ -102,6 +122,19 @@ export function createGoogleProviderClient(options: {
       return googleRequest(
         `https://docs.googleapis.com/v1/documents/${encodeURIComponent(documentId)}:batchUpdate`,
         { method: "POST", body: JSON.stringify({ requests }) },
+      );
+    },
+    async exportPdf(documentId) {
+      const response = await googleBinaryRequest(
+        `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(documentId)}/export?mimeType=application%2Fpdf`,
+        { method: "GET" },
+      );
+      return response;
+    },
+    async getDocument(documentId) {
+      return googleRequest(
+        `https://docs.googleapis.com/v1/documents/${encodeURIComponent(documentId)}`,
+        { method: "GET" },
       );
     },
     async uploadImage(asset: ExportImageAsset) {
