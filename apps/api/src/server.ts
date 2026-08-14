@@ -9,11 +9,13 @@ import {
   preflightExport,
 } from "@document-playground/export-service";
 import { z } from "zod";
+import { type AccessVerifier, createAccessVerifier } from "./access";
 import { type ApiConfig, ApiConfigurationError, parseApiConfig } from "./env";
 import { GoogleOAuthService } from "./google-oauth";
 import { createGoogleProviderClient } from "./google-provider";
 import { KVOAuthStateStore, type OAuthStateStore } from "./oauth-state-store";
 import { KVOAuthTokenStore, type OAuthTokenStore } from "./oauth-token-store";
+import { createKVRateLimiter, type RateLimiter } from "./rate-limit";
 
 const ExportRequestSchema = z
   .object({
@@ -48,6 +50,8 @@ export type ApiDependencies = {
    */
   provider?: GoogleProviderClient;
   oauth: GoogleOAuthService;
+  access?: AccessVerifier;
+  rateLimiter?: RateLimiter;
   /** Where the OAuth callback sends the browser once tokens are stored. */
   webOrigin: string;
 };
@@ -58,6 +62,9 @@ export type ApiDependencies = {
  * nothing and gets the KV store built from its namespace binding.
  */
 type ApiHost = {
+  requireAccess?: boolean;
+  accessVerifier?: AccessVerifier;
+  rateLimiter?: RateLimiter;
   stateStore?: OAuthStateStore;
   tokenStore?: OAuthTokenStore;
 };
@@ -68,6 +75,14 @@ export function createApiDependencies(
   host: ApiHost = {},
 ): ApiDependencies {
   const config: ApiConfig = parseApiConfig(env);
+  if (
+    host.requireAccess &&
+    (!config.CF_ACCESS_TEAM_DOMAIN || !config.CF_ACCESS_AUDIENCE)
+  ) {
+    throw new ApiConfigurationError(
+      "The API is misconfigured. CF_ACCESS_TEAM_DOMAIN and CF_ACCESS_AUDIENCE are required for the public Worker.",
+    );
+  }
   return {
     provider: config.GOOGLE_ACCESS_TOKEN
       ? createGoogleProviderClient({ accessToken: config.GOOGLE_ACCESS_TOKEN })
@@ -84,6 +99,22 @@ export function createApiDependencies(
       tokenStore: host.tokenStore ?? kvTokenStore(config),
     }),
     webOrigin: config.WEB_ORIGIN,
+    access:
+      host.accessVerifier ??
+      (config.CF_ACCESS_TEAM_DOMAIN && config.CF_ACCESS_AUDIENCE
+        ? createAccessVerifier(
+            config.CF_ACCESS_TEAM_DOMAIN,
+            config.CF_ACCESS_AUDIENCE,
+          )
+        : undefined),
+    rateLimiter:
+      host.rateLimiter ??
+      (config.GOOGLE_OAUTH_TOKENS
+        ? createKVRateLimiter(
+            config.GOOGLE_OAUTH_TOKENS,
+            config.EXPORT_RATE_LIMIT,
+          )
+        : undefined),
   };
 }
 
@@ -104,8 +135,19 @@ export async function handleRequest(
   request: Request,
   dependencies: ApiDependencies,
 ): Promise<Response> {
-  const { oauth, provider, webOrigin } = dependencies;
+  const { access, oauth, provider, rateLimiter, webOrigin } = dependencies;
   const url = new URL(request.url);
+
+  if (access && url.pathname.startsWith("/api/")) {
+    try {
+      await access(request);
+    } catch (error) {
+      return Response.json(
+        { error: error instanceof Error ? error.message : "Access denied" },
+        { status: 401 },
+      );
+    }
+  }
 
   if (request.method === "GET" && url.pathname === "/health") {
     return Response.json({ status: "ok" });
@@ -151,6 +193,12 @@ export async function handleRequest(
   }
 
   if (request.method === "POST" && url.pathname === "/api/export") {
+    if (rateLimiter && !(await rateLimiter(request))) {
+      return Response.json(
+        { error: "Export rate limit exceeded. Try again later." },
+        { status: 429, headers: { "retry-after": "60" } },
+      );
+    }
     let body: unknown;
     try {
       body = await request.json();

@@ -16,7 +16,7 @@ function dependenciesFor(env: Env): ApiDependencies {
   const cached = dependenciesByEnv.get(env);
   if (cached) return cached;
 
-  const created = createApiDependencies(env);
+  const created = createApiDependencies(env, { requireAccess: true });
   dependenciesByEnv.set(env, created);
   return created;
 }

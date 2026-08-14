@@ -69,6 +69,9 @@ const EnvSchema = z.object({
     "Set it to the URL the browser should return to after Google authorization completes.",
   ),
   GOOGLE_ACCESS_TOKEN: optionalSecret,
+  CF_ACCESS_TEAM_DOMAIN: optionalSecret,
+  CF_ACCESS_AUDIENCE: optionalSecret,
+  EXPORT_RATE_LIMIT: z.coerce.number().int().positive().default(10),
   GOOGLE_OAUTH_TOKENS: kvNamespace(
     "GOOGLE_OAUTH_TOKENS",
     "Bind the KV namespace declared in wrangler.jsonc; it holds the Google OAuth token between isolates.",

@@ -7,6 +7,8 @@ const env: Env = {
   GOOGLE_CLIENT_SECRET: "secret",
   GOOGLE_REDIRECT_URI: "https://worker.example/api/auth/google/callback",
   WEB_ORIGIN: "https://worker.example/?oauth=success",
+  CF_ACCESS_TEAM_DOMAIN: "https://docgen.cloudflareaccess.com",
+  CF_ACCESS_AUDIENCE: "audience",
   GOOGLE_OAUTH_TOKENS: {
     get: async () => null,
     put: async () => undefined,
@@ -57,6 +59,23 @@ describe("Worker entrypoint", () => {
       error: expect.stringContaining(
         "GOOGLE_REDIRECT_URI must be an absolute URL",
       ),
+    });
+  });
+
+  it("requires Cloudflare Access configuration for the public Worker", async () => {
+    const {
+      CF_ACCESS_AUDIENCE: _,
+      CF_ACCESS_TEAM_DOMAIN: __,
+      ...withoutAccess
+    } = env;
+    const response = await worker.fetch(
+      new Request("http://worker/health"),
+      withoutAccess,
+    );
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("CF_ACCESS_TEAM_DOMAIN"),
     });
   });
 });

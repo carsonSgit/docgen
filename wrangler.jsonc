@@ -3,6 +3,9 @@
   "name": "docgen",
   "main": "apps/api/src/worker.ts",
   "compatibility_date": "2026-08-01",
+  // Production is reached through the configured custom domain and Access
+  // application; do not recreate an unprotected workers.dev URL on deploy.
+  "workers_dev": false,
   // Temporary: apps/api/src/google-oauth.ts still imports node:crypto for
   // randomUUID. Issue #214 replaces it with the global crypto.randomUUID,
   // after which this flag can be dropped.
