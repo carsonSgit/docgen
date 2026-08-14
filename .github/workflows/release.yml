@@ -102,4 +102,16 @@ jobs:
           if ! git rev-parse --verify --quiet "refs/tags/$tag"; then
             git tag --annotate "$tag" --message "Release $tag" "$RELEASE_SHA"
             git push origin "$tag"
+
+      - name: Create GitHub Release
+        if: steps.version.outputs.version != '' && steps.existing.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v$RELEASE_VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "DocGen v$RELEASE_VERSION" \
+            --generate-notes
           fi
