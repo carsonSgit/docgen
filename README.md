@@ -101,7 +101,9 @@ The domain model uses points as its canonical measurement unit. Conversion to CS
 
 ## Contributing
 
-Issues and pull requests are welcome. Keep changes focused on one issue, use a `codex/` branch, preserve the domain boundaries above, and include behavioral tests for new or changed paths. Changes to `main` go through an approved pull request.
+Issues and pull requests are welcome. Read the [contribution guide](CONTRIBUTING.md) before making a change. Keep changes focused on one issue, use a `codex/` branch, preserve the domain boundaries above, and include behavioral tests for new or changed paths. Changes to `main` go through an approved pull request.
+
+Please report vulnerabilities through the private process described in the [security policy](SECURITY.md), not in a public issue. Everyone participating in the project is expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
