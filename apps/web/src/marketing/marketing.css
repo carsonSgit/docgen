@@ -394,6 +394,17 @@
   font-weight: 600;
   color: var(--color-text-primary);
   margin-bottom: var(--spacing-xs);
+  font-size: 1rem;
+}
+
+.marketing-footer-description {
+  margin-bottom: var(--spacing-xs);
+}
+
+.marketing-footer-version {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  margin-top: var(--spacing-xs);
 }
 
 .marketing-footer-links {

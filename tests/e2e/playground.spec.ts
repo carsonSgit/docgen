@@ -13,7 +13,7 @@ test("edits a title and completes a mocked export", async ({ page }) => {
     });
   });
 
-  await page.goto("/");
+  await page.goto("/playground");
   await page.getByLabel("Document title").fill("E2E title");
   await page.getByRole("button", { name: "Export" }).click();
   await expect(page.getByText("Export complete.")).toBeVisible();
@@ -25,7 +25,7 @@ test("edits a title and completes a mocked export", async ({ page }) => {
 test("propagates native text input through the Lexical adapter", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   const editor = page.locator(".ProseMirror").first();
 
   await editor.click();
@@ -37,7 +37,7 @@ test("propagates native text input through the Lexical adapter", async ({
 test("aligns a paragraph to the right through the editor toolbar", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   const editor = page.locator(".ProseMirror").first();
   await editor.click();
   await page.getByRole("button", { name: "Align right" }).click();
@@ -46,7 +46,7 @@ test("aligns a paragraph to the right through the editor toolbar", async ({
 });
 
 test("justifies a paragraph through the editor toolbar", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   const editor = page.locator(".ProseMirror").first();
   await editor.click();
   await page.getByRole("button", { name: "Justify" }).click();
@@ -71,7 +71,7 @@ test("preserves right alignment when a heading crosses the editor boundary", asy
     });
   });
 
-  await page.goto("/");
+  await page.goto("/playground");
   const editor = page.locator(".ProseMirror").first();
   await editor.click();
   await page.keyboard.insertText("Aligned heading");
@@ -89,7 +89,7 @@ test("preserves right alignment when a heading crosses the editor boundary", asy
 });
 
 test("shows the image upload control in the toolbar", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   await expect(
     page.getByRole("button", { name: "Insert image" }),
   ).toBeVisible();
@@ -102,7 +102,7 @@ test("renders an inserted image in a repeated header", async ({ page }) => {
       value: async () => ({ width: 100, height: 50, close() {} }),
     });
   });
-  await page.goto("/");
+  await page.goto("/playground");
   const firstPage = page.getByLabel("Page 1");
   await firstPage.getByRole("button", { name: "Add header" }).click();
   const headerEditor = firstPage.locator(".header-editor .ProseMirror");
@@ -132,7 +132,7 @@ test("inserts a tall image within the document dimension limit", async ({
       value: async () => ({ width: 100, height: 4000, close() {} }),
     });
   });
-  await page.goto("/");
+  await page.goto("/playground");
   await page.locator(".ProseMirror").first().click();
   await page.getByLabel("Choose image file").setInputFiles({
     name: "tall.png",
@@ -155,7 +155,7 @@ test("restores an inserted image source after refresh", async ({ page }) => {
       value: async () => ({ width: 100, height: 50, close() {} }),
     });
   });
-  await page.goto("/");
+  await page.goto("/playground");
   await page.locator(".ProseMirror").first().click();
   await page.getByLabel("Choose image file").setInputFiles({
     name: "persisted.png",
@@ -197,7 +197,7 @@ test("includes repeated-section images in the export assets", async ({
       value: async () => ({ width: 100, height: 50, close() {} }),
     });
   });
-  await page.goto("/");
+  await page.goto("/playground");
   const firstPage = page.getByLabel("Page 1");
   await firstPage.getByRole("button", { name: "Add header" }).click();
   await firstPage.locator(".header-editor .ProseMirror").click();
@@ -224,7 +224,7 @@ test("resizes an inserted image with the document-point aspect ratio", async ({
       value: async () => ({ width: 100, height: 100, close() {} }),
     });
   });
-  await page.goto("/");
+  await page.goto("/playground");
   await page.locator(".ProseMirror").click();
   await page.getByLabel("Choose image file").setInputFiles({
     name: "pixel.png",
@@ -276,7 +276,7 @@ test("exports inserted image dimensions in document points", async ({
       value: async () => ({ width: 1000, height: 500, close() {} }),
     });
   });
-  await page.goto("/");
+  await page.goto("/playground");
   await page.locator(".ProseMirror").first().click();
   await page.getByLabel("Choose image file").setInputFiles({
     name: "wide.png",
@@ -335,7 +335,7 @@ test("keeps resized images within the fixed body width", async ({ page }) => {
       value: async () => ({ width: 1000, height: 500, close() {} }),
     });
   });
-  await page.goto("/");
+  await page.goto("/playground");
   await page.locator(".ProseMirror").first().click();
   await page.getByLabel("Choose image file").setInputFiles({
     name: "wide.png",
@@ -383,7 +383,7 @@ test("paginates a near-full-page inline image like Google Docs", async ({
       value: async () => ({ width: 1000, height: 1366, close() {} }),
     });
   });
-  await page.goto("/");
+  await page.goto("/playground");
   await page.locator(".ProseMirror").first().click();
   await page.getByLabel("Choose image file").setInputFiles({
     name: "tall.png",
@@ -401,7 +401,7 @@ test("paginates a near-full-page inline image like Google Docs", async ({
 });
 
 test("requires confirmation before reset", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   await page.getByLabel("Document title").fill("Keep this title");
   page.on("dialog", (dialog) => dialog.dismiss());
   await page.getByRole("button", { name: "New document" }).click();
@@ -413,7 +413,7 @@ test("requires confirmation before reset", async ({ page }) => {
 test("cancelling template selection protects the current document", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   await page.getByLabel("Document title").fill("Keep this title");
   await page.locator(".ProseMirror").first().fill("Keep this content");
 
@@ -433,7 +433,7 @@ test("cancelling template selection protects the current document", async ({
 test("confirms a selected template and persists it after refresh", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   await page.getByLabel("Document title").fill("Replace this title");
 
   await page.getByRole("button", { name: "New document" }).click();
@@ -449,7 +449,7 @@ test("confirms a selected template and persists it after refresh", async ({
 });
 
 test("edits across automatically paginated editor pages", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   const editor = page.locator(".ProseMirror").first();
   await editor.fill(
     Array.from({ length: 60 }, (_, index) => `Paragraph ${index + 1}`).join(
@@ -467,7 +467,7 @@ test("edits across automatically paginated editor pages", async ({ page }) => {
 });
 
 test("focuses the editor when clicking blank page space", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   const editor = page.locator(".ProseMirror").first();
   await editor.click({ position: { x: 120, y: 420 } });
   await page.keyboard.type("Text entered from blank page space");
@@ -478,7 +478,7 @@ test("focuses the editor when clicking blank page space", async ({ page }) => {
 test("moves focus to the next page after a boundary hard break", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   const firstEditor = page.locator(".ProseMirror").first();
   await firstEditor.fill(
     Array.from({ length: 52 }, (_, index) => `Line ${index + 1}`).join("\n"),
@@ -495,7 +495,7 @@ test("moves focus to the next page after a boundary hard break", async ({
 test("matches the native Docs page and default paragraph metrics", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   const metrics = await page
     .locator(".page")
     .first()
@@ -576,7 +576,7 @@ test("uses the native list indent for nested lists", async ({ page }) => {
       }),
     );
   });
-  await page.goto("/");
+  await page.goto("/playground");
 
   await expect(page.locator(".ProseMirror ul")).toHaveCount(1);
   await expect(page.locator(".ProseMirror ol")).toHaveCount(1);
@@ -636,7 +636,7 @@ test("uses the native link color in repeated sections", async ({ page }) => {
       }),
     );
   });
-  await page.goto("/");
+  await page.goto("/playground");
 
   await expect(page.locator(".page-header a")).toHaveCSS(
     "color",
@@ -647,7 +647,7 @@ test("uses the native link color in repeated sections", async ({ page }) => {
 test("uses the native header and footer distances around the body", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   const firstPage = page.getByLabel("Page 1");
   await firstPage.getByRole("button", { name: "Add header" }).click();
   await firstPage.getByRole("button", { name: "Add footer" }).click();
@@ -671,7 +671,7 @@ test("uses the native header and footer distances around the body", async ({
 test("matches native Docs heading and list spacing in the meeting template", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   await page.getByRole("button", { name: "New document" }).click();
   await page.getByRole("radio", { name: /Meeting notes/ }).check();
   await page.getByRole("button", { name: "Create document" }).click();
@@ -715,7 +715,7 @@ test("matches native Docs heading and list spacing in the meeting template", asy
 test("inserts a semantic manual page break from the toolbar", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   await page.locator(".ProseMirror").first().click();
   await page.getByRole("button", { name: "Page break" }).click();
 
@@ -726,7 +726,7 @@ test("inserts a semantic manual page break from the toolbar", async ({
 test("fits the actual number of body lines before creating a new page", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   const editor = page.locator(".ProseMirror").first();
   await editor.fill(
     Array.from({ length: 51 }, (_, index) => `Line ${index + 1}`).join("\n"),
@@ -751,7 +751,7 @@ test("fits the actual number of body lines before creating a new page", async ({
 test("keeps the cursor near the edited text when pagination reflows", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   const firstLine = "a".repeat(90);
   const editor = page.locator(".ProseMirror").first();
   await editor.fill(
@@ -767,7 +767,7 @@ test("keeps the cursor near the edited text when pagination reflows", async ({
 test("moves wrapped lines of one paragraph onto the next page", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   const editor = page.locator(".ProseMirror").first();
   await editor.fill("wrapped line ".repeat(500));
 
@@ -818,7 +818,7 @@ test("keeps a long heading within the rendered page body", async ({ page }) => {
       }),
     );
   });
-  await page.goto("/");
+  await page.goto("/playground");
 
   const overflows = await page.locator(".page").evaluateAll((pages) =>
     pages.map((currentPage) => {
@@ -831,7 +831,7 @@ test("keeps a long heading within the rendered page body", async ({ page }) => {
 });
 
 test("edits a shared header and footer on page one", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   const firstPage = page.getByLabel("Page 1");
   await firstPage.getByRole("button", { name: "Add header" }).click();
   await firstPage.locator(".header-editor .ProseMirror").fill("Report header");
@@ -852,7 +852,7 @@ test("edits a shared header and footer on page one", async ({ page }) => {
 test("renders shared header and footer on later pages without changing body pagination", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   await page
     .locator(".ProseMirror")
     .first()

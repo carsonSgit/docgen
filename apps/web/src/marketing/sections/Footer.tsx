@@ -5,12 +5,16 @@ export function Footer() {
         <div className="marketing-footer-content">
           <div className="marketing-footer-info">
             <div className="marketing-footer-name">Document Playground</div>
-            <p>
+            <p className="marketing-footer-description">
               A single-user environment for experimenting with structured,
               paginated documents and exporting them to Google Docs.
             </p>
+            <p className="marketing-footer-version">Version 0.1.0</p>
           </div>
-          <nav className="marketing-footer-links">
+          <nav
+            className="marketing-footer-links"
+            aria-label="Footer navigation"
+          >
             <a
               href="https://github.com/carsonSgit/docgen"
               className="marketing-footer-link"
