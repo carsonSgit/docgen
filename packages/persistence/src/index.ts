@@ -20,7 +20,6 @@ export type ImageAssetRecord = {
   blob: Blob;
   mimeType: (typeof IMAGE_ASSET_LIMITS.mimeTypes)[number];
   size: number;
-  /** Intrinsic dimensions decoded from the source image, in document points. */
   intrinsicWidthPoints: number;
   intrinsicHeightPoints: number;
 };
