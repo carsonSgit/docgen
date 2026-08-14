@@ -33,3 +33,4 @@ were renumbered during the public documentation pass.
 | [0025](0025-canonical-render-metrics.md) | Define canonical render metrics |
 | [0026](0026-repeat-and-measure-document-sections.md) | Repeat measured document sections |
 | [0027](0027-deploy-to-cloudflare-workers.md) | Deploy to Cloudflare Workers |
+| [0028](0028-protect-public-worker-with-cloudflare-access.md) | Protect the public Worker with Cloudflare Access |

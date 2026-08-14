@@ -89,6 +89,29 @@ describe("API configuration", () => {
 });
 
 describe("API", () => {
+  it("rejects API requests without Cloudflare Access", async () => {
+    const response = await handleRequest(
+      new Request("http://localhost/api/export", { method: "POST" }),
+      dependencies({
+        access: async () => {
+          throw new Error("Access denied");
+        },
+      }),
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it("rate-limits export requests before parsing or writing", async () => {
+    const response = await handleRequest(
+      new Request("http://localhost/api/export", { method: "POST" }),
+      dependencies({ rateLimiter: async () => false }),
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("60");
+  });
+
   it("returns a healthy status", async () => {
     const response = await handleRequest(
       new Request("http://localhost/health"),
