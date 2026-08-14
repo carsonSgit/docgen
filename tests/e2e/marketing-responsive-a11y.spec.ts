@@ -136,9 +136,8 @@ test.describe("Marketing Page Accessibility", () => {
   }) => {
     await page.goto("/");
 
-    const nav = page.locator("nav");
-    await expect(nav).toBeVisible();
-    await expect(nav).toHaveClass(/marketing-nav/);
+    const marketingNav = page.locator("nav.marketing-nav");
+    await expect(marketingNav).toBeVisible();
 
     const main = page.locator("main");
     await expect(main).toBeVisible();
@@ -146,6 +145,9 @@ test.describe("Marketing Page Accessibility", () => {
     const footer = page.locator("footer");
     await expect(footer).toBeVisible();
     await expect(footer).toHaveClass(/marketing-footer/);
+
+    const footerNav = page.locator("footer nav");
+    await expect(footerNav).toBeVisible();
 
     const sections = page.locator("section");
     const sectionCount = await sections.count();
