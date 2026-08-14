@@ -7,7 +7,10 @@ const env: Env = {
   GOOGLE_CLIENT_SECRET: "secret",
   GOOGLE_REDIRECT_URI: "https://worker.example/api/auth/google/callback",
   WEB_ORIGIN: "https://worker.example/?oauth=success",
-  GOOGLE_OAUTH_TOKEN_PATH: ".data/does-not-exist/oauth-token.json",
+  GOOGLE_OAUTH_TOKENS: {
+    get: async () => null,
+    put: async () => undefined,
+  } as unknown as KVNamespace,
 };
 
 describe("Worker entrypoint", () => {

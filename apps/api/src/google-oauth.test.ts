@@ -2,7 +2,8 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { FileOAuthTokenStore, GoogleOAuthService } from "./google-oauth";
+import { GoogleOAuthService } from "./google-oauth";
+import { FileOAuthTokenStore } from "./oauth-token-store-file";
 
 describe("Google OAuth service", () => {
   it("creates a scoped authorization URL and exchanges the callback code", async () => {
@@ -24,7 +25,7 @@ describe("Google OAuth service", () => {
     expect(authorizationUrl).toContain("client_id=client");
     expect(authorizationUrl).toContain("documents");
     await oauth.completeAuthorization("code", "state-1");
-    expect(oauth.hasAccessToken()).toBe(true);
+    await expect(oauth.hasAccessToken()).resolves.toBe(true);
     expect(fetchImpl).toHaveBeenCalledOnce();
   });
 
@@ -42,11 +43,11 @@ describe("Google OAuth service", () => {
 
   it("restores a persisted token and saves a newly exchanged token", async () => {
     const tokenStore = {
-      load: vi.fn(() => ({
+      load: vi.fn(async () => ({
         accessToken: "restored-token",
         refreshToken: "refresh",
       })),
-      save: vi.fn(),
+      save: vi.fn(async () => undefined),
     };
     const oauth = new GoogleOAuthService({
       clientId: "client",
@@ -68,7 +69,7 @@ describe("Google OAuth service", () => {
       ),
     });
 
-    expect(oauth.hasAccessToken()).toBe(true);
+    await expect(oauth.hasAccessToken()).resolves.toBe(true);
     oauth.startAuthorization();
     await oauth.completeAuthorization("code", "state-1");
     expect(tokenStore.save).toHaveBeenCalledWith({
@@ -85,8 +86,11 @@ describe("Google OAuth service", () => {
         }),
     );
     const tokenStore = {
-      load: vi.fn(() => ({ accessToken: "expired", refreshToken: "refresh" })),
-      save: vi.fn(),
+      load: vi.fn(async () => ({
+        accessToken: "expired",
+        refreshToken: "refresh",
+      })),
+      save: vi.fn(async () => undefined),
     };
     const oauth = new GoogleOAuthService({
       clientId: "client",
@@ -109,17 +113,17 @@ describe("Google OAuth service", () => {
     });
   });
 
-  it("stores file-backed tokens with restricted permissions", () => {
+  it("stores file-backed tokens with restricted permissions", async () => {
     const directory = mkdtempSync(join(tmpdir(), "document-playground-oauth-"));
     const path = join(directory, "token.json");
     try {
       const store = new FileOAuthTokenStore(path);
-      store.save({ accessToken: "token", refreshToken: "refresh" });
+      await store.save({ accessToken: "token", refreshToken: "refresh" });
       expect(JSON.parse(readFileSync(path, "utf8"))).toEqual({
         accessToken: "token",
         refreshToken: "refresh",
       });
-      expect(new FileOAuthTokenStore(path).load()).toEqual({
+      await expect(new FileOAuthTokenStore(path).load()).resolves.toEqual({
         accessToken: "token",
         refreshToken: "refresh",
       });
