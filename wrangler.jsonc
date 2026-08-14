@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "docgen",
+  "main": "apps/api/src/worker.ts",
+  "compatibility_date": "2026-08-01",
+  // Temporary: apps/api/src/google-oauth.ts still imports node:fs, node:path,
+  // and node:crypto. Issues #213 and #214 replace them with Workers KV and
+  // crypto.randomUUID, after which this flag can be dropped.
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./apps/web/dist",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/health"]
+  }
+}
