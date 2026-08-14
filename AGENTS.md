@@ -6,11 +6,9 @@ Build the smallest production-quality implementation of the Document Playground 
 
 ## Stack
 
-- Use Bun for package management and scripts.
-- Use strict TypeScript, Vite, React, TanStack Router, TanStack Query, `openapi-fetch`, and Zod.
-- Use React Hook Form with Zod for forms, Tailwind CSS with shadcn/Radix for UI, Vitest, Playwright, MSW, Knip, Biome, and Lefthook.
-- Use Zustand only for small shared client state; use `useState`/`useReducer` for local state and XState only for genuinely complex event-driven workflows.
-- Add other listed tools only when an in-scope feature requires them. Do not add dependencies for problems already solved by the platform or existing stack.
+Use Bun, strict TypeScript, Vite, React, Zod, Vitest, Playwright, Knip,
+Biome, and the existing provider boundaries. Add dependencies only when an
+in-scope feature requires them.
 
 ## Boundaries
 
