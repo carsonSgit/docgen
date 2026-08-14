@@ -2,6 +2,10 @@ import { randomUUID } from "node:crypto";
 import type { GoogleProviderClient } from "@document-playground/export-service";
 import { z } from "zod";
 import { createGoogleProviderClient } from "./google-provider";
+import {
+  InMemoryOAuthStateStore,
+  type OAuthStateStore,
+} from "./oauth-state-store";
 import type { OAuthTokenStore, OAuthTokens } from "./oauth-token-store";
 
 const TokenResponseSchema = z.object({
@@ -26,6 +30,7 @@ type GoogleOAuthOptions = {
   redirectUri: string;
   fetchImpl?: FetchLike;
   stateFactory?: () => string;
+  stateStore?: OAuthStateStore;
   tokenStore?: OAuthTokenStore;
 };
 
@@ -36,13 +41,14 @@ export class GoogleOAuthService {
    * which is asynchronous and unavailable outside a request (ADR 0027).
    */
   private tokensLoad: Promise<OAuthTokens | undefined> | undefined;
-  private readonly pendingStates = new Map<string, number>();
   private readonly fetchImpl: FetchLike;
   private readonly stateFactory: () => string;
+  private readonly stateStore: OAuthStateStore;
 
   constructor(private readonly options: GoogleOAuthOptions) {
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.stateFactory = options.stateFactory ?? randomUUID;
+    this.stateStore = options.stateStore ?? new InMemoryOAuthStateStore();
   }
 
   private tokens(): Promise<OAuthTokens | undefined> {
@@ -81,12 +87,12 @@ export class GoogleOAuthService {
     return Boolean((await this.tokens())?.accessToken);
   }
 
-  startAuthorization(): string {
+  async startAuthorization(): Promise<string> {
     if (!this.options.clientId || !this.isConfigured()) {
       throw new Error("Google OAuth is not configured on the API server.");
     }
     const state = this.stateFactory();
-    this.pendingStates.set(state, Date.now() + 10 * 60 * 1000);
+    await this.stateStore.put(state, Date.now() + 10 * 60 * 1000);
     const params = new URLSearchParams({
       client_id: this.options.clientId,
       redirect_uri: this.options.redirectUri,
@@ -103,9 +109,7 @@ export class GoogleOAuthService {
     if (!this.options.clientId || !this.options.clientSecret) {
       throw new Error("Google OAuth is not configured on the API server.");
     }
-    const expiresAt = this.pendingStates.get(state);
-    this.pendingStates.delete(state);
-    if (!expiresAt || expiresAt < Date.now()) {
+    if (!(await this.stateStore.consume(state, Date.now()))) {
       throw new Error("Google OAuth state is invalid or expired.");
     }
     const previous = await this.tokens();

@@ -12,6 +12,7 @@ import { z } from "zod";
 import { type ApiConfig, ApiConfigurationError, parseApiConfig } from "./env";
 import { GoogleOAuthService } from "./google-oauth";
 import { createGoogleProviderClient } from "./google-provider";
+import { KVOAuthStateStore, type OAuthStateStore } from "./oauth-state-store";
 import { KVOAuthTokenStore, type OAuthTokenStore } from "./oauth-token-store";
 
 const ExportRequestSchema = z
@@ -56,7 +57,10 @@ export type ApiDependencies = {
  * development host passes a file-backed token store here; the Worker passes
  * nothing and gets the KV store built from its namespace binding.
  */
-type ApiHost = { tokenStore?: OAuthTokenStore };
+type ApiHost = {
+  stateStore?: OAuthStateStore;
+  tokenStore?: OAuthTokenStore;
+};
 
 /** Composition root: parses bindings, then wires the OAuth service. */
 export function createApiDependencies(
@@ -72,6 +76,11 @@ export function createApiDependencies(
       clientId: config.GOOGLE_CLIENT_ID,
       clientSecret: config.GOOGLE_CLIENT_SECRET,
       redirectUri: config.GOOGLE_REDIRECT_URI,
+      stateStore:
+        host.stateStore ??
+        (config.GOOGLE_OAUTH_TOKENS
+          ? new KVOAuthStateStore(config.GOOGLE_OAUTH_TOKENS)
+          : undefined),
       tokenStore: host.tokenStore ?? kvTokenStore(config),
     }),
     webOrigin: config.WEB_ORIGIN,
@@ -104,7 +113,7 @@ export async function handleRequest(
 
   if (request.method === "GET" && url.pathname === "/api/auth/google") {
     try {
-      return Response.redirect(oauth.startAuthorization(), 302);
+      return Response.redirect(await oauth.startAuthorization(), 302);
     } catch (error) {
       return Response.json(
         {
@@ -200,7 +209,7 @@ export async function handleRequest(
     if (!provider && !(await oauth.hasAccessToken())) {
       let authorizationUrl: string;
       try {
-        authorizationUrl = oauth.startAuthorization();
+        authorizationUrl = await oauth.startAuthorization();
       } catch (error) {
         return Response.json(
           {

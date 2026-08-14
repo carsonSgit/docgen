@@ -177,7 +177,7 @@ describe("API", () => {
       fetchImpl: async () =>
         Response.json({ access_token: "granted", refresh_token: "refresh" }),
     });
-    oauth.startAuthorization();
+    await oauth.startAuthorization();
 
     const response = await handleRequest(
       new Request(
