@@ -9,6 +9,7 @@ decisions and workflows needed to understand, run, and verify the project.
 - [Development](development.md) — local setup, checks, and deterministic tests.
 - [Google Export](google-export.md) — optional credentialed verification without
   putting secrets in the browser or repository.
+- [Releases](releases.md) — versioning policy, automation, and recovery.
 
 ## Architecture decisions
 
