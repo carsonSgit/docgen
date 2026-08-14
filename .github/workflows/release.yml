@@ -95,10 +95,11 @@ jobs:
       - name: Create annotated tag
         if: steps.version.outputs.version != '' && steps.existing.outputs.exists != 'true'
         env:
+          RELEASE_SHA: ${{ steps.commit.outputs.sha }}
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           tag="v$RELEASE_VERSION"
           if ! git rev-parse --verify --quiet "refs/tags/$tag"; then
-            git tag --annotate "$tag" --message "Release $tag" "$GITHUB_SHA"
+            git tag --annotate "$tag" --message "Release $tag" "$RELEASE_SHA"
             git push origin "$tag"
           fi
