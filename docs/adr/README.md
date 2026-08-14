@@ -32,3 +32,4 @@ were renumbered during the public documentation pass.
 | [0024](0024-reserve-document-node-extension-boundary.md) | Reserve the node extension boundary |
 | [0025](0025-canonical-render-metrics.md) | Define canonical render metrics |
 | [0026](0026-repeat-and-measure-document-sections.md) | Repeat measured document sections |
+| [0027](0027-marketing-site-information-architecture.md) | Marketing site information architecture |
