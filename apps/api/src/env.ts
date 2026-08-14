@@ -2,12 +2,13 @@ import { z } from "zod";
 
 /**
  * Bindings the API reads. On Cloudflare Workers these arrive per request as
- * `env` (ADR 0027); the Bun development host in `server.ts` adapts
+ * `env` (ADR 0027); the Bun development host in `dev-server.ts` adapts
  * `process.env` into the same shape so both hosts share one validated path.
  *
- * `PORT` and `GOOGLE_VERIFY_REDIRECT_URI` are deliberately absent: `PORT` is
- * meaningless on Workers and `GOOGLE_VERIFY_REDIRECT_URI` belongs to
- * `scripts/verify-google-oauth.ts`.
+ * `PORT`, `GOOGLE_VERIFY_REDIRECT_URI`, and `GOOGLE_OAUTH_TOKEN_PATH` are
+ * deliberately absent: `PORT` is meaningless on Workers,
+ * `GOOGLE_VERIFY_REDIRECT_URI` belongs to `scripts/verify-google-oauth.ts`, and
+ * the token file path is read by the Bun development host alone.
  */
 export type Env = z.input<typeof EnvSchema>;
 
@@ -33,6 +34,22 @@ function requiredUrl(name: string, hint: string) {
     );
 }
 
+/**
+ * KV namespace bindings arrive as live objects rather than strings, so they are
+ * validated structurally: a misspelled binding name shows up as `undefined`,
+ * and a name that collides with a plain variable shows up as a string.
+ */
+function kvNamespace(name: string, hint: string) {
+  return z.custom<KVNamespace>(
+    (value) =>
+      typeof value === "object" &&
+      value !== null &&
+      typeof (value as KVNamespace).get === "function" &&
+      typeof (value as KVNamespace).put === "function",
+    `${name} is not a Workers KV namespace binding. ${hint}`,
+  );
+}
+
 /** Blank bindings are treated as unset so an empty `.env` entry is not a value. */
 const optionalSecret = z
   .string()
@@ -52,11 +69,10 @@ const EnvSchema = z.object({
     "Set it to the URL the browser should return to after Google authorization completes.",
   ),
   GOOGLE_ACCESS_TOKEN: optionalSecret,
-  GOOGLE_OAUTH_TOKEN_PATH: z
-    .string()
-    .trim()
-    .min(1, "GOOGLE_OAUTH_TOKEN_PATH is blank. Remove it or set a file path.")
-    .default(".data/google-oauth-token.json"),
+  GOOGLE_OAUTH_TOKENS: kvNamespace(
+    "GOOGLE_OAUTH_TOKENS",
+    "Bind the KV namespace declared in wrangler.jsonc; it holds the Google OAuth token between isolates.",
+  ).optional(),
 });
 
 /**

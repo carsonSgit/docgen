@@ -2,6 +2,9 @@
   "name": "@document-playground/api",
   "private": true,
   "type": "module",
+  "scripts": {
+    "dev": "bun run src/dev-server.ts"
+  },
   "dependencies": {
     "@document-playground/export-service": "workspace:*",
     "@document-playground/domain": "workspace:*",

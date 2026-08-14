@@ -9,9 +9,10 @@ import {
   preflightExport,
 } from "@document-playground/export-service";
 import { z } from "zod";
-import { type ApiConfig, parseApiConfig } from "./env";
-import { FileOAuthTokenStore, GoogleOAuthService } from "./google-oauth";
+import { type ApiConfig, ApiConfigurationError, parseApiConfig } from "./env";
+import { GoogleOAuthService } from "./google-oauth";
 import { createGoogleProviderClient } from "./google-provider";
+import { KVOAuthTokenStore, type OAuthTokenStore } from "./oauth-token-store";
 
 const ExportRequestSchema = z
   .object({
@@ -50,8 +51,18 @@ export type ApiDependencies = {
   webOrigin: string;
 };
 
+/**
+ * Host-supplied collaborators the bindings cannot describe. The Bun
+ * development host passes a file-backed token store here; the Worker passes
+ * nothing and gets the KV store built from its namespace binding.
+ */
+type ApiHost = { tokenStore?: OAuthTokenStore };
+
 /** Composition root: parses bindings, then wires the OAuth service. */
-export function createApiDependencies(env: unknown): ApiDependencies {
+export function createApiDependencies(
+  env: unknown,
+  host: ApiHost = {},
+): ApiDependencies {
   const config: ApiConfig = parseApiConfig(env);
   return {
     provider: config.GOOGLE_ACCESS_TOKEN
@@ -61,10 +72,23 @@ export function createApiDependencies(env: unknown): ApiDependencies {
       clientId: config.GOOGLE_CLIENT_ID,
       clientSecret: config.GOOGLE_CLIENT_SECRET,
       redirectUri: config.GOOGLE_REDIRECT_URI,
-      tokenStore: new FileOAuthTokenStore(config.GOOGLE_OAUTH_TOKEN_PATH),
+      tokenStore: host.tokenStore ?? kvTokenStore(config),
     }),
     webOrigin: config.WEB_ORIGIN,
   };
+}
+
+/**
+ * Workers have no writable filesystem, so a deployment without the namespace
+ * binding would silently re-authorize on every cold start. Fail loudly instead.
+ */
+function kvTokenStore(config: ApiConfig): OAuthTokenStore {
+  if (!config.GOOGLE_OAUTH_TOKENS) {
+    throw new ApiConfigurationError(
+      "The API is misconfigured. GOOGLE_OAUTH_TOKENS is not bound. Add the kv_namespaces binding from wrangler.jsonc so the Google OAuth token survives across isolates.",
+    );
+  }
+  return new KVOAuthTokenStore(config.GOOGLE_OAUTH_TOKENS);
 }
 
 export async function handleRequest(
@@ -118,120 +142,95 @@ export async function handleRequest(
   }
 
   if (request.method === "POST" && url.pathname === "/api/export") {
-    return request
-      .json()
-      .then((body) => {
-        const parsed = ExportRequestSchema.safeParse(body);
-        if (!parsed.success) {
-          return Response.json(
-            { error: "Invalid export request", issues: parsed.error.issues },
-            { status: 400 },
-          );
-        }
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return Response.json(
+        { error: "Request body must be valid JSON" },
+        { status: 400 },
+      );
+    }
 
-        let document: DocumentEnvelope;
-        try {
-          document = parseDocumentEnvelope(parsed.data.document);
-        } catch {
-          return Response.json(
-            { error: "Invalid document envelope" },
-            { status: 400 },
-          );
-        }
+    const parsed = ExportRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return Response.json(
+        { error: "Invalid export request", issues: parsed.error.issues },
+        { status: 400 },
+      );
+    }
 
-        const assets = new Map<string, ExportImageAsset>();
-        for (const asset of parsed.data.assets) {
-          const bytes = Uint8Array.from(atob(asset.data), (character) =>
-            character.charCodeAt(0),
-          );
-          assets.set(asset.assetId, {
-            assetId: asset.assetId,
-            blob: new Blob([bytes], { type: asset.mimeType }),
-            mimeType: asset.mimeType,
-            size: bytes.byteLength,
-          });
-        }
+    let document: DocumentEnvelope;
+    try {
+      document = parseDocumentEnvelope(parsed.data.document);
+    } catch {
+      return Response.json(
+        { error: "Invalid document envelope" },
+        { status: 400 },
+      );
+    }
 
-        try {
-          preflightExport(document, assets);
-        } catch (error) {
-          return Response.json(
-            {
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "The document could not be exported",
-            },
-            { status: 400 },
-          );
-        }
+    const assets = new Map<string, ExportImageAsset>();
+    for (const asset of parsed.data.assets) {
+      const bytes = Uint8Array.from(atob(asset.data), (character) =>
+        character.charCodeAt(0),
+      );
+      assets.set(asset.assetId, {
+        assetId: asset.assetId,
+        blob: new Blob([bytes], { type: asset.mimeType }),
+        mimeType: asset.mimeType,
+        size: bytes.byteLength,
+      });
+    }
 
-        if (!provider && !oauth.hasAccessToken()) {
-          let authorizationUrl: string;
-          try {
-            authorizationUrl = oauth.startAuthorization();
-          } catch (error) {
-            return Response.json(
-              {
-                error:
-                  error instanceof Error
-                    ? error.message
-                    : "OAuth is unavailable",
-              },
-              { status: 503 },
-            );
-          }
-          return Response.json(
-            { error: "Google authorization required", authorizationUrl },
-            { status: 401 },
-          );
-        }
+    try {
+      preflightExport(document, assets);
+    } catch (error) {
+      return Response.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "The document could not be exported",
+        },
+        { status: 400 },
+      );
+    }
 
-        return exportDocument(document, provider ?? oauth.provider(), assets)
-          .then((result) => Response.json(result))
-          .catch((error: unknown) =>
-            Response.json(
-              {
-                error: error instanceof Error ? error.message : "Export failed",
-              },
-              { status: 502 },
-            ),
-          );
-      })
-      .catch(() =>
+    if (!provider && !(await oauth.hasAccessToken())) {
+      let authorizationUrl: string;
+      try {
+        authorizationUrl = oauth.startAuthorization();
+      } catch (error) {
+        return Response.json(
+          {
+            error:
+              error instanceof Error ? error.message : "OAuth is unavailable",
+          },
+          { status: 503 },
+        );
+      }
+      return Response.json(
+        { error: "Google authorization required", authorizationUrl },
+        { status: 401 },
+      );
+    }
+
+    return exportDocument(
+      document,
+      provider ?? (await oauth.provider()),
+      assets,
+    )
+      .then((result) => Response.json(result))
+      .catch((error: unknown) =>
         Response.json(
-          { error: "Request body must be valid JSON" },
-          { status: 400 },
+          {
+            error: error instanceof Error ? error.message : "Export failed",
+          },
+          { status: 502 },
         ),
       );
   }
 
   return Response.json({ error: "Not found" }, { status: 404 });
-}
-
-if (import.meta.main) {
-  const port = Number(process.env.PORT ?? 3000);
-  if (!Number.isInteger(port) || port <= 0) {
-    throw new Error(
-      `PORT must be a positive integer, received '${process.env.PORT}'.`,
-    );
-  }
-
-  // Development-only localhost defaults. They live in the Bun host, not in the
-  // request handler, so a deployed Worker can never fall back to them.
-  const dependencies = createApiDependencies({
-    ...process.env,
-    GOOGLE_REDIRECT_URI:
-      process.env.GOOGLE_REDIRECT_URI ||
-      `http://localhost:${port}/api/auth/google/callback`,
-    WEB_ORIGIN:
-      process.env.WEB_ORIGIN || "http://localhost:5173/?oauth=success",
-  });
-
-  Bun.serve({
-    fetch: (request) => handleRequest(request, dependencies),
-    port,
-  });
-
-  console.log(`API listening on http://localhost:${port}`);
 }

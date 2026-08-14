@@ -3,11 +3,21 @@
   "name": "docgen",
   "main": "apps/api/src/worker.ts",
   "compatibility_date": "2026-08-01",
-  // Temporary: apps/api/src/google-oauth.ts still imports node:fs, node:path,
-  // and node:crypto. Issues #213 and #214 replace them with Workers KV and
-  // crypto.randomUUID, after which this flag can be dropped.
+  // Temporary: apps/api/src/google-oauth.ts still imports node:crypto for
+  // randomUUID. Issue #214 replaces it with the global crypto.randomUUID,
+  // after which this flag can be dropped.
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // Holds the Google OAuth token between ephemeral isolates (ADR 0027). Values
+  // are readable by anyone with account access to the namespace, so treat it as
+  // being as sensitive as the refresh token it stores. Replace the placeholder
+  // id with the one printed by `wrangler kv namespace create GOOGLE_OAUTH_TOKENS`.
+  "kv_namespaces": [
+    {
+      "binding": "GOOGLE_OAUTH_TOKENS",
+      "id": "0000000000000000000000000000000000"
+    }
+  ],
   "assets": {
     "directory": "./apps/web/dist",
     "not_found_handling": "single-page-application",
