@@ -4,12 +4,28 @@ Normal tests use an injected provider and need no Google credentials. This
 guide is the explicit, opt-in path for proving authorization, native document
 creation, compilation, and link return against a test account.
 
+## Guided setup
+
+From the repository root, run:
+
+```sh
+bash scripts/setup.sh
+```
+
+The wizard opens the relevant Google Cloud pages, explains the required
+project, Docs API, consent-screen test user, OAuth client, redirect URIs, and
+least-privilege scopes, then writes or updates `.env` idempotently. Existing
+unrelated entries are preserved. Client secrets and optional access tokens are
+entered without echoing them; normal development still works without any
+Google credentials.
+
 ## Configure Google Cloud
 
 1. Create or select a Google Cloud project and enable the Google Docs API.
 2. Configure the OAuth consent screen for a test user.
-3. Create local OAuth credentials and register
-   `http://localhost:3000/api/auth/google/callback`.
+3. Create local OAuth credentials and register both
+   `http://localhost:3000/api/auth/google/callback` and
+   `http://localhost:3001/oauth/callback`.
 4. Grant only `documents` and `drive.file` scopes.
 
 Set credentials in the API environment, never in the browser:
