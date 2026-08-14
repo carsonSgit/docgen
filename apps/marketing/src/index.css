@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+/*
+ * One typeface, one accent. Weight and size carry the hierarchy that a second
+ * family would otherwise carry, so the scale below leans on tight tracking at
+ * display sizes rather than on a contrasting display face.
+ */
+@theme {
+  --color-paper: #f7f6f3;
+  --color-paper-deep: #efede8;
+  --color-surface: #ffffff;
+
+  --color-ink: #14120f;
+  --color-ink-muted: #6e6a63;
+  --color-ink-faint: #9a958c;
+  --color-ink-invert: #f7f6f3;
+
+  --color-line: rgb(20 18 15 / 10%);
+  --color-line-strong: rgb(20 18 15 / 18%);
+  --color-line-invert: rgb(247 246 243 / 16%);
+
+  --color-accent: #2f6bff;
+  --color-accent-hover: #1d54e8;
+  --color-accent-wash: #e8efff;
+
+  --font-sans:
+    "Inter Tight", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --text-display-xl: 5.5rem;
+  --text-display-xl--line-height: 0.95;
+  --text-display-xl--letter-spacing: -0.045em;
+  --text-display-xl--font-weight: 600;
+  --text-display-lg: 3.75rem;
+  --text-display-lg--line-height: 0.98;
+  --text-display-lg--letter-spacing: -0.042em;
+  --text-display-lg--font-weight: 600;
+  --text-display-md: 2.625rem;
+  --text-display-md--line-height: 1.05;
+  --text-display-md--letter-spacing: -0.035em;
+  --text-display-md--font-weight: 600;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    color: var(--color-ink);
+    background: var(--color-paper);
+    font-family: var(--font-sans);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    color: #ffffff;
+    background: var(--color-accent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  .grid-technical {
+    background-image:
+      linear-gradient(to right, var(--color-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--color-line) 1px, transparent 1px);
+    background-size: 88px 88px;
+  }
+
+  .rule-dashed {
+    border-top: 1px dashed var(--color-line-strong);
+  }
+
+  /* The demo document body is user-editable, so style its tags directly. */
+  .doc-body:focus {
+    outline: none;
+  }
+
+  .doc-body h2 {
+    margin: 1.5rem 0 0.5rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .doc-body h2:first-child {
+    margin-top: 0;
+  }
+
+  .doc-body p {
+    margin: 0 0 0.75rem;
+    line-height: 1.65;
+  }
+
+  /* Tailwind's preflight strips list markers; the demo document needs them. */
+  .doc-body ul,
+  .doc-body ol {
+    margin: 0 0 0.75rem;
+    padding-left: 1.4rem;
+    line-height: 1.65;
+  }
+
+  .doc-body ul {
+    list-style: disc;
+  }
+
+  .doc-body ol {
+    list-style: decimal;
+  }
+
+  .doc-body li {
+    margin-bottom: 0.25rem;
+  }
+
+  .doc-body a {
+    color: var(--color-accent);
+    text-decoration: underline;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  /* A global kill switch has to outrank utility classes to be reliable. */
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: reduced-motion override */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced-motion override */
+    animation-iteration-count: 1 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced-motion override */
+    transition-duration: 0.01ms !important;
+  }
+}
