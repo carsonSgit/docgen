@@ -24,6 +24,9 @@ Build the smallest production-quality implementation of the Document Playground 
 ## Implementation rules
 
 - Before editing, inspect nearby code, tests, configuration, and repository conventions.
+- Start every change from a GitHub issue and carry that issue through a pull request; every issue must have a corresponding pull request, and every pull request must reference its issue.
+- Make code changes only on a branch through a pull request. Never modify code directly on `main` or treat an issue comment, local commit, or ad hoc push as a substitute for a pull request.
+- Include the issue reference in the pull request body (for example, `Closes #123` or `Refs #123`) and keep the pull request scoped to that issue.
 - Keep functions small, names domain-specific, and control flow straightforward.
 - Make invalid states difficult to represent with types and boundary validation.
 - Handle expected failures explicitly; never swallow errors or discard useful context.
