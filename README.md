@@ -4,6 +4,10 @@ DocGen is a local-first playground for structured, paginated documents and one-w
 
 The project is intentionally narrow: it manages one Local Document in the browser, renders a fixed Letter layout, and can create a new Google Doc from the current document. It is not a collaboration tool, document manager, sync service, or HTML converter.
 
+## Documentation
+
+Start with the [documentation index](docs/README.md) for the architecture, development workflow, public design decisions, and the optional [real Google Export verification guide](docs/google-export.md).
+
 ## Requirements
 
 - [Bun](https://bun.sh/) 1.3 or newer
