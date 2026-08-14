@@ -6,11 +6,9 @@ Build the smallest production-quality implementation of the Document Playground 
 
 ## Stack
 
-- Use Bun for package management and scripts.
-- Use strict TypeScript, Vite, React, TanStack Router, TanStack Query, `openapi-fetch`, and Zod.
-- Use React Hook Form with Zod for forms, Tailwind CSS with shadcn/Radix for UI, Vitest, Playwright, MSW, Knip, Biome, and Lefthook.
-- Use Zustand only for small shared client state; use `useState`/`useReducer` for local state and XState only for genuinely complex event-driven workflows.
-- Add other listed tools only when an in-scope feature requires them. Do not add dependencies for problems already solved by the platform or existing stack.
+Use Bun, strict TypeScript, Vite, React, Zod, Vitest, Playwright, Knip,
+Biome, and the existing provider boundaries. Add dependencies only when an
+in-scope feature requires them.
 
 ## Boundaries
 
@@ -46,17 +44,3 @@ Build the smallest production-quality implementation of the Document Playground 
 
 - Use `codex/` branches, focused commits, and multiple small pull requests rather than one oversized PR.
 - Keep the canonical requirements in `CONTEXT.md`, ADRs, and GitHub issues; update this file only when a repeated review mistake reveals a missing, conflicting, or non-testable rule.
-
-## Agent skills
-
-### Issue tracker
-
-Issues and PRDs live in GitHub Issues for `carsonSgit/docgen`. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Use the default canonical triage labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-This is a single-context repository using root `CONTEXT.md`. Public documentation is being rebuilt under follow-up issue #187; see `docs/agents/domain.md` in the local agent workspace when available.
