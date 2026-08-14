@@ -31,3 +31,30 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+
+      - name: Resolve release commit
+        id: commit
+        env:
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            release_sha="$WORKFLOW_RUN_SHA"
+          else
+            release_sha="$GITHUB_SHA"
+          fi
+          git checkout --detach "$release_sha"
+          echo "sha=$release_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve version range
+        id: range
+        run: |
+          latest_tag="$(git tag --list 'v*' --sort=-version:refname | head -n 1)"
+          if [[ -n "$latest_tag" ]]; then
+            base_version="${latest_tag#v}"
+            range="$latest_tag..HEAD"
+          else
+            base_version="$(tr -d '[:space:]' < VERSION)"
+            range="HEAD"
+          fi
+          echo "base_version=$base_version" >> "$GITHUB_OUTPUT"
+          echo "range=$range" >> "$GITHUB_OUTPUT"
