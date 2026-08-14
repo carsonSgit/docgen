@@ -3,8 +3,12 @@ import { nextVersion, releaseLevel } from "./release-version";
 
 describe("release versioning", () => {
   it("uses the highest conventional commit level", () => {
-    expect(releaseLevel(["fix: correct export", "feat(editor): add links"])).toBe("minor");
-    expect(nextVersion("0.1.0", ["fix: correct export", "feat(editor): add links"])).toBe("0.2.0");
+    expect(
+      releaseLevel(["fix: correct export", "feat(editor): add links"]),
+    ).toBe("minor");
+    expect(
+      nextVersion("0.1.0", ["fix: correct export", "feat(editor): add links"]),
+    ).toBe("0.2.0");
   });
 
   it("recognizes breaking changes", () => {

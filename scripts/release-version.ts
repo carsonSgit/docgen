@@ -50,9 +50,14 @@ export function nextVersion(current: string, commits: string[]): string {
 
 if (import.meta.main) {
   const currentIndex = process.argv.indexOf("--current");
-  const current = currentIndex === -1 ? readFileSync("VERSION", "utf8") : process.argv[currentIndex + 1];
+  const current =
+    currentIndex === -1
+      ? readFileSync("VERSION", "utf8")
+      : process.argv[currentIndex + 1];
   if (!current) {
     throw new Error("Missing --current version");
   }
-  process.stdout.write(`${nextVersion(current, readFileSync(0, "utf8").split("\n").filter(Boolean))}\n`);
+  process.stdout.write(
+    `${nextVersion(current, readFileSync(0, "utf8").split("\n").filter(Boolean))}\n`,
+  );
 }
