@@ -4,6 +4,10 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [react()],
   root: "apps/web",
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+  },
   server: {
     proxy: {
       "/api": {

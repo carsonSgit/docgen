@@ -8,8 +8,7 @@ import {
 /**
  * Bindings are validated once per isolate rather than once per request: the
  * `env` object is stable for the isolate's lifetime, and the OAuth service it
- * wires holds in-memory state that must survive across requests until issues
- * #213 and #214 move that state into Workers KV.
+ * wires holds the configured KV-backed stores across requests.
  */
 const dependenciesByEnv = new WeakMap<Env, ApiDependencies>();
 
@@ -23,10 +22,10 @@ function dependenciesFor(env: Env): ApiDependencies {
 }
 
 /**
- * Cloudflare entrypoint. Static assets are served before the Worker runs, so
- * this handler only sees the `run_worker_first` routes in wrangler.jsonc.
- * Request handling itself stays in `handleRequest`, which the Bun dev server
- * and the Vitest suite share.
+ * Cloudflare entrypoint. The static-assets binding serves the SPA from the
+ * same origin; `run_worker_first` in wrangler.jsonc sends only `/api/*` and
+ * `/health` here. Request handling itself stays in `handleRequest`, which the
+ * Bun dev server and the Vitest suite share.
  */
 export default {
   fetch(request: Request, env: Env) {
