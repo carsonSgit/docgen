@@ -46,17 +46,3 @@ Build the smallest production-quality implementation of the Document Playground 
 
 - Use `codex/` branches, focused commits, and multiple small pull requests rather than one oversized PR.
 - Keep the canonical requirements in `CONTEXT.md`, ADRs, and GitHub issues; update this file only when a repeated review mistake reveals a missing, conflicting, or non-testable rule.
-
-## Agent skills
-
-### Issue tracker
-
-Issues and PRDs live in GitHub Issues for `carsonSgit/docgen`. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Use the default canonical triage labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-This is a single-context repository using root `CONTEXT.md`. Public documentation is being rebuilt under follow-up issue #187; see `docs/agents/domain.md` in the local agent workspace when available.
