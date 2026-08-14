@@ -9,10 +9,9 @@ import {
   preflightExport,
 } from "@document-playground/export-service";
 import { z } from "zod";
+import { type ApiConfig, parseApiConfig } from "./env";
 import { FileOAuthTokenStore, GoogleOAuthService } from "./google-oauth";
 import { createGoogleProviderClient } from "./google-provider";
-
-const port = Number(process.env.PORT ?? 3000);
 
 const ExportRequestSchema = z
   .object({
@@ -36,25 +35,43 @@ const ExportRequestSchema = z
   })
   .strict();
 
-const defaultProvider = createGoogleProviderClient({
-  accessToken: process.env.GOOGLE_ACCESS_TOKEN,
-});
-const oauthService = new GoogleOAuthService({
-  clientId: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  redirectUri:
-    process.env.GOOGLE_REDIRECT_URI ??
-    `http://localhost:${port}/api/auth/google/callback`,
-  tokenStore: new FileOAuthTokenStore(
-    process.env.GOOGLE_OAUTH_TOKEN_PATH ?? ".data/google-oauth-token.json",
-  ),
-});
+/**
+ * Everything the request handler needs, built once per host from validated
+ * configuration. Nothing here is read from a global inside a request.
+ */
+export type ApiDependencies = {
+  /**
+   * Provider used for exports without browser OAuth: built from
+   * `GOOGLE_ACCESS_TOKEN` when that binding is set, or injected by tests.
+   */
+  provider?: GoogleProviderClient;
+  oauth: GoogleOAuthService;
+  /** Where the OAuth callback sends the browser once tokens are stored. */
+  webOrigin: string;
+};
+
+/** Composition root: parses bindings, then wires the OAuth service. */
+export function createApiDependencies(env: unknown): ApiDependencies {
+  const config: ApiConfig = parseApiConfig(env);
+  return {
+    provider: config.GOOGLE_ACCESS_TOKEN
+      ? createGoogleProviderClient({ accessToken: config.GOOGLE_ACCESS_TOKEN })
+      : undefined,
+    oauth: new GoogleOAuthService({
+      clientId: config.GOOGLE_CLIENT_ID,
+      clientSecret: config.GOOGLE_CLIENT_SECRET,
+      redirectUri: config.GOOGLE_REDIRECT_URI,
+      tokenStore: new FileOAuthTokenStore(config.GOOGLE_OAUTH_TOKEN_PATH),
+    }),
+    webOrigin: config.WEB_ORIGIN,
+  };
+}
 
 export async function handleRequest(
   request: Request,
-  provider?: GoogleProviderClient,
-  oauth: GoogleOAuthService = oauthService,
+  dependencies: ApiDependencies,
 ): Promise<Response> {
+  const { oauth, provider, webOrigin } = dependencies;
   const url = new URL(request.url);
 
   if (request.method === "GET" && url.pathname === "/health") {
@@ -88,10 +105,7 @@ export async function handleRequest(
       );
     try {
       await oauth.completeAuthorization(code, state);
-      return Response.redirect(
-        process.env.WEB_ORIGIN ?? "http://localhost:5173/?oauth=success",
-        302,
-      );
+      return Response.redirect(webOrigin, 302);
     } catch (error) {
       return Response.json(
         {
@@ -152,11 +166,7 @@ export async function handleRequest(
           );
         }
 
-        if (
-          !provider &&
-          !oauth.hasAccessToken() &&
-          !process.env.GOOGLE_ACCESS_TOKEN
-        ) {
+        if (!provider && !oauth.hasAccessToken()) {
           let authorizationUrl: string;
           try {
             authorizationUrl = oauth.startAuthorization();
@@ -177,14 +187,7 @@ export async function handleRequest(
           );
         }
 
-        return exportDocument(
-          document,
-          provider ??
-            (process.env.GOOGLE_ACCESS_TOKEN
-              ? defaultProvider
-              : oauth.provider()),
-          assets,
-        )
+        return exportDocument(document, provider ?? oauth.provider(), assets)
           .then((result) => Response.json(result))
           .catch((error: unknown) =>
             Response.json(
@@ -207,8 +210,26 @@ export async function handleRequest(
 }
 
 if (import.meta.main) {
+  const port = Number(process.env.PORT ?? 3000);
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error(
+      `PORT must be a positive integer, received '${process.env.PORT}'.`,
+    );
+  }
+
+  // Development-only localhost defaults. They live in the Bun host, not in the
+  // request handler, so a deployed Worker can never fall back to them.
+  const dependencies = createApiDependencies({
+    ...process.env,
+    GOOGLE_REDIRECT_URI:
+      process.env.GOOGLE_REDIRECT_URI ||
+      `http://localhost:${port}/api/auth/google/callback`,
+    WEB_ORIGIN:
+      process.env.WEB_ORIGIN || "http://localhost:5173/?oauth=success",
+  });
+
   Bun.serve({
-    fetch: (request) => handleRequest(request),
+    fetch: (request) => handleRequest(request, dependencies),
     port,
   });
 
