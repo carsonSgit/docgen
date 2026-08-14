@@ -25,7 +25,7 @@ const oauth = new GoogleOAuthService({
   clientSecret,
   redirectUri,
 });
-const authorizationUrl = oauth.startAuthorization();
+const authorizationUrl = await oauth.startAuthorization();
 
 console.log(
   "Open this URL in a browser and authorize the test Google account:",

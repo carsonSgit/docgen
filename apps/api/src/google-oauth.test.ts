@@ -21,7 +21,7 @@ describe("Google OAuth service", () => {
       stateFactory: () => "state-1",
     });
 
-    const authorizationUrl = oauth.startAuthorization();
+    const authorizationUrl = await oauth.startAuthorization();
     expect(authorizationUrl).toContain("client_id=client");
     expect(authorizationUrl).toContain("documents");
     await oauth.completeAuthorization("code", "state-1");
@@ -70,7 +70,7 @@ describe("Google OAuth service", () => {
     });
 
     await expect(oauth.hasAccessToken()).resolves.toBe(true);
-    oauth.startAuthorization();
+    await oauth.startAuthorization();
     await oauth.completeAuthorization("code", "state-1");
     expect(tokenStore.save).toHaveBeenCalledWith({
       accessToken: "fresh-token",
