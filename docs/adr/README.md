@@ -25,10 +25,11 @@ were renumbered during the public documentation pass.
 | [0017](0017-use-a-vite-react-spa.md) | Use a Vite React SPA |
 | [0018](0018-isolate-editor-and-integration-boundaries.md) | Isolate editor and integration boundaries |
 | [0019](0019-use-fixture-and-browser-verification.md) | Verify with fixtures and browser tests |
-| [0020](0020-run-the-playground-locally-first.md) | Run locally first |
+| [0020](0020-run-the-playground-locally-first.md) | Run locally first (amended by 0027) |
 | [0021](0021-define-lexical-document-envelope-mapping.md) | Define the editor-to-document mapping |
 | [0022](0022-define-image-lifecycle-and-layout-semantics.md) | Define image lifecycle and layout |
 | [0023](0023-measured-pagination-and-canonical-cursors.md) | Use measured layout and canonical cursors |
 | [0024](0024-reserve-document-node-extension-boundary.md) | Reserve the node extension boundary |
 | [0025](0025-canonical-render-metrics.md) | Define canonical render metrics |
 | [0026](0026-repeat-and-measure-document-sections.md) | Repeat measured document sections |
+| [0027](0027-deploy-to-cloudflare-workers.md) | Deploy to Cloudflare Workers |
