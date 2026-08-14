@@ -60,7 +60,6 @@ function collectImageIds(document: DocumentEnvelope): string[] {
   return imageIds;
 }
 
-/** Validate content and local assets before authorization or provider writes. */
 export function preflightExport(
   document: DocumentEnvelope,
   assets: ReadonlyMap<string, ExportImageAsset> = new Map(),

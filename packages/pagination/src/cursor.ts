@@ -1,7 +1,6 @@
 import type { DocumentEnvelope, TiptapNode } from "@document-playground/domain";
 import type { PaginatedDocument } from "./index";
 
-/** A cursor is a boundary in the canonical document stream, not a page offset. */
 export type CanonicalCursor = {
   offset: number;
 };

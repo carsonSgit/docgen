@@ -27,13 +27,11 @@ export const FOOTER_DISTANCE_POINTS =
   DEFAULT_RENDER_METRICS.headerFooter.footerDistancePoints;
 export const DOCUMENT_CONTENT_WIDTH_POINTS =
   DEFAULT_RENDER_METRICS.page.widthPoints - 72 - 72;
-/** List text starts at the same 27pt inset as the browser's 36px list padding. */
 export const LIST_INDENT_POINTS =
   DEFAULT_RENDER_METRICS.indentation.listStartPoints;
 export const LIST_MARKER_HANGING_POINTS =
   DEFAULT_RENDER_METRICS.indentation.listHangingPoints;
 
-/** Fixed-layout metrics shared by the browser renderer and Google compiler. */
 export const DOCUMENT_TYPOGRAPHY = DEFAULT_RENDER_METRICS.typography;
 
 const ImageAttributesSchema = z
@@ -96,7 +94,6 @@ export type UnsupportedDocumentNode = {
   nodeType: string;
 };
 
-/** Find the first node outside the current canonical vocabulary. */
 export function findUnsupportedDocumentNode(
   node: unknown,
   path: string,
@@ -402,7 +399,6 @@ export function createDocumentFromTemplate(
 }
 export type DocumentSection = z.infer<typeof DocumentSectionSchema>;
 
-/** A section with no renderable nodes is equivalent to an absent section. */
 export function isEmptyDocumentSection(
   section: DocumentSection | null | undefined,
 ): boolean {
@@ -436,7 +432,6 @@ export function validateImageDimensions(width: number, height: number): void {
   ImageAttributesSchema.shape.height.parse(height);
 }
 
-/** Choose the initial rendered size from intrinsic point dimensions. */
 export function fitImageToWidth(
   intrinsicWidthPoints: number,
   intrinsicHeightPoints: number,
@@ -453,7 +448,6 @@ export function fitImageToWidth(
   };
 }
 
-/** Resize an existing rendered image while preserving its aspect ratio. */
 export function resizeImageDimensions(
   current: ImageRenderDimensions,
   requestedWidth: number,
