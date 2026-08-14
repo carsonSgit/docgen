@@ -45,6 +45,20 @@ jobs:
           git checkout --detach "$release_sha"
           echo "sha=$release_sha" >> "$GITHUB_OUTPUT"
 
+      - name: Verify manual dispatch passed CI
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          conclusion="$(gh api \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&status=completed&per_page=20" \
+            --jq '.workflow_runs[] | select(.head_sha == env.RELEASE_SHA) | .conclusion' | head -n 1)"
+          if [[ "$conclusion" != "success" ]]; then
+            echo "CI has not passed for $RELEASE_SHA; refusing to release."
+            exit 1
+          fi
+
       - name: Resolve version range
         id: range
         run: |
