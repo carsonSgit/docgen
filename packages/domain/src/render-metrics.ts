@@ -175,7 +175,6 @@ const partialMetricsSchema = z
 
 export type RenderMetricsOverrides = z.input<typeof partialMetricsSchema>;
 
-/** Normalize at an external boundary; omitted values inherit from defaults. */
 export function normalizeRenderMetrics(input: unknown = {}): RenderMetrics {
   const value = partialMetricsSchema.parse(input);
   const headings = { ...DEFAULT_RENDER_METRICS.typography.headings } as Record<
@@ -229,7 +228,6 @@ export function normalizeRenderMetrics(input: unknown = {}): RenderMetrics {
   return result as RenderMetrics;
 }
 
-/** Node attributes override the inherited contract only at their boundary. */
 export function resolveNodeRenderMetrics(
   metrics: RenderMetrics,
   attrs?: Record<string, unknown>,
