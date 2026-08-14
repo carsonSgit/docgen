@@ -23,7 +23,7 @@ jobs:
   release:
     if: >-
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
-      (github.event_name == 'workflow_dispatch' && inputs.confirm == true)
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.confirm == true)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
