@@ -1,0 +1,468 @@
+/* Marketing styles for Document Playground */
+
+:root {
+  /* Paper/Ink Foundation */
+  --color-body-bg: #fafaf9; /* stone-50 */
+  --color-surface: #ffffff; /* white */
+  --color-text-primary: #1c1917; /* stone-900 */
+  --color-text-secondary: #57534e; /* stone-600 */
+  --color-text-tertiary: #78716c; /* stone-500 */
+
+  /* Green Accent Palette */
+  --color-primary: #059669; /* emerald-600 */
+  --color-primary-hover: #047857; /* emerald-700 */
+  --color-primary-light: #10b981; /* emerald-500 */
+  --color-accent-bg: #d1fae5; /* emerald-100 */
+  --color-accent-bg-soft: #ecfdf5; /* emerald-50 */
+  --color-sage-disabled: #dcfce7; /* green-100 */
+  --color-sage-inactive: #bbf7d0; /* green-200 */
+
+  /* Borders and Dividers */
+  --color-border: #e7e5e4; /* stone-200 */
+  --color-border-subtle: #f5f5f4; /* stone-100 */
+  --color-divider: #d6d3d1; /* stone-300 */
+  --color-border-hover: #a7f3d0; /* emerald-300 */
+  --color-focus-ring: #10b981; /* emerald-500 */
+
+  /* Spacing (8px base unit) */
+  --spacing-xs: 0.25rem; /* 4px */
+  --spacing-sm: 0.5rem; /* 8px */
+  --spacing-md: 0.75rem; /* 12px */
+  --spacing-base: 1rem; /* 16px */
+  --spacing-lg: 1.5rem; /* 24px */
+  --spacing-xl: 2rem; /* 32px */
+  --spacing-2xl: 3rem; /* 48px */
+  --spacing-3xl: 4rem; /* 64px */
+
+  /* Radii */
+  --radius-sm: 0.375rem; /* 6px */
+  --radius-md: 0.75rem; /* 12px */
+  --radius-lg: 1rem; /* 16px */
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-card-hover:
+    0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-button: 0 2px 4px 0 rgb(0 0 0 / 0.08);
+
+  /* Durations */
+  --duration-instant: 100ms;
+  --duration-quick: 150ms;
+  --duration-standard: 200ms;
+  --duration-comfortable: 300ms;
+  --duration-deliberate: 400ms;
+
+  /* Typography */
+  --font-sans:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+}
+
+/* Base marketing layout styles */
+.marketing-page {
+  background: var(--color-body-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.1ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.1ms;
+    transition-delay: 0ms;
+  }
+
+  /* Disable transform-based motion */
+  .marketing-card:hover,
+  .marketing-button:hover,
+  .marketing-hero-visual {
+    transform: none;
+  }
+
+  /* Keep opacity transitions but reduce duration */
+  .fade-in {
+    transition: opacity 100ms ease-out;
+  }
+}
+
+/* Marketing button styles */
+.marketing-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-quick) ease-out,
+    border-color var(--duration-quick) ease-out,
+    color var(--duration-quick) ease-out,
+    box-shadow var(--duration-quick) ease-out,
+    transform var(--duration-quick) ease-out;
+  text-decoration: none;
+}
+
+.marketing-button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.marketing-button-primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.marketing-button-primary:hover {
+  background: var(--color-primary-hover);
+  box-shadow: var(--shadow-button);
+  transform: scale(1.02);
+}
+
+.marketing-button-primary:active {
+  transform: scale(0.98);
+}
+
+.marketing-button-secondary {
+  background: transparent;
+  color: var(--color-primary-hover);
+  border-color: var(--color-border);
+}
+
+.marketing-button-secondary:hover {
+  background: #f0fdf4; /* green-50 */
+  border-color: var(--color-border-hover);
+}
+
+.marketing-button-ghost {
+  background: transparent;
+  color: var(--color-primary-hover);
+}
+
+.marketing-button-ghost:hover {
+  background: #f0fdf4;
+}
+
+.marketing-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--color-sage-disabled);
+}
+
+/* Marketing card styles */
+.marketing-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-card);
+  transition:
+    box-shadow var(--duration-standard) ease-out,
+    transform var(--duration-standard) ease-out,
+    border-color var(--duration-standard) ease-out;
+}
+
+.marketing-card-hoverable:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-4px);
+  border-color: var(--color-border-hover);
+}
+
+.marketing-card-hoverable:focus-within {
+  border-color: var(--color-focus-ring);
+  outline: none;
+}
+
+/* Marketing section styles */
+.marketing-section {
+  width: 100%;
+  padding: var(--spacing-xl) var(--spacing-base);
+}
+
+.marketing-section-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.marketing-section-heading {
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xl);
+}
+
+/* Hero section styles */
+.marketing-hero {
+  padding: var(--spacing-3xl) var(--spacing-base);
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+}
+
+.marketing-hero-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-2xl);
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .marketing-hero-container {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.marketing-hero-content {
+  animation: fade-in var(--duration-comfortable) ease-out;
+}
+
+.marketing-hero-heading {
+  font-size: clamp(2.25rem, 4vw, 3rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.marketing-hero-subheading {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-xl);
+}
+
+.marketing-hero-cta {
+  display: flex;
+  gap: var(--spacing-base);
+  flex-wrap: wrap;
+}
+
+.marketing-hero-visual {
+  animation: fade-in var(--duration-comfortable) ease-out 150ms both;
+}
+
+/* Navigation styles */
+.marketing-nav {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--spacing-base) var(--spacing-base);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.marketing-nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.marketing-nav-logo {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.marketing-nav-links {
+  display: flex;
+  gap: var(--spacing-lg);
+  align-items: center;
+}
+
+.marketing-nav-link {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  transition: color var(--duration-quick) ease-out;
+}
+
+.marketing-nav-link:hover {
+  color: var(--color-primary);
+}
+
+/* Product preview styles */
+.product-preview {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-card-hover);
+  position: relative;
+  overflow: hidden;
+}
+
+.product-preview-page {
+  background: white;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-xl);
+  min-height: 400px;
+  box-shadow: 0 2px 4px 0 rgb(0 0 0 / 0.05);
+  position: relative;
+}
+
+.product-preview-content {
+  font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+}
+
+.product-preview-content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-base);
+}
+
+.product-preview-content p {
+  margin-bottom: var(--spacing-base);
+}
+
+.product-preview-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--color-accent-bg-soft);
+  color: var(--color-primary-hover);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: var(--spacing-base);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.product-preview-status-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--color-primary);
+  border-radius: 50%;
+}
+
+/* Footer styles */
+.marketing-footer {
+  background: #f5f5f4; /* stone-100 */
+  padding: var(--spacing-xl) var(--spacing-base);
+  margin-top: var(--spacing-3xl);
+}
+
+.marketing-footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.marketing-footer-content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-lg);
+}
+
+@media (min-width: 768px) {
+  .marketing-footer-content {
+    grid-template-columns: 2fr 1fr;
+    align-items: center;
+  }
+}
+
+.marketing-footer-info {
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.marketing-footer-name {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.marketing-footer-links {
+  display: flex;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.marketing-footer-link {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: 0.8125rem;
+  transition: color var(--duration-quick) ease-out;
+}
+
+.marketing-footer-link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+/* Animation utilities */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.fade-in {
+  animation: fade-in var(--duration-comfortable) ease-out;
+}
+
+/* Accessibility utilities */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Responsive utilities */
+@media (max-width: 639px) {
+  .marketing-hero {
+    padding: var(--spacing-xl) var(--spacing-base);
+    min-height: auto;
+  }
+
+  .marketing-section {
+    padding: var(--spacing-lg) var(--spacing-base);
+  }
+
+  .marketing-hero-heading {
+    font-size: 2.25rem;
+  }
+}
