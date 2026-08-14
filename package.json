@@ -19,6 +19,7 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "knip": "knip",
+    "verify:worker-assets": "bun run build && bun run scripts/verify-worker-assets.ts",
     "verify:history": "bash scripts/verify-history-identity.sh",
     "verify:google": "bun run scripts/verify-google-export.ts",
     "verify:google:oauth": "bun run scripts/verify-google-oauth.ts",
