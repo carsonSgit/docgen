@@ -77,3 +77,28 @@ jobs:
           fi
           echo "version=$next_version" >> "$GITHUB_OUTPUT"
           echo "Release version: $next_version"
+
+      - name: Check for an existing release
+        if: steps.version.outputs.version != ''
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$RELEASE_VERSION" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release v$RELEASE_VERSION already exists."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create annotated tag
+        if: steps.version.outputs.version != '' && steps.existing.outputs.exists != 'true'
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          tag="v$RELEASE_VERSION"
+          if ! git rev-parse --verify --quiet "refs/tags/$tag"; then
+            git tag --annotate "$tag" --message "Release $tag" "$GITHUB_SHA"
+            git push origin "$tag"
+          fi
