@@ -14,7 +14,13 @@ function parseVersion(version: string): [number, number, number] {
 }
 
 export function releaseLevel(commits: string[]): ReleaseLevel | null {
-  if (commits.some((commit) => /BREAKING CHANGE|BREAKING-CHANGE/.test(commit))) {
+  if (
+    commits.some(
+      (commit) =>
+        /BREAKING CHANGE|BREAKING-CHANGE/.test(commit) ||
+        /^(?:feat|fix)(?:\([^)]*\))?!:/.test(commit),
+    )
+  ) {
     return "major";
   }
   if (commits.some((commit) => /^feat(?:\([^)]*\))?!?:/.test(commit))) {
