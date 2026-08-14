@@ -91,7 +91,7 @@ test("captures the Core Editor Slice with deterministic local assertions", async
     },
     { document: fixture, assetBase64: assetBytes.toString("base64") },
   );
-  await page.goto("/");
+  await page.goto("/playground");
   await expect(page.getByLabel("Document title")).toHaveValue(fixture.title);
   await expect(page.locator(".page")).toHaveCount(manifest.expected.pageCount);
   await expect(
@@ -348,7 +348,7 @@ test("reserves browser list indentation during pagination", async ({
       }),
     );
   });
-  await page.goto("/");
+  await page.goto("/playground");
   await expect(page.getByLabel("Document title")).toHaveValue("List wrap");
   await expect(page.locator(".page")).toHaveCount(2);
   await expect
@@ -422,7 +422,7 @@ test("accounts for nested list indentation when paginating wrapped items", async
       }),
     );
   });
-  await page.goto("/");
+  await page.goto("/playground");
 
   await expect(page.getByLabel("Document title")).toHaveValue(
     "Nested list wrap",
@@ -481,7 +481,7 @@ test("splits an oversized list item across pages like native pagination", async 
       }),
     );
   });
-  await page.goto("/");
+  await page.goto("/playground");
   await expect(page.getByLabel("Document title")).toHaveValue("Long list item");
   await expect.poll(() => page.locator(".page").count()).toBeGreaterThan(1);
   await expect
@@ -556,7 +556,7 @@ test("keeps a list item with nested content within the page body", async ({
       }),
     );
   });
-  await page.goto("/");
+  await page.goto("/playground");
   await expect(page.getByLabel("Document title")).toHaveValue(
     "Nested oversized item",
   );
@@ -633,7 +633,7 @@ test("continues ordered-list numbering across paginated editor pages", async ({
     );
   });
 
-  await page.goto("/");
+  await page.goto("/playground");
   await expect.poll(() => page.locator(".page").count()).toBeGreaterThan(1);
   await expect(
     page.locator(".page ol").filter({ hasText: "Second item" }),
