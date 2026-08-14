@@ -16,6 +16,15 @@ Start with the [documentation index](docs/README.md) for the architecture, devel
 
 ## Quick start
 
+For the optional real Google Export verification setup, run the interactive
+[Google setup wizard](scripts/setup.sh) from the repository root. It walks
+through Google Cloud and OAuth configuration and writes the local `.env`
+without requiring manual editing:
+
+```sh
+bash scripts/setup.sh
+```
+
 ```sh
 bun install
 bun run dev
@@ -41,8 +50,8 @@ Copy `.env.example` to `.env` when local configuration is needed. The API accept
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | unset |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | unset |
 | `GOOGLE_REDIRECT_URI` | OAuth callback URL | `http://localhost:3000/api/auth/google/callback` |
+| `GOOGLE_VERIFY_REDIRECT_URI` | OAuth verification callback URL | `http://localhost:3001/oauth/callback` |
 | `GOOGLE_ACCESS_TOKEN` | Optional short-lived token for provider verification | unset |
-| `GOOGLE_OAUTH_TOKEN_PATH` | Local OAuth token file | `.data/google-oauth-token.json` |
 
 Google Export is optional. Normal development and automated tests use a provider boundary and do not require credentials. For real export verification, create a Google Cloud project, enable the Google Docs API, configure a test OAuth user, and grant only the `documents` and `drive.file` scopes. Keep credentials on the API server; never put them in the browser bundle or commit them.
 
