@@ -6,7 +6,7 @@ The project is intentionally narrow: it manages one Local Document in the browse
 
 ## Documentation
 
-Start with the [documentation index](docs/README.md) for the architecture, development workflow, public design decisions, and the optional [real Google Export verification guide](docs/google-export.md).
+Start with the [documentation index](docs/README.md) for the architecture, development workflow, [Cloudflare deployment](docs/deployment.md), public design decisions, and the optional [real Google Export verification guide](docs/google-export.md).
 
 ## Requirements
 

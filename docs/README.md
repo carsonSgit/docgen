@@ -7,6 +7,8 @@ decisions and workflows needed to understand, run, and verify the project.
 
 - [Architecture](architecture.md) — application boundaries and data flow.
 - [Development](development.md) — local setup, checks, and deterministic tests.
+- [Cloudflare deployment](deployment.md) — Worker, Access, KV, OAuth, and
+  production configuration.
 - [Google Export](google-export.md) — optional credentialed verification without
   putting secrets in the browser or repository.
 - [Releases](releases.md) — versioning policy, automation, and recovery.
