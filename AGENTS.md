@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build the smallest production-quality implementation of the Document Playground described by the [ADR set](./docs/adr/) and [GitHub issues](https://github.com/carsonSgit/docgen/issues). Prefer readable code, explicit boundaries, and independently reviewable pull requests over breadth or cleverness.
+Build the smallest production-quality implementation of the Document Playground described by [CONTEXT.md](./CONTEXT.md) and [GitHub issues](https://github.com/carsonSgit/docgen/issues). Prefer readable code, explicit boundaries, and independently reviewable pull requests over breadth or cleverness.
 
 ## Stack
 
@@ -59,4 +59,4 @@ Use the default canonical triage labels: `needs-triage`, `needs-info`, `ready-fo
 
 ### Domain docs
 
-This is a single-context repository using root `CONTEXT.md` and `docs/adr/`. See `docs/agents/domain.md`.
+This is a single-context repository using root `CONTEXT.md`. Public documentation is being rebuilt under follow-up issue #187; see `docs/agents/domain.md` in the local agent workspace when available.
