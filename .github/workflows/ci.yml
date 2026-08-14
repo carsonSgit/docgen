@@ -49,5 +49,9 @@ jobs:
       - run: bun run test
       - run: bun run knip
       - run: bun run build
+      # Validate the production Worker bundle and bindings without deploying.
+      # Cloudflare Git integration owns the actual production deployment; CI
+      # must never create a second deployment trigger.
+      - run: bunx wrangler deploy --dry-run
       - run: bunx playwright install --with-deps chromium
       - run: bun run test:e2e
